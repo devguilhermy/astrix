@@ -545,3 +545,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 The word "QR Code" is a registered trademark of DENSO WAVE INCORPORATED.
+
+==================== NASA GMAT sample inputs ====================
+
+The GMAT tools page offers five unmodified sample inputs as import examples:
+Tut_SimulatingAnOrbit.script, Ex_HohmannTransfer.script, Ex_MarsOrbit.script,
+Ex_OEMPropagation.script and SampleOEMEphem.oem.
+Source: https://github.com/nasa/GMAT (application/samples and application/data/vehicle/ephem/ccsds)
+Licence: Apache-2.0. The GMAT runtime is not bundled. NASA does not endorse this product.

@@ -12,7 +12,7 @@ import { useTurnAuthority } from './authority';
 import { exportGame, exportText, parseSave, readSave, recordAttempt, writeSave, type AttemptRecord, type SavedGame, type SaveIssue } from './persistence';
 import { usePlayCopy } from './copy';
 import { labelText } from '../missions/definitionView';
-import { readPlayView, type PlayView } from '../recovery/routes';
+import { readLocationView, viewUrl, type PlayView } from '../recovery/routes';
 import { Journal } from './Journal';
 import { SolarWelcome } from './SolarWelcome';
 import { MissionResources } from './MissionResources';
@@ -31,20 +31,20 @@ function readPreferences():Preferences {
 }
 export function PlayApp({remote=false,guest=false,onLobby,onLanding,onLearn,basePath='/'}:{remote?:boolean;guest?:boolean;onLobby?:()=>void;onLanding?:()=>void;onLearn?:()=>void;basePath?:string}) {
   const c=usePlayCopy(),{t,i18n}=useTranslation(),authority=useTurnAuthority(remote),room=useRoomSession(),game=authority.game;
-  const [view,setView]=useState<View>(()=>remote?'explore':readPlayView(location.hash)),[destination,setDestination]=useState<BodyId>('EARTH'),[config,setConfig]=useState<QuickDesignConfig>(()=>defaultQuickDesign()),[preferences,setPreferences]=useState(readPreferences);
+  const [view,setView]=useState<View>(()=>remote?'explore':readLocationView(location.pathname,location.hash,basePath)),[destination,setDestination]=useState<BodyId>('EARTH'),[config,setConfig]=useState<QuickDesignConfig>(()=>defaultQuickDesign()),[preferences,setPreferences]=useState(readPreferences);
   const [saved,setSaved]=useState<SavedGame|null>(null),[journal,setJournal]=useState<readonly AttemptRecord[]>([]),[saveIssue,setSaveIssue]=useState<SaveIssue|null>(null),[allowReplace,setAllowReplace]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(''),[importError,setImportError]=useState('');
   const [panelsOpen,setPanelsOpen]=useState(true);
   const [replacement,setReplacement]=useState<Replacement|null>(null);
   const replacementRef=useRef<Replacement|null>(null);
   const candidate=useMemo(()=>{if(view!=='prepare')return null;try{return quickDesignBrief(config).design;}catch{return null;}},[config,view]);
   const journalRef=useRef(journal),lastBoundary=useRef<TurnGameState|null>(null),previousGame=useRef<TurnGameState|null>(null),operation=useRef(false),heading=useRef<HTMLElement>(null),lastGame=useRef(game);journalRef.current=journal;
-  const navigate=useCallback((next:View)=>{setView(next);setError('');if(!remote)history.pushState(null,'',`${basePath}#${next}`);},[remote,basePath]);
+  const navigate=useCallback((next:View)=>{setView(next);setError('');if(!remote)history.pushState(null,'',viewUrl(next,basePath));},[remote,basePath]);
   useEffect(()=>{document.documentElement.lang=i18n.resolvedLanguage??'en';},[i18n.resolvedLanguage]);
   useEffect(()=>{document.documentElement.dataset.reducedMotion=String(preferences.reducedMotion);},[preferences.reducedMotion]);
   useEffect(()=>{replacementRef.current=null;setReplacement(null);document.querySelector<HTMLDetailsElement>('.play-menu')?.removeAttribute('open');},[view]);
-  useEffect(()=>{if((onLanding||onLearn)&&(!location.hash||location.hash==='#home'||location.hash==='#learn'))return;setPanelsOpen(true);document.title=`${c(view==='solar'?'solarTitle':view==='explore'?'home':view==='prepare'?'designPlay':view === 'play' ? 'titlePlay' : view==='gmat'?'tools':view==='journal'?'journal':'help')} — ASTRIX11`;const frame=requestAnimationFrame(()=>heading.current?.focus());return()=>cancelAnimationFrame(frame);},[view,i18n.resolvedLanguage]);
+  useEffect(()=>{if(view!=='gmat'&&(onLanding||onLearn)&&(!location.hash||location.hash==='#home'||location.hash==='#learn'))return;setPanelsOpen(true);document.title=`${c(view==='solar'?'solarTitle':view==='explore'?'home':view==='prepare'?'designPlay':view === 'play' ? 'titlePlay' : view==='gmat'?'tools':view==='journal'?'journal':'help')} — ASTRIX11`;const frame=requestAnimationFrame(()=>heading.current?.focus());return()=>cancelAnimationFrame(frame);},[view,i18n.resolvedLanguage]);
   useEffect(()=>{if(remote)return;const timer=window.setTimeout(()=>{const next=readSave();setSaved(next);setJournal(next.document?.journal??[]);previousGame.current=next.document?.game??null;},0);return()=>clearTimeout(timer);},[remote]);
-  useEffect(()=>{if(remote)return;const route=()=>setView(readPlayView(location.hash));window.addEventListener('hashchange',route);window.addEventListener('popstate',route);return()=>{window.removeEventListener('hashchange',route);window.removeEventListener('popstate',route);};},[remote]);
+  useEffect(()=>{if(remote)return;const route=()=>setView(readLocationView(location.pathname,location.hash,basePath));window.addEventListener('hashchange',route);window.addEventListener('popstate',route);return()=>{window.removeEventListener('hashchange',route);window.removeEventListener('popstate',route);};},[remote,basePath]);
   useEffect(()=>{
     if(!game||lastBoundary.current===game)return;
     lastBoundary.current=game;

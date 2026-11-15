@@ -9,6 +9,11 @@ export type ExportBuild =
 
 export const SPACECRAFT = 'Astrix';
 export const defaultDraft: ExportDraft = { body: 'EARTH', epochUTC: '2024-05-01T00:00:00.000Z', sma: '7000', ecc: '0.01', inc: '51.6', raan: '73', aop: '116', ta: '205' };
+/** The Moon has no GMAT frame in this interchange, so a lunar orbit falls back to the default Earth draft. */
+export function draftFromOrbit(orbit: OrbitChoice): ExportDraft {
+  if (orbit.body === 'MOON') return defaultDraft;
+  return { body: orbit.body, epochUTC: orbit.epochUTC, sma: String(orbit.smaKm), ecc: String(orbit.ecc), inc: String(orbit.inclinationDeg), raan: String(orbit.raanDeg), aop: String(orbit.argPeriapsisDeg), ta: String(orbit.trueAnomalyDeg) };
+}
 
 function number(label: string, text: string): number {
   if (!text.trim()) throw new Error(`${label} is required`);

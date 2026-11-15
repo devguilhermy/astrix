@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { BatteryCharging, Camera, Check, CornerDownLeft, Eye, Flag, ListChecks, Navigation, Orbit, Radio, Rocket, Square, Target, Wrench, type LucideIcon } from 'lucide-react';
-import { telemetry, turnDecision, turnDebrief, type TurnGameState, type TurnPlanKind, type TurnReceipt, type TurnResult } from '@astrix/core';
+import { Check, Eye, ListChecks, Target } from 'lucide-react';
+import { telemetry, turnDecision, turnDebrief, type TurnGameState, type TurnResult } from '@astrix/core';
 import type { SessionState } from '@astrix/session';
 import { labelText, objectiveTarget } from '../missions/definitionView';
 import { Duration, Evidence, FlightContext, ScienceLibrary } from './Evidence';
 import { attemptRecord, comparable, type AttemptRecord } from './persistence';
 import { usePlayCopy } from './copy';
 import { ScienceConnection } from './ScienceConnection';
-const planIcons:Record<TurnPlanKind,LucideIcon>={LAUNCH:Rocket,MANEUVER:Navigation,COAST:Orbit,OBSERVE:Camera,TRANSMIT:Radio,RECHARGE:BatteryCharging,RECOVER:Wrench,CAPTURE:Target,RETURN:CornerDownLeft,FINISH:Flag,ABORT:Square};
+import { Comparison } from './Comparison';
+import { Receipt } from './Receipt';
+import { planIcons } from './planIcons';
 
 export function TurnWorkspace({game,onCommit,onInspectPlan,onCheckpoint,onRetry,onRedesign,onTools,busy,disabled,host,proposals=[],roster=[],journal,hints}:{game:TurnGameState;onCommit:(planId:string)=>void;onInspectPlan?:()=>void;onCheckpoint:()=>void;onRetry:()=>void;onRedesign:()=>void;onTools:()=>void;busy:boolean;disabled:boolean;host:boolean;proposals?:SessionState['turnProposals'];roster?:SessionState['roster'];journal:readonly AttemptRecord[];hints:boolean}) {
   const c=usePlayCopy(),{t,i18n}=useTranslation(),decision=useMemo(()=>turnDecision(game),[game]),current=useMemo(()=>telemetry(game.sim),[game]);
@@ -64,17 +66,6 @@ export function TurnWorkspace({game,onCommit,onInspectPlan,onCheckpoint,onRetry,
   </section>;
 }
 
-function Receipt({receipt,definition,preview=false}:{receipt:TurnReceipt;definition:TurnGameState['design']['definition'];preview?:boolean}) {
-  const c=usePlayCopy(),{t,i18n}=useTranslation(),number=new Intl.NumberFormat(i18n.resolvedLanguage,{maximumFractionDigits:2,signDisplay:'exceptZero'});
-  let interruption:TurnReceipt['events'][number]|undefined;
-  if(receipt.interrupted)for(let index=receipt.events.length-1;index>=0;index--)if(receipt.events[index].autoPause){interruption=receipt.events[index];break;}
-  return <div className="turn-receipt"><p><strong>{c(receipt.boundary)}</strong> · <Duration seconds={receipt.elapsedSec}/></p>{receipt.interrupted&&<p className="danger-text">{c('interrupted')}</p>}<dl><dt>{c('fuel')}</dt><dd>{number.format(receipt.delta.fuelKg)} kg</dd><dt>{c('energy')}</dt><dd>{number.format(receipt.delta.energyWh)} Wh</dd><dt>{c('stored')}</dt><dd>{number.format(receipt.delta.storedMB)} MB</dd><dt>{c('data')}</dt><dd>{number.format(receipt.delta.deliveredMB)} MB</dd></dl>
-    <p>{c(receipt.summary)}</p>
-    {interruption&&<p className="danger-text"><strong>{t(`event.${interruption.kind}.title`,{...interruption.values,defaultValue:t(`failure.${interruption.kind}.title`,{defaultValue:interruption.kind})})}</strong> {t(`event.${interruption.kind}.body`,{...interruption.values,defaultValue:''})}</p>}
-    {!preview&&<><Evidence items={receipt.evidence} definition={definition}/><p className="muted">{c('receiptNote')}</p></>}
-    <details><summary>{c('details')}</summary>{receipt.events.length>0&&<ul className="receipt-events">{receipt.events.slice(-8).map((event,index)=><li key={`${event.kind}-${event.t}-${index}`}><strong>{t(`event.${event.kind}.title`,{...event.values,defaultValue:t(`failure.${event.kind}.title`,{defaultValue:event.kind})})}</strong><p>{t(`event.${event.kind}.body`,{...event.values,defaultValue:''})}</p></li>)}</ul>}<p>{c('actualDuration')}: <Duration seconds={receipt.elapsedSec}/></p><p>{receipt.id}</p></details>
-  </div>;
-}
 function ImminentWarnings({game}:{game:TurnGameState}) {
   const {i18n}=useTranslation(),pt=i18n.resolvedLanguage?.startsWith('pt'),t=telemetry(game.sim),warnings:string[]=[];
   if(t.capacityWh>0&&t.socWh/t.capacityWh<=.2)warnings.push(pt?'A reserva de energia está baixa; uma perda de energia pode encerrar a operação.':'Energy reserve is low; loss of power can end operations.');
@@ -97,9 +88,4 @@ function Debrief({game,journal,onRetry,onRedesign,onTools,disabled}:{game:TurnGa
     <div className="debrief-actions"><button className="button primary" onClick={onRedesign} disabled={disabled}>{c('redesign')}</button><button className="button" onClick={onRetry} disabled={disabled}>{c('retry')}</button><button className="text-button" onClick={onTools}>{c('tools')}</button></div>
     <details><summary>{c('receipt')} ({result.receipts.length})</summary>{result.receipts.map(receipt=><section key={receipt.id}><Receipt receipt={receipt} definition={game.design.definition}/></section>)}</details>
   </section>;
-}
-export function Comparison({previous,current}:{previous:AttemptRecord;current:AttemptRecord}) {
-  const c=usePlayCopy(),{i18n}=useTranslation(),number=new Intl.NumberFormat(i18n.resolvedLanguage,{maximumFractionDigits:2});
-  const rows:[string,string,string][]=[['kit',c(previous.config.kit),c(current.config.kit)],['ambition',c(previous.config.ambition),c(current.config.ambition)],['approach',c(previous.config.approach),c(current.config.approach)],['fuel',`${number.format(previous.fuelKg)} kg`,`${number.format(current.fuelKg)} kg`],['energy',`${number.format(previous.energyWh)} Wh`,`${number.format(current.energyWh)} Wh`],['data',`${number.format(previous.deliveredMB)} MB`,`${number.format(current.deliveredMB)} MB`]];
-  return <div className="comparison-table"><table><thead><tr><th scope="col">{c('constraints')}</th><th scope="col">{c('previous')}</th><th scope="col">{c('current')}</th></tr></thead><tbody>{rows.map(([key,a,b])=><tr key={key}><th scope="row">{c(key)}</th><td>{a}</td><td>{b}</td></tr>)}<tr><th scope="row">{c('elapsed')}</th><td><Duration seconds={previous.elapsedSec}/></td><td><Duration seconds={current.elapsedSec}/></td></tr><tr><th scope="row">{c('progress')}</th><td>{c(previous.outcome==='SUCCESS'?'success':'failure')}{previous.assisted&&` · ${c('assisted')}`}</td><td>{c(current.outcome==='SUCCESS'?'success':'failure')}{current.assisted&&` · ${c('assisted')}`}</td></tr></tbody></table></div>;
 }

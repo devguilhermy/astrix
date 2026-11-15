@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CONSTANTS, type OrbitChoice } from '@astrix/core';
-import { exportInitialOrbit, sampleTrajectory, type Trajectory } from '@astrix/core/interop/gmat';
+import { type OrbitChoice, CONSTANTS } from '@astrix/core';
+import { sampleTrajectory, type Trajectory } from '@astrix/core/interop/gmat';
 import { advancedCopy } from './copy';
+import { gmatExamples } from './examples';
 import { usePlayCopy } from '../play/copy';
+import { ExportPanel } from '../gmat/ExportPanel';
 
 function portugueseError(message:string):string {
   if(/Moon|Luna|MOON/.test(message))return 'Estados centrados na Lua não são suportados neste intercâmbio.';
@@ -17,7 +19,7 @@ function portugueseError(message:string):string {
 /** Scientific interchange is independent of the gameplay renderer and never awards evidence. */
 export function AdvancedTools({initialOrbit,onPrepare}:{initialOrbit?:OrbitChoice|null;onPrepare?:(orbit:OrbitChoice)=>void}) {
   const {i18n}=useTranslation(),c=advancedCopy[i18n.resolvedLanguage?.startsWith('pt')?'pt':'en'],p=usePlayCopy(),pt=i18n.resolvedLanguage?.startsWith('pt');
-  const [kind,setKind]=useState<'oem'|'report'|'script'>('oem'),[object,setObject]=useState(''),[file,setFile]=useState<File|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[result,setResult]=useState<Trajectory|OrbitChoice|null>(null),[viewing,setViewing]=useState(false);
+  const [kind,setKind]=useState<'oem'|'report'|'script'>('oem'),[object,setObject]=useState(''),[file,setFile]=useState<File|null>(null),[example,setExample]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[result,setResult]=useState<Trajectory|OrbitChoice|null>(null),[viewing,setViewing]=useState(false);
   const worker=useRef<Worker|null>(null);
   useEffect(()=>()=>{worker.current?.terminate();},[]);
   const clear=()=>{worker.current?.terminate();worker.current=null;setBusy(false);setResult(null);setViewing(false);setError('');};
@@ -32,23 +34,33 @@ export function AdvancedTools({initialOrbit,onPrepare}:{initialOrbit?:OrbitChoic
     }catch{setBusy(false);setError(c.worker);}
   };
   const orbit=result&&'smaKm'in result?result:null,trajectory=result&&'segments'in result?result:null;
-  const download=()=>{
-    if(!initialOrbit)return;
-    try{const url=URL.createObjectURL(new Blob([exportInitialOrbit(initialOrbit)],{type:'text/plain'})),link=document.createElement('a');link.href=url;link.download='astrix-initial-state.script';link.click();window.setTimeout(()=>URL.revokeObjectURL(url),1000);}catch(cause){setError(cause instanceof Error?cause.message:String(cause));}
+  const chooseExample=async(name:string)=>{
+    clear();setExample(name);
+    const chosen=gmatExamples.find(item=>item.file===name);
+    if(!chosen){setFile(null);return;}
+    setKind(chosen.kind);setObject(chosen.object);setFile(null);
+    try{
+      const response=await fetch(`${import.meta.env.BASE_URL}gmat-examples/${chosen.file}`);
+      if(!response.ok)throw new Error(String(response.status));
+      setFile(new File([await response.blob()],chosen.file,{type:'text/plain'}));
+    }catch{setError(pt?'Não foi possível carregar o exemplo.':'Could not load the example.');}
   };
+  const chosenExample=gmatExamples.find(item=>item.file===example);
   return <section className="gmat-tools" aria-label={p('tools')}><h1>{p('tools')}</h1><p>{c.warning}</p><p>{pt?'Quadros EarthMJ2000Eq/MarsMJ2000Eq nos estados iniciais; OEM EME2000, UTC, km e km/s. Lua não suportada. Nenhum script é executado.':'Initial states use EarthMJ2000Eq/MarsMJ2000Eq; OEM uses EME2000, UTC, km and km/s. Moon interchange is unsupported. Uploaded scripts are never executed.'}</p>
-    <div className="play-form"><label>{c.format}<select value={kind} onChange={event=>{clear();setKind(event.target.value as typeof kind);}}><option value="oem">CCSDS OEM 2.0 KVN</option><option value="report">GMAT ReportFile</option><option value="script">GMAT initial-state script</option></select></label>
+    <div className="play-form"><label>{pt?'Exemplo da NASA':'NASA example'}<select value={example} onChange={event=>void chooseExample(event.target.value)}><option value="">{pt?'Escolher um exemplo…':'Choose an example…'}</option>{gmatExamples.map(item=><option key={item.file} value={item.file}>{item.file}</option>)}</select>{chosenExample&&<small className="muted">{pt?chosenExample.pt:chosenExample.en}</small>}</label>
+      <label>{c.format}<select value={kind} onChange={event=>{clear();setExample('');setKind(event.target.value as typeof kind);}}><option value="oem">CCSDS OEM 2.0 KVN</option><option value="report">GMAT ReportFile</option><option value="script">GMAT initial-state script</option></select></label>
       {kind!=='oem'&&<label>{c.object}<input value={object} onChange={event=>{clear();setObject(event.target.value);}}/></label>}
-      <label>{c.file}<input type="file" accept=".txt,.oem,.script,text/plain" onChange={event=>{clear();setFile(event.target.files?.[0]??null);}}/></label>
-      <div className="button-wrap"><button className="button primary" disabled={busy||!file} onClick={inspect}>{c.parse}</button>{busy&&<button className="button" onClick={clear}>{c.cancel}</button>}{initialOrbit&&<button className="button" onClick={download}>{c.export}</button>}</div>
+      <label>{c.file}<input key={example} type="file" accept=".txt,.oem,.script,text/plain" onChange={event=>{clear();setExample('');setFile(event.target.files?.[0]??null);}}/></label>
+      <div className="button-wrap"><button className="button primary" disabled={busy||!file} onClick={inspect}>{c.parse}</button>{busy&&<button className="button" onClick={clear}>{c.cancel}</button>}</div>
     </div>
     {busy&&<p role="status">{pt?'Inspecionando arquivo…':'Inspecting file…'}</p>}
     {error&&<div role="alert" className="play-notice danger"><p>{pt?portugueseError(error):error}</p>{pt&&<details><summary>{c.detail}</summary><p lang="en">{error}</p></details>}</div>}
     {orbit&&<section className="play-section"><h2>{c.preview}</h2><p>{orbit.body} · {orbit.frame} · {orbit.epochUTC}</p><dl><dt>SMA</dt><dd>{orbit.smaKm} km</dd><dt>e</dt><dd>{orbit.ecc}</dd><dt>i</dt><dd>{orbit.inclinationDeg}°</dd><dt>RAAN / AOP / TA</dt><dd>{orbit.raanDeg}° / {orbit.argPeriapsisDeg}° / {orbit.trueAnomalyDeg}°</dd></dl>
-      <p>{pt?'Importar abre uma nova preparação compatível. A órbita precisa passar nos limites do catálogo e na referência; ela não substitui um voo em andamento.':'Import opens a new compatible preparation. The orbit must pass catalogue constraints and a reference flight; it never replaces an active flight.'}</p>
+      {onPrepare&&<p>{pt?'Importar abre uma nova preparação compatível. A órbita precisa passar nos limites do catálogo e na referência; ela não substitui um voo em andamento.':'Import opens a new compatible preparation. The orbit must pass catalogue constraints and a reference flight; it never replaces an active flight.'}</p>}
       {onPrepare&&<button className="button primary" onClick={()=>onPrepare(orbit)}>{pt?'Preparar nova missão com este estado':'Prepare a new mission with this state'}</button>}
     </section>}
     {trajectory&&<section className="play-section"><h2>{c.preview}</h2><p>{trajectory.source} · {trajectory.object} · {trajectory.body} · {trajectory.frame} · {trajectory.timeSystem} · {trajectory.units}</p><p>{trajectory.segments.length} {c.segments} · {trajectory.segments.reduce((sum,segment)=>sum+segment.samples.length,0)} {c.samples}</p><button className="button" onClick={()=>setViewing(!viewing)}>{viewing?p('close'):c.viewer}</button>{viewing&&<TrajectoryView trajectory={trajectory}/>}</section>}
+    <ExportPanel initial={initialOrbit}/>
   </section>;
 }
 

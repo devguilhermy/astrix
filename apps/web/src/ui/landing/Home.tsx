@@ -12,11 +12,11 @@ const copy = {
 };
 
 /** Public landing stays separate from the persistent simulator canvas. */
-export function Home({onEnter,onLearn}:{onEnter:()=>void;onLearn:()=>void}) {
+export function Home({onEnter,onLearn,onGmat}:{onEnter:()=>void;onLearn:()=>void;onGmat:()=>void}) {
  const {t,i18n}=useTranslation(), c=copy[i18n.resolvedLanguage?.startsWith('pt')?'pt':'en'];
  useEffect(()=>{document.title='ASTRIX11';document.documentElement.lang=i18n.resolvedLanguage??'en';},[i18n.resolvedLanguage]);
  return <main className="home-screen">
-  <header className="home-top"><img className="home-brand" src={`${import.meta.env.BASE_URL}assets/logo.png`} width="512" height="426" alt="ASTRIX11"/><label>{c.language}<select value={i18n.resolvedLanguage?.startsWith('pt')?'pt-BR':'en'} onChange={event=>void i18n.changeLanguage(event.target.value)}><option value="en">English</option><option value="pt-BR">Português</option></select></label></header>
+  <header className="home-top"><img className="home-brand" src={`${import.meta.env.BASE_URL}assets/logo.png`} width="512" height="426" alt="ASTRIX11"/><div className="home-top-actions"><a className="home-tools-link" href={`${import.meta.env.BASE_URL}gmat`} onClick={event=>{if(event.metaKey||event.ctrlKey||event.shiftKey||event.button!==0)return;event.preventDefault();onGmat();}}>{i18n.resolvedLanguage?.startsWith('pt')?'Ferramentas GMAT':'GMAT tools'}</a><label>{c.language}<select value={i18n.resolvedLanguage?.startsWith('pt')?'pt-BR':'en'} onChange={event=>void i18n.changeLanguage(event.target.value)}><option value="en">English</option><option value="pt-BR">Português</option></select></label></div></header>
   <section className="home-hero"><div className="home-hero-copy"><h1 id="home-heading" tabIndex={-1}>{c.title}</h1><p>{c.intro}</p><button className="button primary" onClick={onEnter}>{c.enter}<ArrowUpRight size={22} aria-hidden="true"/></button><p className="home-recommendation">{c.first}</p></div><img className="home-hero-logo" src={`${import.meta.env.BASE_URL}assets/logo.png`} width="512" height="426" alt=""/></section>
   <section className="home-explainer"><h2>{c.how}</h2><ol className="home-journey">{c.steps.map((step,index)=><li key={step}><span aria-hidden="true">{index+1}</span><strong>{step}</strong></li>)}</ol><p>{c.story}</p></section>
   <section className="home-missions"><h2>{c.missions}</h2><div className="home-mission-grid">{listMissions({origin:'BUILTIN'}).map(mission=><article key={mission.id}><MissionIllustration mission={mission.id}/><h3>{labelText(t,mission.name)}</h3><p>{labelText(t,mission.description)}</p><p className="home-mission-objective">{labelText(t,mission.objectiveSummary)}</p></article>)}</div></section>

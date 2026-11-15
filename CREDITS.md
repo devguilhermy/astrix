@@ -15,7 +15,7 @@ The source owner authorized reuse of selected Void Protocol components. Only the
 | [Design and Develop Science Missions](https://www.nasa.gov/wp-content/uploads/2025/04/250323-design-and-develop-science-mission.pdf) | NASA | Mission phases and system disciplines; listed challenge resource |
 | [Concept Maturity Levels](https://dataverse.jpl.nasa.gov/dataset.xhtml?persistentId=hdl:2014/44299) | NASA/JPL | Design-stage terminology; listed challenge resource |
 | [Mission Design Lab](https://etd.gsfc.nasa.gov/capabilities/integrated-design-center/mission-design-lab/) | NASA Goddard | Collaborative discipline roles; listed challenge resource |
-| [GMAT](https://software.nasa.gov/software/GSC-19468-1) | NASA | Independent orbital reference run; listed challenge resource. Runtime Apache-2.0, used outside the repository, not bundled. See docs/research/gmat-validation.md |
+| [GMAT](https://software.nasa.gov/software/GSC-19468-1) | NASA | Independent orbital reference run; listed challenge resource. Runtime Apache-2.0, used outside the repository, not bundled; five unmodified sample inputs (Apache-2.0) are served as examples on the GMAT tools page. See docs/research/gmat-validation.md |
 | [Mission Viz](https://nasa.github.io/mission-viz/) | NASA | Orbit visualization reference; listed challenge resource, not copied assets |
 | [Build It Yourself: telescope game](https://science.nasa.gov/mission/webb/game-build-it-yourself/) | NASA | Design-and-review game precedent; listed challenge resource |
 | [Digital Games and Activities](https://www.asc-csa.gc.ca/eng/youth-educators/digital-games-and-activities.asp) | Canadian Space Agency | Educational game precedent and educator links; listed challenge resource |

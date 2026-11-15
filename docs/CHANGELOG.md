@@ -12,6 +12,7 @@ Shipped changes, newest first. Evidence for each entry is in [VERIFICATION.md](.
 - Added local decision-boundary saves, explicit invalid-save/write-failure handling and a discovery/debrief loop.
 - Protocol 3: controllers propose, the host commits; removed the production host flight clock. Stale/duplicate commitments, reconnect and idle-time behavior have dedicated regression coverage.
 - Retained optional GMAT initial-state interchange and sampled-trajectory inspection outside the normal play loop.
+- Added a standalone `/gmat` page for GMAT import (OEM, ReportFile, initial-state script) and initial-condition export with a same-parser round-trip check.
 - Restored the separate landing, followed by free solar-system exploration before mission selection; retained persistent 3D with bounded contextual panels and always-visible plan toggles/commit.
 - Updated the visible brand to ASTRIX11 with the supplied logo and blue/orange palette, preserving package names and saved-state identifiers.
 - Expanded attributed planetary textures and explicit schematic-scale/source disclosures; exploration-only planets do not imply unsupported missions.

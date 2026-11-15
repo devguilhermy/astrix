@@ -9,3 +9,5 @@ await cp(resolve(root, 'docs'), resolve(target, 'docs'), { recursive: true });
 for (const name of ['LICENSE', 'CREDITS.md', 'THIRD_PARTY_NOTICES.txt']) {
   await cp(resolve(root, name), resolve(target, name));
 }
+// Unmodified NASA GMAT sample inputs (Apache-2.0) offered as examples on the GMAT tools page.
+await cp(resolve(root, 'scripts/fixtures/gmat/nasa-samples'), resolve(target, 'gmat-examples'), { recursive: true });

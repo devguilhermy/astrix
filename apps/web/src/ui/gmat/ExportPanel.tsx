@@ -1,18 +1,17 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AdvancedTools } from '../advanced/AdvancedTools';
-import { buildExport, defaultDraft, type ExportBody, type ExportDraft } from './exportModel';
-import '../play/play.css';
+import type { OrbitChoice } from '@astrix/core';
+import { buildExport, defaultDraft, draftFromOrbit, type ExportBody, type ExportDraft } from './exportModel';
 import './gmat.css';
 
 const copy = {
   en: {
-    back: 'Back to ASTRIX11', title: 'Export initial conditions', intro: 'Writes a GMAT script with one spacecraft, a UTCGregorian epoch and a Keplerian state. No force model, maneuver or propagation is included.',
+    title: 'Export initial conditions', intro: 'Writes a GMAT script with one spacecraft, a UTCGregorian epoch and a Keplerian state. No force model, maneuver or propagation is included.',
     body: 'Central body', epoch: 'Epoch (UTC)', periapsis: 'Periapsis altitude', apoapsis: 'Apoapsis altitude', script: 'GMAT script', download: 'Download script',
     exact: 'Re-imported through the same parser: every element matches exactly.', mismatch: 'Re-imported through the same parser: elements differ. Do not use this file.', invalid: 'Cannot export',
   },
   pt: {
-    back: 'Voltar ao ASTRIX11', title: 'Exportar condições iniciais', intro: 'Gera um script GMAT com uma espaçonave, época UTCGregorian e estado kepleriano. Sem modelo de forças, manobras ou propagação.',
+    title: 'Exportar condições iniciais', intro: 'Gera um script GMAT com uma espaçonave, época UTCGregorian e estado kepleriano. Sem modelo de forças, manobras ou propagação.',
     body: 'Corpo central', epoch: 'Época (UTC)', periapsis: 'Altitude do periapse', apoapsis: 'Altitude do apoapse', script: 'Script GMAT', download: 'Baixar script',
     exact: 'Reimportado pelo mesmo leitor: todos os elementos coincidem exatamente.', mismatch: 'Reimportado pelo mesmo leitor: os elementos diferem. Não use este arquivo.', invalid: 'Não é possível exportar',
   },
@@ -23,9 +22,10 @@ const fields: { key: keyof Omit<ExportDraft, 'body' | 'epochUTC'>; label: string
   { key: 'raan', label: 'RAAN', unit: '°' }, { key: 'aop', label: 'AOP', unit: '°' }, { key: 'ta', label: 'TA', unit: '°' },
 ];
 
-function ExportPanel() {
+/** Starts from the active design's orbit when there is one. */
+export function ExportPanel({ initial }: { initial?: OrbitChoice | null }) {
   const { i18n } = useTranslation(), c = copy[i18n.resolvedLanguage?.startsWith('pt') ? 'pt' : 'en'];
-  const [draft, setDraft] = useState<ExportDraft>(defaultDraft);
+  const [draft, setDraft] = useState<ExportDraft>(() => initial ? draftFromOrbit(initial) : defaultDraft);
   const built = useMemo(() => buildExport(draft), [draft]);
   const set = (patch: Partial<ExportDraft>) => setDraft(value => ({ ...value, ...patch }));
   const download = () => {
@@ -51,15 +51,4 @@ function ExportPanel() {
       </>
       : <div role="alert" className="play-notice danger"><p><strong>{c.invalid}:</strong> {built.error}</p></div>}
   </section>;
-}
-
-/** Standalone GMAT interchange: import and export only, no game state. */
-export function GmatPage({ basePath = '/' }: { basePath?: string }) {
-  const { i18n } = useTranslation(), c = copy[i18n.resolvedLanguage?.startsWith('pt') ? 'pt' : 'en'];
-  useEffect(() => { document.title = 'GMAT interchange · ASTRIX11'; }, []);
-  return <main className="gmat-page">
-    <a className="gmat-back" href={basePath}>{c.back}</a>
-    <AdvancedTools/>
-    <ExportPanel/>
-  </main>;
 }

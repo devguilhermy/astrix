@@ -3,6 +3,8 @@
 .home-top { display:flex; justify-content:space-between; align-items:center; gap:1rem; min-height:80px; padding-bottom:1rem; border-bottom:1px solid #345473; }
 .home-brand { width:108px; height:auto; padding:7px; background:#d6e9f5; border-radius:8px; }
 .home-top label { display:flex; align-items:center; gap:.6rem; color:#b9cee3; }
+.home-top-actions { display:flex; align-items:center; gap:1.5rem; }
+.home-tools-link { font-weight:600; padding:.5rem 0; }
 .home-hero { display:grid; grid-template-columns:minmax(0,1fr) minmax(260px,.82fr); align-items:center; gap:clamp(1rem,4vw,4rem); min-height:460px; padding:1rem 0 3.2rem; border-bottom:1px solid #345473; }
 .home-hero-copy { display:grid; justify-items:start; gap:1.2rem; min-width:0; }
 .home-hero h1 { font-size:clamp(2.65rem,5.6vw,5.4rem); font-weight:700; font-style:italic; text-transform:uppercase; letter-spacing:-.035em; line-height:.98; text-wrap:balance; }
