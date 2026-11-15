@@ -73,9 +73,9 @@ test('gameplay device rate and per-player note rate are enforced independently',
 });
 test('host-only continuation revokes phones, transfers ownership and preserves the attempt',async()=>{
  const{room,credential,host}=await fixture();await send(room,host,intent(room,'start-host-only',{ kind: 'START_MISSION', missionId: 'FIRST_LIGHT', levelId: 'ASPIRING' }));
- room.admin(credential,'unlock');settle(room);const pair=await admit(room,credential,host,'Controller');await send(room,host,{type:'ASSIGN_ROLE',id:'phone-science',role:'SCIENCE',playerId:pair.pendingDeviceId,rosterRevision:room.state.rosterRevision});
+ const pair=await admit(room,credential,host,'Controller');await send(room,host,{type:'ASSIGN_ROLE',id:'phone-science',role:'SCIENCE',playerId:pair.pendingDeviceId,rosterRevision:room.state.rosterRevision});
  const design=room.state.design,attempt=room.state.attemptId;room.admin(credential,'host-only');settle(room);
- expect(room.state.design).toBe(design);expect(room.state.attemptId).toBe(attempt);expect(room.state.running).toBe(false);expect(room.state.roster.find(p=>p.id==='host')?.roles).toHaveLength(4);expect(room.lobby(credential).devices).toHaveLength(1);expect(()=>room.mintTicket(pair.credential,'build')).toThrow('UNAUTHORIZED');expect(room.lobby(credential).locked).toBe(true);
+ expect(room.state.design).toBe(design);expect(room.state.attemptId).toBe(attempt);expect(room.state.running).toBe(false);expect(room.state.roster.find(p=>p.id==='host')?.roles).toHaveLength(4);expect(room.lobby(credential).devices).toHaveLength(1);expect(()=>room.mintTicket(pair.credential,'build')).toThrow('UNAUTHORIZED');expect(room.lobby(credential).locked).toBe(true);expect(room.lobby(credential).admissionOpen).toBe(false);
 });
 test('malformed definitions preserve the room and credentials for a subsequent valid start',async()=>{
  const{room,host,credential}=await fixture();
@@ -127,4 +127,46 @@ test('turn multiplayer preserves host authority, duplicate receipts and reconnec
  expect(welcome?.type==='WELCOME'&&welcome.snapshot.game?.revision).toBe(resolved.revision);
  expect(room.authenticate(pair.credential).id).toBe(pair.pendingDeviceId);
  expect(room.state.game).toBe(resolved);
+});
+test('player count caps join and admit; lowering below admitted devices is refused',async()=>{
+ const{room,credential,host}=await fixture();
+ room.players(credential,2);settle(room);
+ expect(room.state.seats).toBe(2);expect(room.state.participantMode).toBe('TEAM');expect(room.lobby(credential).seats).toBe(2);
+ await admit(room,credential,host,'First');
+ const lobby=room.lobby(credential);
+ expect(lobby.admissionOpen).toBe(false);expect(()=>room.join(lobby.token,lobby.roomId,'Second')).toThrow('ROOM_FULL');
+ room.players(credential,3);settle(room);const second=room.join(lobby.token,lobby.roomId,'Second'),third=room.join(lobby.token,lobby.roomId,'Third');
+ await send(room,host,{type:'ADMIT',id:'admit-second',pendingDeviceId:second.pendingDeviceId,playerId:second.pendingDeviceId});
+ await send(room,host,{type:'ADMIT',id:'admit-third',pendingDeviceId:third.pendingDeviceId,playerId:third.pendingDeviceId});
+ expect(host.messages.some(m=>m.type==='RESULT'&&m.id==='admit-third'&&!m.ok&&m.refusal.code==='ROOM_FULL')).toBe(true);
+ expect(room.lobby(credential).devices).toHaveLength(3);expect(room.pairing(third.credential).status).toBe('pending');
+ expect(()=>room.players(credential,2)).toThrow('ROOM_FULL');expect(()=>room.players(credential,1)).toThrow('ROOM_FULL');settle(room);expect(room.state.seats).toBe(3);
+ const solo=await fixture();solo.room.players(solo.credential,1);settle(solo.room);
+ const soloLobby=solo.room.lobby(solo.credential);expect(solo.room.state.participantMode).toBe('SOLO');expect(soloLobby.admissionOpen).toBe(false);expect(()=>solo.room.join(soloLobby.token,soloLobby.roomId,'Phone')).toThrow('ROOM_FULL');
+});
+test('START_GAME keeps admission open: a late phone gets a role share and the current game revision',async()=>{
+ const{room,credential,host}=await fixture();room.players(credential,3);settle(room);
+ await send(room,host,intent(room,'quick-design',{kind:'START_GAME',config:defaultQuickDesign('FIRST_SIGNAL','ASPIRING')}));
+ const opening=room.state.game!,decision=turnDecision(opening),plan=decision.plans.find(p=>p.recommended)??decision.plans[0];
+ await send(room,host,intent(room,'host-commit',{kind:'COMMIT_TURN',decisionId:decision.id,turnRevision:decision.revision,planId:plan.id}));
+ expect(room.state.game!.revision).toBe(opening.revision+1);expect(room.lobby(credential).locked).toBe(false);expect(room.lobby(credential).admissionOpen).toBe(true);
+ const pair=await admit(room,credential,host,'Late');
+ expect(room.state.roster.find(p=>p.id===pair.pendingDeviceId)?.roles).toEqual(['SPACECRAFT']);expect(room.state.roster.find(p=>p.id==='host')?.roles).toEqual(['SCIENCE','LAUNCH_ORBIT','GROUND_COMMS']);
+ const phone=new TestPeer();room.attach(pair.pendingDeviceId,phone);
+ await send(room,phone,{type:'HELLO',protocol:PROTOCOL_VERSION,buildId:'build',lastSeq:0},pair.pendingDeviceId);
+ const welcome=phone.messages.find(m=>m.type==='WELCOME');
+ expect(welcome?.type==='WELCOME'&&welcome.snapshot.game?.revision).toBe(room.state.game!.revision);expect(welcome?.type==='WELCOME'&&welcome.snapshot.seats).toBe(3);
+});
+test('admission auto-closes when full and reopens after a kick; the replacement takes the released share',async()=>{
+ const{room,credential,host}=await fixture();room.players(credential,2);settle(room);
+ const first=await admit(room,credential,host,'First'),lobby=room.lobby(credential);
+ expect(room.state.roster.find(p=>p.id===first.pendingDeviceId)?.roles).toEqual(['SPACECRAFT','GROUND_COMMS']);
+ expect(lobby.admissionOpen).toBe(false);expect(()=>room.join(lobby.token,lobby.roomId,'Second')).toThrow('ROOM_FULL');
+ await send(room,host,{type:'KICK',id:'kick',deviceId:first.pendingDeviceId});
+ expect(room.lobby(credential).admissionOpen).toBe(true);
+ const second=await admit(room,credential,host,'Second');
+ expect(room.lobby(credential).devices).toHaveLength(2);expect(room.lobby(credential).admissionOpen).toBe(false);
+ expect(room.state.roster.find(p=>p.id===second.pendingDeviceId)?.roles).toEqual(['SPACECRAFT','GROUND_COMMS']);expect(room.state.roster.some(p=>p.id===first.pendingDeviceId)).toBe(false);
+ await send(room,host,{type:'KICK',id:'kick-second',deviceId:second.pendingDeviceId});room.admin(credential,'lock');settle(room);
+ expect(room.lobby(credential).admissionOpen).toBe(false);expect(()=>room.join(lobby.token,lobby.roomId,'Third')).toThrow('JOIN_LOCKED');
 });

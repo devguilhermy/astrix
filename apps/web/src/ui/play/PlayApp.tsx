@@ -13,6 +13,8 @@ import { clearStoredSaves, exportGame, exportText, parseSave, readLegacy, readVi
 import { usePlayCopy } from './copy';
 import { isSciencePath, readLocationView, scienceUrl, viewUrl, type PlayView } from '../recovery/routes';
 import { inApp } from '../landing/SiteHeader';
+import { InviteControl } from '../multiplayer/Invitation';
+import { PartyControls, PartyLine } from '../multiplayer/PlayerCount';
 import { Journal } from './Journal';
 import { SolarWelcome } from './SolarWelcome';
 import { MissionResources } from './MissionResources';
@@ -22,6 +24,7 @@ import { LevelToggle } from './LevelToggle';
 import { turnMoments } from './turnMoments';
 import { SolarBodyPanel } from './solar/SolarBodyPanel';
 import type { SolarBodyId } from '../../three/SolarSystemScene';
+import '../header/header.css';
 import './play.css';
 
 const AppCanvas=lazy(()=>import('../../three/AppCanvas').then(module=>({default:module.AppCanvas})));
@@ -59,10 +62,12 @@ export function PlayApp({remote=false,guest=false,onLobby,onLanding,onLearn,onSc
     lastBoundary.current=game;
     if(turnDecision(game).terminal)updateJournal(recordAttempt(journalRef.current,game));
   },[game]);
+  // LAN: a new game opens the mission; phones (late joiners included, whose WELCOME already carries it) never wait on the board.
   useEffect(()=>{
-    if(!remote)return;
-    if(game&&game!==lastGame.current){if(!lastGame.current||game.revision===0||view==='explore')setView('play');lastGame.current=game;}
-  },[game,remote,view]);
+    if(!remote||!game)return;
+    const previous=lastGame.current;lastGame.current=game;
+    if(guest&&view==='explore'||game!==previous&&(!previous||game.revision===0||view==='explore'))setView('play');
+  },[game,remote,guest,view]);
   useEffect(()=>{if(error||authority.unknown||authority.result&&!authority.result.ok||game?.receipts.at(-1)?.interrupted)setPanelsOpen(true);},[error,authority.unknown,authority.result,game?.revision]);
   const setPreference=(key:keyof Preferences,value:boolean)=>{const next={...preferences,[key]:value};setPreferences(next);try{const prior=JSON.parse(localStorage.getItem('astrix.settings')??'{}');delete prior.context;localStorage.setItem('astrix.settings',JSON.stringify({...prior,...next}));}catch{/* Preferences do not affect authority. */}};
   const archive=()=>{if(game)updateJournal(recordAttempt(journalRef.current,game));};
@@ -116,9 +121,10 @@ export function PlayApp({remote=false,guest=false,onLobby,onLanding,onLearn,onSc
   const errorCode=error??'';
   const focusContent=()=>{setPanelsOpen(true);requestAnimationFrame(()=>heading.current?.focus());};
   const saveStatus=remote?c('lanSave'):c('notSaved');
-  return <div className="play-app" data-resources={showResources}><a className="play-skip" href="#play-main" onClick={event=>{event.preventDefault();focusContent();}}>{t('ui.skipToContent',{defaultValue:i18n.resolvedLanguage?.startsWith('pt')?'Ir ao conteúdo':'Skip to content'})}</a><header className="play-header"><button className="play-brand" onClick={()=>onLanding?onLanding():navigate('explore')} aria-label={`ASTRIX11 · ${c(onLanding?'landing':'home')}`}><img src={`${import.meta.env?.BASE_URL??'./'}assets/logo.png`} alt="ASTRIX11"/></button><nav className="play-top-nav" aria-label={c('menu')}><button className={view==='solar'?'active':''} onClick={()=>navigate('solar')}><Compass size={17} aria-hidden="true"/>{c('explore')}</button>{game&&<button className={view==='play'?'active':''} onClick={()=>navigate('play')}><Rocket size={17} aria-hidden="true"/>{c('returnToMission')}</button>}<button className={view==='journal'?'active':''} onClick={()=>navigate('journal')}><BookOpen size={17} aria-hidden="true"/>{c('journal')}</button></nav><div className="play-header-actions">
+  return <div className="play-app" data-resources={showResources}><a className="play-skip" href="#play-main" onClick={event=>{event.preventDefault();focusContent();}}>{t('ui.skipToContent',{defaultValue:i18n.resolvedLanguage?.startsWith('pt')?'Ir ao conteúdo':'Skip to content'})}</a><header className="site-header"><button className="site-brand" onClick={()=>onLanding?onLanding():navigate('explore')} aria-label={`ASTRIX11 · ${c(onLanding?'landing':'home')}`}><img src={`${import.meta.env?.BASE_URL??'./'}assets/logo.png`} alt="ASTRIX11"/></button><nav className="site-nav" aria-label={c('menu')}><button className={view==='solar'?'active':''} onClick={()=>navigate('solar')}><Compass size={17} aria-hidden="true"/>{c('explore')}</button>{game&&<button className={view==='play'?'active':''} onClick={()=>navigate('play')}><Rocket size={17} aria-hidden="true"/>{c('returnToMission')}</button>}<button className={view==='journal'?'active':''} onClick={()=>navigate('journal')}><BookOpen size={17} aria-hidden="true"/>{c('journal')}</button></nav><div className="site-header-actions">
     {view!=='solar'&&<button className="panel-visibility header-tool" aria-expanded={panelsOpen} aria-controls="play-main" onClick={()=>setPanelsOpen(open=>!open)}>{panelsOpen?<PanelLeftClose size={18} aria-hidden="true"/>:<PanelLeftOpen size={18} aria-hidden="true"/>}<span>{c(panelsOpen?'hidePanels':'showPanels')}</span></button>}
     <QuickTour view={view==='play'&&(!game||turnDecision(game).terminal)?'none':view} enabled={preferences.hints&&!guest&&!replacement} onReveal={()=>setPanelsOpen(true)}/>
+    {remote&&<InviteControl host={authority.host&&!guest}/>}
     <details className="save-chip" open={importError?true:undefined}><summary className="header-tool"><HardDrive size={17} aria-hidden="true"/><span>{c(remote?'lanSaveShort':'save')}</span></summary><div className="save-chip-popover"><p>{saveStatus}</p><div className="button-wrap">{!remote&&game&&<button className="text-button" onClick={()=>exportGame(game,journalRef.current)}>{c('export')}</button>}{!remote&&<label className="import-save-label">{c('importSave')}<input type="file" accept=".json,application/json" onChange={event=>{const file=event.target.files?.[0];if(file)void importFile(file);event.target.value='';}}/></label>}<button className="text-button" onClick={()=>navigate('gmat')}>{c('tools')}</button></div>{importError&&<p role="alert">{c('importFailure')} <small>{importError}</small></p>}</div></details>
     <button className="language-button" onClick={()=>void i18n.changeLanguage(i18n.resolvedLanguage?.startsWith('pt')?'en':'pt-BR')}>{i18n.resolvedLanguage?.startsWith('pt')?'English':'Português'}</button><details className="play-menu"><summary aria-label={c('menu')}><Menu size={22}/></summary><div><button className="mission-menu-link" onClick={()=>navigate('solar')}><Compass size={17} aria-hidden="true"/>{c('explore')}</button><button className="mission-menu-link" onClick={()=>navigate('journal')}><BookOpen size={17} aria-hidden="true"/>{c('journal')}</button><button onClick={()=>navigate('gmat')}><Wrench size={17} aria-hidden="true"/>{c('tools')}</button><button onClick={()=>navigate('help')}><CircleHelp size={17} aria-hidden="true"/>{c('help')}</button>{onLearn&&<button onClick={onLearn}><BookOpen size={17} aria-hidden="true"/>{c('designEssentials')}</button>}{onQuiz&&<button onClick={onQuiz}><GraduationCap size={17} aria-hidden="true"/>Quiz</button>}{onLobby&&<button onClick={onLobby}><Radio size={17} aria-hidden="true"/>{c(guest?'pairAgain':'lobby')}</button>}<a href={scienceUrl(undefined,basePath)} onClick={onScience&&inApp(onScience)}>{c('science')}</a></div></details></div></header>
     <Suspense fallback={<div className="immersive-scene" aria-busy="true"/>}><AppCanvas design={candidate} game={game} body={candidate?.orbit?.body??destination} view={view} reducedMotion={preferences.reducedMotion} onSelectDestination={body=>{setDestination(body);navigate('explore');}} moments={moments} selectedTurn={selectedTurn} onSelectTurn={setSelectedTurn} solarBody={solarBody} onSolarBody={setSolarBody}/></Suspense>
@@ -132,11 +138,11 @@ export function PlayApp({remote=false,guest=false,onLobby,onLanding,onLearn,onSc
       {!remote&&Object.keys(legacy).length>0&&view==='explore'&&<section className="legacy-work"><p>{c('legacy')}</p><button className="text-button" onClick={()=>exportText('astrix-legacy-work.json',JSON.stringify(legacy,null,2))}>{c('exportLegacy')}</button></section>}
       </div>
       {view==='solar'&&<SolarWelcome onMissions={()=>navigate('explore')}/>}
-      {view==='explore'&&<>{guest?<><h1>{c('mission')}</h1><p>{game?c('phoneNote'):c('pending')}</p>{game&&<button className="button primary" onClick={()=>navigate('play')}>{c('returnToMission')}</button>}</>:<>
+      {view==='explore'&&<>{guest?<><h1>{c('mission')}</h1><p>{game?c('phoneNote'):c('pending')}</p>{authority.state&&<PartyLine joined={authority.state.roster.filter(player=>player.connected).length} seats={authority.state.seats}/>}</>:<>
         <div className="board-filters"><fieldset><legend>{c('destination')}</legend><div className="destination-tabs">{(['SUN','EARTH','MOON','MARS'] as const).map(body=><button key={body} aria-pressed={destination===body} onClick={()=>setDestination(body)}>{c(body)}</button>)}</div></fieldset><LevelToggle value={config.levelId} onChange={levelId=>setConfig({...config,levelId})}/></div>
         <MissionBoard offers={offers} onChoose={offer=>{setConfig(offer.config);navigate('prepare');}} onDesign={()=>{setConfig(offers[0]?.config??defaultQuickDesign('FIRST_SIGNAL',config.levelId));navigate('prepare');}}/>
       </>}</>}
-      {view==='prepare'&&!guest&&<Preparation config={config} onChange={setConfig} onPlay={start} onBack={()=>navigate('explore')} disabled={!authority.connected} busy={working}/>}
+      {view==='prepare'&&!guest&&<Preparation config={config} onChange={setConfig} onPlay={start} onBack={()=>navigate('explore')} party={remote&&authority.host&&!game&&authority.state?<PartyControls seats={authority.state.seats} joined={authority.state.roster.filter(player=>player.connected).length} disabled={!authority.connected}/>:undefined} disabled={!authority.connected} busy={working}/>}
       {view==='play'&&game&&<TurnWorkspace game={game} onCommit={commit} onInspectPlan={()=>setPanelsOpen(true)} onCheckpoint={()=>retry(true)} onRetry={()=>retry()} onRedesign={()=>{archive();setConfig(game.config);navigate('prepare');}} onTools={()=>navigate('gmat')} busy={working} disabled={!authority.connected} host={authority.host} proposals={authority.state?.turnProposals} roster={authority.state?.roster} journal={journal} hints={preferences.hints} moments={moments} selectedTurn={selectedTurn} onSelectTurn={setSelectedTurn}/>}
       {view==='play'&&!game&&<section className="empty-state"><h1>{c('thinking')}</h1><p>{remote?c('pending'):c('intro')}</p><button className="button" onClick={()=>navigate('explore')}>{c('home')}</button></section>}
       {view === 'journal' && <Journal attempts={journal}/>}

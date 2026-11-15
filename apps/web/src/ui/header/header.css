@@ -1,0 +1,25 @@
+/* One header for the simulator and every public page: same bar, brand, tabs and language control. */
+.site-header { position:relative; z-index:20; height:56px; display:flex; align-items:center; justify-content:space-between; gap:.8rem; padding:.3rem max(1rem,env(safe-area-inset-right)) .3rem max(1rem,env(safe-area-inset-left)); border-bottom:1px solid #314b6c; background:#0c1823ed; color:#e3edf8; }
+.site-brand { display:inline-flex; align-items:center; flex:none; padding:0; min-height:44px; border-radius:6px; }
+.site-brand img { display:block; width:auto; height:40px; max-width:180px; object-fit:contain; padding:4px 8px; background:#dfedfb; border-radius:6px; }
+.site-nav,.site-header-actions { display:flex; align-items:center; gap:.8rem; }
+.site-nav>:is(a,button) { min-height:44px; padding:.4rem .5rem; display:flex; align-items:center; gap:.4rem; color:#b8cbd5; font-weight:inherit; text-decoration:none; white-space:nowrap; }
+.site-nav>:is(.active,[aria-current=page]) { color:#ffb767; box-shadow:0 2px 0 #f6a047; }
+.site-nav>:is(a,button):hover { color:#fff; }
+.site-header-actions { gap:.5rem; }
+.header-tool { pointer-events:auto; display:inline-flex; align-items:center; gap:.45rem; min-height:44px; padding:.4rem .7rem; background:#0c1b27f5; border:1px solid #49616e; border-radius:7px; color:#d7ecf0; font-size:.9rem; line-height:1.15; white-space:nowrap; cursor:pointer; }
+.header-tool:hover { background:#1a3541; }
+@media (max-width:900px) {
+  .site-header { height:auto; min-height:100px; flex-wrap:wrap; padding:.55rem .8rem; gap:.3rem .7rem; }
+  .site-brand img { max-width:140px; height:44px; }
+  .site-nav { order:3; width:100%; justify-content:space-between; gap:.25rem; }
+  .site-nav>:is(a,button) { flex:1; min-width:0; justify-content:center; text-align:center; font-size:.87rem; padding:.25rem; gap:.25rem; white-space:normal; line-height:1.15; }
+  .site-nav svg { display:none; }
+  .site-header-actions { gap:.4rem; }
+  .site-header .language-button { font-size:.82rem; min-height:44px; }
+}
+@media (max-width:480px) {
+  .site-header { padding:.4rem .5rem; }
+  .site-brand img { height:36px; }
+  .site-header-actions { gap:.25rem; }
+}

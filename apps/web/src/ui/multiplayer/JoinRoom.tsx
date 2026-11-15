@@ -5,6 +5,7 @@ import { roomApi, roomClient, connectSavedRoom, appBuildId } from '../../multipl
 import { saveCredential, useRoomSession } from '../../multiplayer/session';
 import { useLanCopy, useLanError } from './copy';
 import { Presence } from './Presence';
+import { PartyLine } from './PlayerCount';
 import './multiplayer.css';
 export function JoinRoom({onHome,mission}:{onHome:()=>void;mission:ReactNode}){
   const c=useLanCopy(),errorCopy=useLanError(),{t}=useTranslation(),room=useRoomSession();
@@ -28,7 +29,7 @@ export function JoinRoom({onHome,mission}:{onHome:()=>void;mission:ReactNode}){
     {unavailable&&<p role="status">{c(room.status==='version'?'version':room.status==='ended'?'ended':room.status==='replaced'?'replaced':'repair')}</p>}
     {Object.values(room.outcomes).includes('unknown')&&<p role="status">{c('unknown')}</p>}
     {pending?<p role="status">{c('waiting')}</p>:room.status==='local'||room.status==='repair'||room.status==='ended'?<form onSubmit={event=>{event.preventDefault();void join();}}><h2>{c('manual')}</h2><label>{c('room')}<input required value={roomId} maxLength={64} autoComplete="off" onChange={event=>setRoomId(event.target.value)}/></label><label>{c('token')}<input required value={token} maxLength={128} autoComplete="off" onChange={event=>setToken(event.target.value)}/></label><label>{c('name')}<input required value={name} maxLength={24} autoComplete="off" onChange={event=>setName(event.target.value)}/></label><button className="button primary" disabled={busy}>{c('pair')}</button></form>:null}
-    {room.status==='connected'&&me&&<><p>{c('consoleNote')}</p><p>{me.name} · {me.roles.map(role=>t(`role.${role}`)).join(', ')||c('assign')}</p><p>{c('waiting')}</p></>}
+    {room.status==='connected'&&me&&room.snapshot&&<><p>{c('consoleNote')}</p><p>{me.name} · {me.roles.map(role=>t(`role.${role}`)).join(', ')||c('assign')}</p><PartyLine joined={room.snapshot.roster.filter(player=>player.connected).length} seats={room.snapshot.seats}/><p role="status">{c('waitStart')}</p></>}
     {(room.status==='connecting'||room.status==='reconnecting')&&<button className="button" onClick={()=>roomClient().retryNow()}>{c('retry')}</button>}
     {unavailable&&<button className="button" onClick={()=>{roomClient().exit();saveCredential(null);setError(null);}}>{c('repair')}</button>}
     <p>{c('guide')}</p></div></main>;

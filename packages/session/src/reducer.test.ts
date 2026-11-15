@@ -160,3 +160,25 @@ describe('safety, role decisions and attribution',()=>{
   const s=flight(),snapshot=toPublicSnapshot(s);expect('rng'in snapshot.sim!).toBe(false);expect(forecastTimeline(snapshot.sim!,86400)).toEqual(forecastTimeline(s.sim!,86400));
  });
 });
+describe('party seats',()=>{
+ const host:SessionActor={role:'SCIENCE',playerId:'host',deviceId:'display',isHost:true};
+ const seated=(count:1|2|3|4)=>{const tx=reduceSession(createSession({mode:'LAN',participantMode:'TEAM',hostPlayerId:'host'}),{kind:'SET_SEATS',count},host);expect(tx.result.ok).toBe(true);return tx.state;};
+ const fill=(s:SessionState,phones:number)=>{for(let i=1;i<=phones;i++){const tx=reduceSession(s,{kind:'ADD_PLAYER',playerId:`phone-${i}`,name:`Phone ${i}`},host);expect(tx.result.ok).toBe(true);s=tx.state;}return s;};
+ const roles=(s:SessionState)=>Object.fromEntries(s.roster.map(p=>[p.id,p.roles]));
+ test('admitted phones take the SET_TEAM share for 2, 3 and 4 seats; the host keeps the remainder',()=>{
+  expect(roles(fill(seated(2),1))).toEqual({host:['SCIENCE','LAUNCH_ORBIT'],'phone-1':['SPACECRAFT','GROUND_COMMS']});
+  expect(roles(fill(seated(3),1))).toEqual({host:['SCIENCE','LAUNCH_ORBIT','GROUND_COMMS'],'phone-1':['SPACECRAFT']});
+  expect(roles(fill(seated(3),2))).toEqual({host:['SCIENCE','GROUND_COMMS'],'phone-1':['SPACECRAFT'],'phone-2':['LAUNCH_ORBIT']});
+  expect(roles(fill(seated(4),1))).toEqual({host:['SCIENCE','LAUNCH_ORBIT','GROUND_COMMS'],'phone-1':['SPACECRAFT']});
+  expect(roles(fill(seated(4),3))).toEqual({host:['SCIENCE'],'phone-1':['SPACECRAFT'],'phone-2':['LAUNCH_ORBIT'],'phone-3':['GROUND_COMMS']});
+  expect(reduceSession(fill(seated(2),1),{kind:'ADD_PLAYER',playerId:'extra',name:'Extra'},host).result).toMatchObject({ok:false,refusal:{code:'ROOM_FULL'}});
+ });
+ test('seats set the party mode and refuse invalid counts, guests and lowering below connected players',()=>{
+  expect(createSession({mode:'LAN',participantMode:'TEAM'}).seats).toBe(4);
+  expect(seated(1).participantMode).toBe('SOLO');expect(seated(3).participantMode).toBe('TEAM');expect(toPublicSnapshot(seated(3)).seats).toBe(3);
+  const full=fill(seated(3),2);
+  expect(reduceSession(full,{kind:'SET_SEATS',count:2},host).result).toMatchObject({ok:false,refusal:{code:'ROOM_FULL'}});
+  expect(reduceSession(full,{kind:'SET_SEATS',count:5 as 4},host).result).toMatchObject({ok:false,refusal:{code:'INVALID_PARAMETER'}});
+  expect(reduceSession(full,{kind:'SET_SEATS',count:4},{...host,isHost:false}).result).toMatchObject({ok:false,refusal:{code:'HOST_ONLY'}});
+ });
+});

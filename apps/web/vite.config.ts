@@ -6,6 +6,13 @@ import { resolve } from 'node:path';
 import { PROTOCOL_VERSION } from '../../packages/session/src/protocol';
 import { RULES_VERSION, FLIGHT_MODEL_VERSION } from '../../packages/core/src/index';
 
+// Crawlers need absolute preview URLs; the deploy origin is only known at build time.
+const siteUrl = process.env.ASTRIX_SITE_URL?.replace(/\/?$/, '/');
+// Vite rewrites root paths for `base: './'` first, so match either form.
+const linkPreviews = (html: string) => siteUrl
+  ? html.replace(/content="\.?\/assets\/og-banner\.png"/g, `content="${siteUrl}assets/og-banner.png"`).replace('<meta property="og:type"', `<meta property="og:url" content="${siteUrl}"/>\n  <meta property="og:type"`)
+  : html;
+
 export default defineConfig({
   plugins: [
     react(),
@@ -13,7 +20,7 @@ export default defineConfig({
     {
       name: 'astrix-static-recovery',
       transformIndexHtml(html, context) {
-        if (!context.filename.endsWith('/404.html')) return html;
+        if (!context.filename.endsWith('/404.html')) return linkPreviews(html);
         const styles = readFileSync(resolve(import.meta.dirname, 'src/startup.css'), 'utf8')
           + readFileSync(resolve(import.meta.dirname, 'src/ui/recovery/recovery.css'), 'utf8');
         // A self-contained error document also works when a host serves it at a missing nested URL.

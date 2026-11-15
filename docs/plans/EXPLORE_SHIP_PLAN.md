@@ -33,7 +33,7 @@ Each has a default so execution was not blocked. Change any of them at review.
 | E7 | Autopilot speed | The selected speed limit, so the player controls it | A fixed fast cruise: surprising next to the manual limit |
 | E8 | Target selection | A separate flight target (HUD select, or clicking a body while flying); it does not open the body dossier | Reuse the solar selection: on phones the dossier sheet would cover the flight pad |
 | E9 | Saturn's ring | Not solid; the ship may pass through the ring plane | Ring collision: an extra shape for an illustrative ring |
-| E10 | Persistence | None: every boarding starts at defaults (speed level 4 of 6, chase camera, drag steers, pad shown on coarse pointers) | Remember settings in `localStorage` |
+| E10 | Persistence | None: every boarding starts at defaults (speed level 4 of 6, chase camera, drag steers, on-screen controls shown on every device) | Remember settings in `localStorage` |
 
 ## 3. The experience
 
@@ -62,7 +62,7 @@ Each has a default so execution was not blocked. Change any of them at review.
 
 - Keys are read by `event.code`, so the layout is positional on AZERTY and other keyboards. Keys typed into a field or select stay with the field; Space and Enter on a focused button activate the button; modified shortcuts (Ctrl, Alt, Meta) are left to the browser. Held keys are released on window blur and when the tab is hidden.
 - Canvas drag uses one captured pointer (`setPointerCapture`), no pointer lock, mouse primary button, pen or the first finger. A second finger is ignored.
-- The on-screen pad: an analog steering pad (radial deadzone 0.12, full deflection at the rim) and press-and-hold buttons for thrust, reverse, brake and roll. Each hold button also holds while Space or Enter is held on it, so it works from the keyboard. The pad is shown by default on coarse pointers and can be toggled anywhere.
+- The on-screen pad: an analog steering pad (radial deadzone 0.12, full deflection at the rim) and press-and-hold buttons for thrust, reverse, brake and roll. Each hold button also holds while Space or Enter is held on it, so it works from the keyboard. The pad is shown by default on every device, can be hidden with the on-screen controls toggle, and is shown again on the next boarding.
 - Keyboard-only flight and touch-only flight are both complete: every action has a key, and every action has an on-screen control.
 
 ### 3.3 Camera

@@ -16,6 +16,8 @@ import { TELEMETRY_INTERVAL, buildTelemetry, telemetryDiffers } from './telemetr
 import { addScaled3, add3, copy3, length3, normalize3, rotate3, sub3, vec3, quatIdentity, type Quat, type Vec3 } from './vecMath';
 import { approachFactor } from '../camera/approach';
 import type { ExploreBody, ExploreTelemetry } from './index';
+import { createThrusters, sampleThrusters, stepThrusters, type ThrusterState } from './thrusterMath';
+import { ThrusterJets } from './ThrusterJets';
 
 /** Model metres to scene units. The SmallSat with deployed wings spans about 4.4 m, drawn 0.0066 units wide: enlarged, not to scale. */
 const SHIP_SCALE = .0015;
@@ -29,6 +31,7 @@ interface Sim {
   state: FlightState;
   previous: FlightState;
   input: FlightInput;
+  thrusters: ThrusterState;
   renderPosition: Vec3;
   renderOrientation: Quat;
   look: LookState;
@@ -70,6 +73,8 @@ function BoardedFlight({ bodies, target, reducedMotion, onTelemetry }: { bodies:
   const targetBody = bodies.find(body => body.id === target) ?? null;
   const latest = useRef({ bodies, targetBody, reducedMotion, onTelemetry });
   const design = useMemo(() => quickDesignBrief(defaultQuickDesign('PAST_EARTH')).design, []);
+  const jets = useMemo(() => new ThrusterJets(), []);
+  useEffect(() => () => jets.dispose(), [jets]);
   const bearing = useMemo(() => {
     const geometry = new BufferGeometry();
     geometry.setAttribute('position', new Float32BufferAttribute(new Float32Array(6), 3));
@@ -100,6 +105,7 @@ function BoardedFlight({ bodies, target, reducedMotion, onTelemetry }: { bodies:
       state,
       previous: copyFlightState(createFlightState(), state),
       input: idleInput(),
+      thrusters: createThrusters(),
       renderPosition: copy3(vec3(), spawn),
       renderOrientation: [...state.orientation],
       look: createLook(),
@@ -116,7 +122,7 @@ function BoardedFlight({ bodies, target, reducedMotion, onTelemetry }: { bodies:
       telemetryClock: TELEMETRY_INTERVAL,
       lastTelemetry: null,
     };
-    exploreControls.reset({ pad: typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches });
+    exploreControls.reset();
     perspective?.clearViewOffset();
     camera.near = NEAR_PLANE;
     camera.far = FAR_PLANE;
@@ -125,7 +131,7 @@ function BoardedFlight({ bodies, target, reducedMotion, onTelemetry }: { bodies:
     return () => {
       sim.current = null;
       // Leave the store at boarding defaults, so the next boarding never shows the previous flight's settings.
-      exploreControls.reset({ pad: false });
+      exploreControls.reset();
       camera.near = saved.near;
       camera.far = saved.far;
       if (perspective) {
@@ -235,6 +241,9 @@ function BoardedFlight({ bodies, target, reducedMotion, onTelemetry }: { bodies:
       copyFlightState(s.previous, state);
       exploreControls.readInput(s.input, steerRadians, step === 0);
       stepFlight(state, s.input, flightBodies, { speedLimit: limit, target: flightTarget }, FIXED_STEP);
+      sampleThrusters(s.thrusters, s.previous, state, s.input.brake, limit, FIXED_STEP);
+      stepThrusters(s.thrusters, FIXED_STEP, reduced);
+      jets.step(s.thrusters, FIXED_STEP, reduced);
     }
     if (state.autopilot !== exploreControls.getSnapshot().autopilot) exploreControls.setAutopilot(state.autopilot);
     interpolatePose(s.renderPosition, s.renderOrientation, s.previous, state, s.clock.alpha);
@@ -286,6 +295,7 @@ function BoardedFlight({ bodies, target, reducedMotion, onTelemetry }: { bodies:
       glow.current.visible = thrust > .02;
       glow.current.scale.setScalar(.4 + thrust * .8);
     }
+    jets.update(gl.domElement.height);
     const positions = bearing.geometry.getAttribute('position') as Float32BufferAttribute;
     if (flightTarget) {
       sub3(s.scratch, flightTarget.position, s.renderPosition);
@@ -305,7 +315,7 @@ function BoardedFlight({ bodies, target, reducedMotion, onTelemetry }: { bodies:
     // Keep rendering only while something moves; input and store changes wake the loop again.
     const lookOff = s.look.yaw !== 0 || s.look.pitch !== 0;
     const active = isFlightActive(state) || exploreControls.active() || s.dragging || fovMoving || (lookOff && !reduced)
-      || !cameraSettled(s.cameraOffset, s.cameraOrientation, s.desiredOffset, s.desiredOrientation);
+      || s.thrusters.active || jets.active || !cameraSettled(s.cameraOffset, s.cameraOrientation, s.desiredOffset, s.desiredOrientation);
     s.asleep = !active;
     if (active) invalidate();
 
@@ -322,6 +332,7 @@ function BoardedFlight({ bodies, target, reducedMotion, onTelemetry }: { bodies:
 
   return <>
     <group ref={ship} name="explore-ship">
+      <primitive object={jets}/>
       <group rotation={[0, Math.PI / 2, 0]} scale={SHIP_SCALE}>
         <SpacecraftModel design={design} reducedMotion/>
       </group>

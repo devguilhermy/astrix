@@ -6,16 +6,16 @@ ASTRIX11 is an educational mission-design and operations game built for NASA Spa
 
 **Current status:** the [turn-based learning-game revision](./plans/TURN_BASED_EXPLORATION_REVISION.md) is implemented, with final immersive-scene/branding integration underway. Earlier engine, browser, GMAT and multiplayer results are recorded in [Verification](./VERIFICATION.md); they do not automatically verify later presentation changes. The game has a clear **Design & Play** path, not a full design studio; GMAT support stays.
 
-**Pitching or explaining the project?** Start with the [project explainer for the team](./PROJECT_EXPLAINER.md) ([em português](./PROJECT_EXPLAINER.pt-BR.md)).
+**Pitching or explaining the project?** Start with the [project explainer for the team](./PROJECT_EXPLAINER.md) ([em português](./PROJECT_EXPLAINER.pt-BR.md)), then practise with the in-game quiz at `/quiz`.
 
 ### What the player does
 
-1. **Learn, explore, then choose a discovery.** The separate ASTRIX11 landing offers a skippable general mission-design lesson before free solar-system exploration. The mission board is a subsequent action and groups the supported Earth, Moon and Mars goals; **Design & Play** is available to both levels.
+1. **Learn, explore, then choose a discovery.** The separate ASTRIX11 landing offers a skippable general mission-design lesson before free solar-system exploration. Its header carries the simulator tabs and the reference pages (GMAT tools, Science & sources, Quiz). The mission board is a subsequent action and groups the supported Sun, Earth, Moon and Mars goals; **Design & Play** is available to both levels and has a back button to the board instead of a goal picker.
 2. **Prepare in one workspace.** Choose a bounded ambition, real hardware kit and approach. See objective targets, deadline, cost/fit and constraints together; no naming, publishing or engineering signoff is required.
 3. **Check a feasible path.** Compatibility is not enough: a Ready design has a successful reference-policy witness using the actual engine. Changing the design invalidates that proof. Ready is not a guarantee that every choice will succeed.
 4. **Choose and preview.** Each decision offers relevant operational plans, expected elapsed mission time, resource changes and the next boundary. Selecting does not execute.
 5. **Commit and discover.** One explicit action resolves physics until the next decision or terminal event, then displays a receipt. Thinking and reading consume no mission time.
-6. **Debrief and try differently.** Evidence, discoveries, failure causes and same-condition comparisons make the design tradeoff visible. Local decision-boundary saves preserve return-to-play; optional GMAT tools remain outside the ordinary loop.
+6. **Debrief and try differently.** Evidence, discoveries, failure causes and same-condition comparisons make the design tradeoff visible. Attempts are not saved in the browser: closing the simulator or reloading starts fresh, and *Export current attempt* keeps a file copy. Optional GMAT tools remain outside the ordinary loop.
 
 Aspiring and Expert share this interaction. Expert tightens tradeoffs rather than exposing a second design studio. English/Brazilian Portuguese, keyboard access, reduced motion and compact layouts remain requirements. Scientific details are optional; no numeric orbital elements, attitude controller or burn-vector entry is needed for ordinary missions.
 
@@ -30,8 +30,8 @@ The seven-resource grid remains visible during missions, including when panels c
 | `packages/core` | Mission-definition validation, hardware/quotes, readiness, physics, resources, commands, objective evidence and scoring | The only physical/rules authority; no browser or renderer decides an outcome |
 | `packages/data` | Committed scientific snapshots, source registry, topic vocabulary and contextual science bindings | Historical inputs and reference metadata, not live telemetry |
 | `packages/session` | Attempts, authenticated actors, turn commitments/proposals, stale checks, idempotency and replay | Same transaction authority for local and LAN play; no wall-clock advancement of a turn game |
-| `apps/web` | React mission board/preparation/play, local saves/journal, worker previews, optional GMAT tools and visualization | Projects committed state; selecting, reading and camera movement do not execute |
-| `apps/host` | Optional Bun HTTP/WebSocket server, host bootstrap, QR/manual admission and serialized turn authority | One in-memory room, display plus up to three phones; network heartbeat is not a mission clock |
+| `apps/web` | React landing, rendered docs (`/science`), mission board/preparation/play, attempt export/import and the per-visit journal, worker previews, optional GMAT tools and visualization | Projects committed state; selecting, reading and camera movement do not execute |
+| `apps/host` | Optional Bun HTTP/WebSocket server, host bootstrap, QR/manual admission and serialized turn authority | One in-memory room; the host sets 1–4 players (display person plus up to three phones), and open seats stay invitable during the mission; network heartbeat is not a mission clock |
 | `scripts` | Scientific snapshot acquisition/reduction, document packaging and independent reference inputs | Preparation/research tools; not a hidden live-data service during gameplay |
 
 ```mermaid
@@ -55,7 +55,7 @@ Designs bind to resolved immutable definitions and content digests. The same obj
 
 Short lessons distinguish returning data, suborbital ascent, entering orbit, raising an orbit, reaching an entry boundary, escaping Earth and encountering the Moon. The complete lunar-orbiter path adds launch, parking orbit, injection, encounter, capture and data return. Surface ascent uses a reduced staged finite-thrust model; coast and lunar transitions use patched two-body conics; burns are explicitly impulsive and consume fuel. Mars retains its separate analytical cruise/capture model. No lunar landing, real lunar ephemeris or continuous three-body propagation is implied.
 
-Local saves are versioned decision-boundary attempts, distinct from old saved mission definitions. Corrupt/incompatible saves must remain explainable/exportable, and failed writes preserve the previous valid save. LAN refresh recovers only while Bun remains alive. Definition/configuration identity, rules/model/policy versions, level, seed and assistance qualify comparisons; old results are never relabelled.
+Attempts are not stored in the browser; an exported attempt file is versioned and validated on import, and the retired auto-save slots are purged. Old saved mission definitions stay distinct and exportable. LAN refresh recovers only while Bun remains alive. Definition/configuration identity, rules/model/policy versions, level, seed and assistance qualify comparisons; old results are never relabelled.
 
 ## NASA resources: what we use and how
 

@@ -15,6 +15,8 @@ import { MissionResources, MissionResourceCell } from './MissionResources';
 import { ReplaceSaveDialog } from './ReplaceSaveDialog';
 import { resourceModel, RESOURCE_ORDER } from '../hud/resourceModel';
 import type { ReactNode } from 'react';
+import { PlayerCount, PartyLine } from '../multiplayer/PlayerCount';
+import { InviteControl } from '../multiplayer/Invitation';
 
 async function render(language:'en'|'pt-BR',children:ReactNode) {
   const i18n=createInstance();
@@ -175,5 +177,24 @@ describe('one bilingual Design & Play surface',()=>{
   test('duration labels distinguish one day from several in both languages',async()=>{
     expect(await render('en',<Duration seconds={86400}/>)).toContain('1 day');expect(await render('en',<Duration seconds={172800}/>)).toContain('2 days');
     expect(await render('pt-BR',<Duration seconds={86400}/>)).toContain('1 dia');expect(await render('pt-BR',<Duration seconds={172800}/>)).toContain('2 dias');
+  });
+});
+
+describe('LAN player count and late invitation',()=>{
+  test('the Players toggle presses exactly the current count and explains solo play',async()=>{
+    for(const language of ['en','pt-BR'] as const){
+      const html=await render(language,<PlayerCount value={3} onChange={ignore}/>);
+      expect(html).toContain(language==='en'?'<legend>Players</legend>':'<legend>Jogadores</legend>');
+      expect([...html.matchAll(/<button[^>]*aria-pressed="(true|false)"[^>]*>.*?(\d)<\/button>/g)].map(match=>[match[2],match[1]])).toEqual([['1','false'],['2','false'],['3','true'],['4','false']]);
+      expect(await render(language,<PlayerCount value={1} onChange={ignore}/>)).toContain(language==='en'?'the host plays alone':'o anfitrião joga sozinho');
+      expect(html).not.toContain('lan.');
+    }
+    expect(await render('en',<PartyLine joined={2} seats={3}/>)).toContain('2 of 3 players joined — Open seats can join later.');
+    expect(await render('en',<PartyLine joined={3} seats={3}/>)).not.toContain('Open seats');
+  });
+  test('only the host display gets the Invite control',async()=>{
+    expect(await render('en',<InviteControl host={false}/>)).toBe('');
+    const html=await render('pt-BR',<InviteControl host/>);
+    expect(html).toContain('aria-haspopup="dialog"');expect(html).toContain('Convidar');
   });
 });

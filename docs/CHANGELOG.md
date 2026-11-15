@@ -2,6 +2,22 @@
 
 Shipped changes, newest first. Evidence for each entry is in [VERIFICATION.md](./VERIFICATION.md); scope and decisions are in the linked plans.
 
+## Unreleased — Explore maneuvering gas bursts and visible flight controls (2026-11-15)
+
+- Added 24 illustrative RCS outlets at eight hull corners. Pitch, yaw and roll select opposing torque couples; drag release and reversal fire counter-corrections. Powered acceleration and braking also select directional jets, without changing flight dynamics or consuming mission resources.
+- Void Protocol-inspired clusters of soft white puffs expand, drift and fade. Free look does not fire jets; reduced motion uses smaller, slower, less frequent clouds. A fixed 192-puff pool and two draw calls cover all outlets; the demand loop stays awake until the final cloud fades.
+- On-screen game controls are shown by default on desktop and touch devices. Players can hide them for the current flight; boarding again restores them.
+
+## Unreleased — Player count and admission during the mission (2026-11-15)
+
+Plan: [player count and late invitation](./plans/PLAYER_COUNT_AND_LATE_INVITE_PLAN.md). Runbook: [MULTIPLAYER.md](./MULTIPLAYER.md).
+
+- Protocol 4. `SessionState.seats` (1–4, includes the host person, default 4) is in the public snapshot; `/api/admin` accepts `{action:'players',count}` and no longer accepts `solo`/`team`.
+- The seat count caps join and admission. Lowering it below the admitted devices is refused with `ROOM_FULL`. 1 means host-only solo (no phones); 2–4 mean a team.
+- An admitted phone takes its seat's share of the four disciplines (`SET_TEAM` rule); the host keeps unclaimed roles. A phone that replaces a released one takes the released share.
+- Starting a mission no longer closes admission. A phone can join mid-game and receives the current game in `WELCOME`. Admission closes automatically when full, reopens when a device is released, and still closes on *Close admission* or *Continue host-only*. The host lobby reports `seats` and `admissionOpen`.
+- `MULTIPLAYER.md` documents the wider join window and its limits: host approval per device, automatic closing when full, 15-minute invitations, rotation and the 12-request pending cap.
+
 ## Unreleased — Turn feedback, mission report, Sun missions and the Explore ship (2026-11-15)
 
 Full record: [major improvements recap](./recaps/MAJOR_IMPROVEMENTS.md). Plans: [refinement](./plans/TURN_FEEDBACK_REFINEMENT_PLAN.md), [Explore ship](./plans/EXPLORE_SHIP_PLAN.md).

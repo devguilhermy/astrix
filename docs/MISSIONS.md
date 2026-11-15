@@ -1,6 +1,6 @@
 # Missions
 
-ASTRIX offers short lessons and four longer challenges through the same **Design & Play** path. Both Aspiring and Expert choose a goal, ambition, hardware kit and approach; they do not need a mission-definition editor. Immutable definitions remain the engine's content format. Goals, costs and hardware ratings are teaching assumptions, not flight qualification.
+ASTRIX offers short lessons and four longer challenges through the same **Design & Play** path. Both Aspiring and Expert choose a goal on the mission board, then an ambition, hardware kit and approach in Design & Play; they do not need a mission-definition editor. Immutable definitions remain the engine's content format. Goals, costs and hardware ratings are teaching assumptions, not flight qualification.
 
 | Stable ID | Player-facing name | Objective / nominal horizon |
 |---|---|---|

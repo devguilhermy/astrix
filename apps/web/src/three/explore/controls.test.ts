@@ -117,8 +117,10 @@ describe('control store', () => {
   it('resets to boarding defaults', () => {
     const controls = createExploreControls();
     controls.command('camera');
+    controls.command('pad');
+    expect(controls.getSnapshot().pad).toBe(false);
     controls.press('key:KeyW', 'thrust');
-    controls.reset({ pad: true });
+    controls.reset();
     expect(controls.getSnapshot()).toEqual({ speedTier: DEFAULT_SPEED_TIER, camera: 'chase', dragMode: 'steer', autopilot: 'off', help: false, pad: true });
     expect(controls.active()).toBe(false);
   });

@@ -21,4 +21,22 @@
 .lan-assignments { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,220px),1fr)); gap: .75rem; }
 .lan-error { color: #ffd0a8; overflow-wrap: anywhere; }
 .lan-notice { padding-block: .75rem; border-block: 1px solid var(--line,#42525d); color: #c5d6df; }
+.lan-admission { display: grid; gap: 1rem; }
+.lan-pending li { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.lan-pending li > span { margin-right: auto; }
+/* Same segmented look as LevelToggle; shared by the lobby, the Invite dialog and Design & Play. */
+.player-count { display: grid; gap: .4rem; min-width: 0; border: 0; padding: 0; margin: 0; }
+.player-count legend { font-weight: 700; margin-bottom: .4rem; }
+.player-count-options { display: flex; gap: .35rem; }
+.player-count-options > button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: .4rem; min-height: 44px; min-width: 0; padding: .4rem .9rem; color: #bfd0da; border: 1px solid #425865; border-radius: 6px; font-variant-numeric: tabular-nums; }
+.player-count-options > button svg { flex: none; color: #85b9ed; }
+.player-count-options > button[aria-pressed=true] { color: #ffb767; border-color: #f6a047; background: #152b45; }
+.player-count-options > button[aria-pressed=true] svg { color: #ffb767; }
+.player-count-options > button:hover:not(:disabled) { background: #162d38; }
+.player-count small { color: #b7c8d3; font-size: .84rem; line-height: 1.35; }
+.party-line { margin: 0; color: #c6d6e9; font-size: .9rem; }
+.party-controls { display: grid; gap: .5rem; margin-bottom: .7rem; }
+.invite-badge { padding: .1rem .45rem; border-radius: 999px; background: #f6a047; color: #101b2e; font-size: .75rem; font-weight: 700; white-space: nowrap; }
+.invite-dialog { width: min(720px,100%); }
+.invite-dialog .lan-content { width: 100%; }
 @media(max-width:560px) { .lan-invitation { grid-template-columns: minmax(0,1fr); } .lan-qr { width: min(220px,100%); } }

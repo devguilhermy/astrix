@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { listParts, missionOffers, quickDesignBrief, quickKitOptions, type MissionOffer, type QuickDesignConfig, type QuickDesignBrief, type ReadinessCertificate } from '@astrix/core';
 import { labelText } from '../missions/definitionView';
@@ -11,7 +11,8 @@ const AMBITIONS=['SHORT','STANDARD','AMBITIOUS'] as const,KITS=['LIGHT','ENDURAN
 /** One icon per preparation choice, so an option is recognisable before its text is read. */
 const OPTION_ICONS={SHORT:SignalLow,STANDARD:SignalMedium,AMBITIOUS:SignalHigh,LIGHT:Feather,ENDURANCE:BatteryFull,SCIENCE:Microscope,CAUTIOUS:ShieldCheck,BALANCED:Scale,FAST:Zap} as const;
 
-export function Preparation({config,onChange,onPlay,onBack,disabled=false,busy=false}:{config:QuickDesignConfig;onChange:(config:QuickDesignConfig)=>void;onPlay:()=>void;onBack:()=>void;disabled?:boolean;busy?:boolean}) {
+/** `party`: LAN host only — player count and "x of y joined", shown above Play mission; never part of the mission config. */
+export function Preparation({config,onChange,onPlay,onBack,party,disabled=false,busy=false}:{config:QuickDesignConfig;onChange:(config:QuickDesignConfig)=>void;onPlay:()=>void;onBack:()=>void;party?:ReactNode;disabled?:boolean;busy?:boolean}) {
   const c=usePlayCopy(),{t,i18n}=useTranslation(),number=new Intl.NumberFormat(i18n.resolvedLanguage,{maximumFractionDigits:2});
   const offers=missionOffers(undefined,config.levelId),offer=offers.find(item=>item.missionId===config.missionId);
   const computed=useMemo(()=>{try{return {brief:quickDesignBrief(config),error:null};}catch(error){return {brief:null,error:error instanceof Error?error.message:String(error)};}},[config]);
@@ -63,7 +64,7 @@ export function Preparation({config,onChange,onPlay,onBack,disabled=false,busy=f
     {!!certificate?.reasons.length&&<ul className="readiness-reasons">{certificate.reasons.map(reason=><li key={reason}>{c(reason)}</li>)}</ul>}
     {certificate&&ready&&<><h3>{c('margins')}</h3><dl><dt>{c('fuel')}</dt><dd>{number.format(certificate.margins.fuelKg)} kg</dd><dt>{c('energy')}</dt><dd>{number.format(certificate.margins.energyWh)} Wh</dd><dt>{c('timeRemaining')}</dt><dd><Duration seconds={certificate.margins.deadlineSec}/></dd></dl></>}
     {brief&&<PreparationDetails brief={brief} certificate={certificate}/>}
-  </div><div className="panel-action">
+  </div><div className="panel-action">{party}
     <button data-tour="preparation-start" className="button primary play-start" disabled={!ready||disabled||busy} onClick={onPlay}><Rocket size={19} aria-hidden="true"/>{busy?c('resolving'):c('play')}</button>
   </div></aside></section>;
 }

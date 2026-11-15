@@ -1,8 +1,6 @@
-.mission-lesson { height:100dvh; overflow:auto; background:#08182b; color:#e4eef8; padding:1rem max(1rem,calc((100vw - 1200px)/2)) 2rem; }
-.lesson-top { display:flex; align-items:center; gap:1rem; flex-wrap:wrap; padding-bottom:1rem; border-bottom:1px solid #345473; }
-.lesson-brand { margin-right:auto; padding:0; }
-.lesson-brand img { width:92px; height:auto; padding:6px; border-radius:8px; background:#d6e9f5; display:block; }
-.lesson-top label { display:flex; gap:.6rem; align-items:center; color:#b9cee3; }
+.mission-lesson { height:100dvh; overflow:auto; background:#08182b; color:#e4eef8; padding:0 0 2rem; }
+.mission-lesson > :not(.site-header) { margin-inline:max(1rem,calc((100vw - 1200px)/2)); }
+.mission-lesson > .site-header { position:sticky; top:0; }
 .lesson-introduction { margin:2rem 0 1.5rem; }
 .lesson-introduction h1 { font-size:clamp(2rem,4vw,3.5rem); text-wrap:balance; }
 .lesson-introduction p { margin-top:.75rem; color:#b9cee3; max-width:72ch; font-size:1.15rem; }
@@ -27,5 +25,5 @@
 .mission-lesson .primary:hover { background:#ffc681; border-color:#ffc681; }
 .mission-lesson button:disabled { opacity:.5; cursor:not-allowed; }
 .mission-lesson :focus-visible { outline:3px solid #83ccff; outline-offset:4px; }
-@media(max-width:720px) { .lesson-content { grid-template-columns:minmax(0,1fr); } .lesson-steps { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.5rem; } .lesson-steps button { text-align:left; align-items:flex-start; } .lesson-footer { flex-wrap:wrap; } .lesson-footer a { order:3; max-width:none; width:100%; } .lesson-top label { flex-direction:column; align-items:flex-start; } }
-@media(max-width:380px) { .lesson-top { gap:.5rem; } .lesson-top > .button { width:100%; } .lesson-introduction { margin-top:1.25rem; } }
+@media(max-width:720px) { .lesson-content { grid-template-columns:minmax(0,1fr); } .lesson-steps { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.5rem; } .lesson-steps button { text-align:left; align-items:flex-start; } .lesson-footer { flex-wrap:wrap; } .lesson-footer a { order:3; max-width:none; width:100%; } }
+@media(max-width:380px) { .lesson-introduction { margin-top:1.25rem; } }

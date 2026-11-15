@@ -2,6 +2,15 @@
 
 This records observed checks, not inferred product claims. Challenge alignment is tracked in [CHALLENGE_ACCEPTANCE.md](./CHALLENGE_ACCEPTANCE.md). The application is served as a production static build for browser verification; no app state was injected to manufacture mission outcomes.
 
+## Explore maneuvering gas bursts (2026-11-15)
+
+- Focused check: `bun test apps/web/src/three/explore/thrusterMath.test.ts apps/web/src/three/explore/flightMath.test.ts apps/web/src/three/explore/cameraMath.test.ts apps/web/src/three/explore/controls.test.ts` — **38 passed, 0 failed**, 20,390 assertions. New coverage checks balanced force/torque for both signs of all three axes, drag-release counter-jets in a rotated ship frame, passive coasting versus braking, and complete puff expiry in normal and reduced motion.
+- Inspected Void Protocol through its graphify graph, then read `RcsThrusters.tsx`, `rcsBurstMath.ts` and `rcsShader.ts`: adapted its overlapping three-puff white-cloud treatment, not its ECS or ship coordinate conventions.
+- Live Vite browser verification in Chromium at `localhost:5179/#solar`, 1440×1000: boarded through the UI, dragged diagonally, observed multi-port gas clouds, held Q for roll and observed opposing outlets, then switched to free look and observed no clouds after the tail expired. No new browser errors during these interaction checks; earlier navigation/HMR had aborted star-map requests.
+- At 390×844, drag steering still showed the gas clouds. With Chromium `prefers-reduced-motion: reduce` confirmed true, inspected the smaller, slower correction puffs. Existing compact HUD text clips at the left edge; no HUD layout changes were made.
+- Impeccable detector on `ExploreFlight.tsx` and `ThrusterJets.ts`: no findings.
+- `bun run typecheck` reached the new files without diagnostics but failed on three unrelated translation-key errors in `apps/web/src/ui/multiplayer/HostLobby.tsx:34` (`mode`, `team`, `solo`). No production-build claim.
+
 ## Turn-based exploration revision — integration evidence
 
 The latest user correction requires an **always-visible immersive 3D scene with turn panels**, plus explicit mission names in both languages. That presentation correction is being integrated; the checks below precede its final build unless stated otherwise. They must not be treated as evidence that the corrected presentation has already passed.
@@ -342,3 +351,9 @@ Profile and behaviour: [GMAT support](./GMAT_SUPPORT.md).
 - **Tests:** 580 pass, 0 fail (`bun test`); `bun run typecheck` clean. This resolves the `playback.test.ts` failure noted in the previous record. New coverage: NASA sample scripts and OEM through the parsers, TAIModJulian conversion, mission-sequence reassignment refusal, the view store and scene geometry (conic/apsides/propagated state agree; trajectory runs never join gaps and stay within the vertex budget).
 - **Browser (Chromium, dev server, 1440×900):** `/gmat` direct load, reload, Home link and back/forward. All nine examples were run through the picker: seven import, and `Ex_HohmannTransfer`/`Ex_OEMPropagation` are refused with the stated reason. Seen in 3D: the export draft (sunlit Earth, conic, apsides), `Sat` from `Tut_SimulatingAnOrbit` (e 0.897, framed whole, playback at 1 h/s advanced T+5 h 9 min), `MarsOrbiter` around Mars, and `SampleOEMEphem.oem` playing at 6 h/s with the travelled path in gold. Leaving the page removed the GMAT caption and restored the mission scene.
 - **Not checked:** GMAT was not installed, so exported scripts were not re-run in GMAT for this change. At 390 px the scene strip is cramped; hiding panels does not re-frame the camera. Headless WebKit returned stale screenshots, so visual checks used Chromium.
+
+## 2026-11-15: quiz, preparation lists and turn action cards
+
+- **Tests:** 584 pass, 0 fail across 71 files, including the quiz bank, the `/quiz` route and the LAN host serving `/quiz`.
+- **Browser (development server, 1920×940 and 320 px):** quiz answer flow, result, Try again, study mode, Portuguese, focus on each new question, no horizontal overflow at 320 px, navigation quiz → simulator → menu → quiz → back. Preparation choices fit (862 / 862 px) for First Signal; arrow-key selection with a focus ring. Turn action cards 60–76 px tall with descriptions linked for assistive technology.
+- **Not checked:** the preparation fit for missions with longer descriptions; the quiz on a physical phone; a production build containing these changes.

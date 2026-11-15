@@ -45,6 +45,8 @@ Local saves preserve committed decision boundaries. Corrupt/incompatible saves a
 
 The original First Light, Storm Watch, Red Relay and Crew Pathfinder challenges remain alongside the short data-return, ascent, orbit, maneuver and lunar lessons. Quick designs use the same physical evidence and constraints as curated offers.
 
+**Quiz** at `/quiz`: 24 questions, in English and Portuguese, on mission design and on how ASTRIX11 works, each answer with its reason. It is linked from the site header and the menu, and is never saved or scored.
+
 **GMAT tools** remain optional, at `/gmat` and linked from Home and the menu. Import CCSDS OEM, GMAT ReportFiles or one spacecraft's Keplerian initial state from a GMAT script, export initial states, and view them in the 3D scene with playback; NASA GMAT samples are included as examples. Uploaded scripts are inert data, never executed. See [GMAT support](./docs/GMAT_SUPPORT.md). Lunar interchange remains unsupported; imported samples cannot manufacture resources or scored success.
 
 ### Startup and recovery

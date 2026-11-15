@@ -1,4 +1,4 @@
-.docs-screen > .docs-article,.docs-screen > .docs-footer { width:min(860px,100%); }
+.docs-screen > .docs-article,.docs-screen > .docs-footer { width:min(860px,calc(100% - 2 * max(1rem,env(safe-area-inset-left)))); }
 .docs-article { display:grid; gap:1rem; line-height:1.6; color:#d3e2f0; overflow-wrap:anywhere; }
 .docs-article:focus { outline:none; }
 .docs-article h1,.docs-article h2,.docs-article h3,.docs-article h4 { color:#e4eef8; line-height:1.15; margin-top:1.2rem; scroll-margin-top:1rem; }

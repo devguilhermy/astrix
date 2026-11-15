@@ -22,7 +22,7 @@ export interface ExploreControlsSnapshot {
   dragMode: DragMode;
   autopilot: AutopilotStatus;
   help: boolean;
-  /** On-screen flight pad visible; defaults on for coarse pointers. */
+  /** On-screen flight pad visible; shown by default on every device. */
   pad: boolean;
 }
 
@@ -73,7 +73,7 @@ export function applyDeadzone(x: number, y: number, deadzone = STICK_DEADZONE): 
 export interface ExploreControls {
   getSnapshot(): ExploreControlsSnapshot;
   subscribe(listener: () => void): () => void;
-  reset(options: { pad: boolean }): void;
+  reset(): void;
   command(command: ExploreCommand): void;
   setAutopilot(status: AutopilotStatus): void;
   press(source: string, control: HoldControl): void;
@@ -93,7 +93,7 @@ export interface ExploreControls {
 }
 
 export function createExploreControls(): ExploreControls {
-  let snapshot: ExploreControlsSnapshot = { speedTier: DEFAULT_SPEED_TIER, camera: 'chase', dragMode: 'steer', autopilot: 'off', help: false, pad: false };
+  let snapshot: ExploreControlsSnapshot = { speedTier: DEFAULT_SPEED_TIER, camera: 'chase', dragMode: 'steer', autopilot: 'off', help: false, pad: true };
   const listeners = new Set<() => void>();
   const held = new Map<string, HoldControl>();
   const stick = [0, 0];
@@ -123,10 +123,10 @@ export function createExploreControls(): ExploreControls {
       listeners.add(listener);
       return () => { listeners.delete(listener); };
     },
-    reset({ pad }) {
+    reset() {
       clearMotion();
       recenter = false;
-      snapshot = { speedTier: DEFAULT_SPEED_TIER, camera: 'chase', dragMode: 'steer', autopilot: 'off', help: false, pad };
+      snapshot = { speedTier: DEFAULT_SPEED_TIER, camera: 'chase', dragMode: 'steer', autopilot: 'off', help: false, pad: true };
       emit();
     },
     command(command) {

@@ -103,3 +103,7 @@ Details: [major improvements recap](./recaps/MAJOR_IMPROVEMENTS.md) §4.3, §4.4
 - **Replay.** It replays recorded history and says that it interpolates between samples and time-lapses long turns.
 - **Fact panel.** Values come from the NSSDCA Planetary Fact Sheet and Sun Fact Sheet, retrieved 2026-11-15 and bundled; the panel shows the source and date. Explore states that sizes are to scale with the Sun and distances are compressed.
 - **Explore ship.** Flying is schematic and never advances mission time; the HUD says so.
+
+## 2026-11-15: quiz
+
+`/quiz` holds 24 questions, 12 on mission design and 12 on how ASTRIX11 works, each with three options and a one-paragraph reason. Statements about the game restate the engine's actual behaviour (score weights, the cap of 19 for a failed run, "Ready" meaning a demonstrated reference path, simulated frames, host-only commit, the measured ISS dose rates). The design questions use general principles and make no claim about specific missions. The bank is in `apps/web/src/ui/quiz/questions.ts`; a test checks unique ids, valid answers, language parity and that the correct option is not always in the same position. Preparation options and turn actions now each carry a one-line description, so the consequence of a choice can be read before it is selected.
