@@ -10,7 +10,7 @@ export const recoveryEnglish = {
   'recovery.details': 'Error details',
   'recovery.docs': 'Read documentation',
   'recovery.notFoundTitle': 'Outside mission control',
-  'recovery.notFoundBody': 'This address does not match an ASTRIX screen. Return Home to choose a mission or rejoin your paused attempt.',
+  'recovery.notFoundBody': 'This address does not match an ASTRIX11 screen. Return Home to explore the Solar System or rejoin your paused attempt.',
   'recovery.home': 'Return Home',
   'recovery.address': 'Requested address',
 } as const;
@@ -27,7 +27,7 @@ export const recoveryPortuguese: Record<keyof typeof recoveryEnglish, string> = 
   'recovery.details': 'Detalhes do erro',
   'recovery.docs': 'Ler documentação',
   'recovery.notFoundTitle': 'Fora do controle da missão',
-  'recovery.notFoundBody': 'Este endereço não corresponde a uma tela ASTRIX. Volte ao início para escolher uma missão ou retornar à sua tentativa pausada.',
+  'recovery.notFoundBody': 'Este endereço não corresponde a uma tela ASTRIX11. Volte ao início para explorar o Sistema Solar ou retornar à sua tentativa pausada.',
   'recovery.home': 'Voltar ao início',
   'recovery.address': 'Endereço solicitado',
 };

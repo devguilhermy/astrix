@@ -11,7 +11,7 @@ import './multiplayer.css';
 export function HostLobby({onHome,onMission}:{onHome:()=>void;onMission:()=>void}) {
   const c=useLanCopy(),p=usePlayCopy(),errorCopy=useLanError(),{t}=useTranslation(),room=useRoomSession();
   const [lobby,setLobby]=useState<LobbyInfo|null>(null),[error,setError]=useState<string|null>(null),[copied,setCopied]=useState(false),heading=useRef<HTMLHeadingElement>(null);
-  useEffect(()=>{document.title=`${c('lobby')} — ASTRIX`;heading.current?.focus();},[t]);
+  useEffect(()=>{document.title=`${c('lobby')} — ASTRIX11`;heading.current?.focus();},[t]);
   useEffect(()=>{let active=true;void(async()=>{try{
     const fragment=new URLSearchParams(location.hash.slice(1)),capability=fragment.get('host');
     if(capability){history.replaceState(null,'',location.pathname);const result=await roomApi<{credential:string}>('host',{capability});await roomClient().start({credential:result.credential,host:true});}
@@ -22,7 +22,7 @@ export function HostLobby({onHome,onMission}:{onHome:()=>void;onMission:()=>void
   const qr=useMemo(()=>{if(!joinUrl)return '';const encoder=qrcode(0,'M');encoder.addData(joinUrl);encoder.make();return encoder.createDataURL(5,20);},[joinUrl]);
   const admin=(action:'lock'|'unlock'|'host-only'|'solo'|'team')=>void roomApi('admin',{action}).then(()=>roomApi<LobbyInfo>('lobby')).then(setLobby).catch(cause=>setError(cause instanceof Error?cause.message:'NETWORK'));
   const snapshot=room.snapshot;
-  return <main className="lan-screen"><div className="lan-content"><div className="lan-actions"><button className="button" onClick={onHome}>{c('home')}</button><button className="button primary" disabled={!room.identity?.host} onClick={onMission}>{p('home')}</button></div><h1 ref={heading} tabIndex={-1}>{c('lobby')}</h1><p className="lan-notice">{c('trusted')}</p><p>{p('hostCommit')}</p>
+  return <main className="lan-screen"><div className="lan-content"><header className="lan-header"><img className="lan-logo" src={`${import.meta.env.BASE_URL}assets/logo.png`} alt="ASTRIX11" width="512" height="426"/><div className="lan-actions"><button className="button" onClick={onHome}>{c('home')}</button><button className="button primary" disabled={!room.identity?.host} onClick={onMission}>{p('home')}</button></div></header><h1 ref={heading} tabIndex={-1}>{c('lobby')}</h1><p className="lan-notice">{c('trusted')}</p><p>{p('hostCommit')}</p>
     {(!room.identity?.host||room.status==='local')&&<p>{c('bootstrap')}</p>}<Presence/>{!room.storageAvailable&&<p role="status">{c('storage')}</p>}
     {(error||room.error)&&<p className="lan-error" role="alert">{errorCopy(error??room.error)}</p>}
     {room.status!=='connected'&&room.identity&&<button className="button" onClick={()=>roomClient().retryNow()}>{c('retry')}</button>}

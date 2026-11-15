@@ -1,5 +1,7 @@
-.lan-screen { height: 100dvh; overflow: auto; padding: max(1rem,env(safe-area-inset-top)) max(1rem,env(safe-area-inset-right)) max(2rem,env(safe-area-inset-bottom)) max(1rem,env(safe-area-inset-left)); background: var(--bg,#07101a); }
+.lan-screen { height: 100dvh; overflow: auto; padding: max(1rem,env(safe-area-inset-top)) max(1rem,env(safe-area-inset-right)) max(2rem,env(safe-area-inset-bottom)) max(1rem,env(safe-area-inset-left)); background: var(--bg,#061329); }
 .lan-content { width: min(960px,100%); margin: auto; display: grid; gap: 1rem; }
+.lan-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--line); }
+.lan-logo { display: block; width: clamp(6rem,18vw,9rem); height: auto; object-fit: contain; padding: .4rem; border-radius: 8px; background: #d6e9f5; }
 .lan-content h1 { font-size: clamp(2rem,5vw,3.2rem); line-height: 1.1; }
 .lan-content h2 { font-size: 1.3rem; margin-top: 1rem; }
 .lan-content p { max-width: 70ch; }
@@ -7,8 +9,8 @@
 .lan-content input,.lan-content select,.lan-content button,.lan-content a.button { min-height: 44px; max-width: 100%; }
 .lan-content input { width: 100%; }
 .lan-content form { display: grid; gap: 1rem; width: min(560px,100%); }
-.lan-content input[type='checkbox'] { width: 24px; height: 24px; min-height: 24px; margin: 10px; accent-color: var(--cyan,#75dce4); }
-.lan-content button:focus-visible,.lan-content input:focus-visible,.lan-content select:focus-visible { outline: 2px solid var(--cyan,#75dce4); outline-offset: 3px; }
+.lan-content input[type='checkbox'] { width: 24px; height: 24px; min-height: 24px; margin: 10px; accent-color: var(--cyan,#82b7ff); }
+.lan-content button:focus-visible,.lan-content input:focus-visible,.lan-content select:focus-visible { outline: 2px solid var(--cyan,#82b7ff); outline-offset: 3px; }
 .lan-content ul { padding-inline-start: 1.2rem; }
 .lan-content li { padding-block: .4rem; overflow-wrap: anywhere; }
 .lan-content small { color: var(--muted,#b7c8d3); }

@@ -1,5 +1,5 @@
-export type PlayView='explore'|'prepare'|'play'|'journal'|'gmat'|'help'|'missing';
-const routes:readonly string[]=['explore','prepare','play','journal','gmat','help'];
+export type PlayView='solar'|'explore'|'prepare'|'play'|'journal'|'gmat'|'help'|'missing';
+const routes:readonly string[]=['solar','explore','prepare','play','journal','gmat','help'];
 /** Hash navigation only changes presentation; it never starts or advances a flight. */
 export function readPlayView(hash:string):PlayView {
   const route=hash.replace(/^#/,'');

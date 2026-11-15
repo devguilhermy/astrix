@@ -1,8 +1,9 @@
 // Pattern: Void Protocol (© Guilhermy), StarfieldSkybox.tsx (321 LOC) @ 218625d.
 // Owner-authorized reuse under ASTRIX Apache-2.0; see CREDITS.md.
 // Vacuum sphere only: no atmospheric/liquid/telemetry coupling or borrowed hash.
-import { useMemo } from 'react';
-import { BackSide, type Texture } from 'three';
+import { useLayoutEffect, useMemo, useRef } from 'react';
+import { useThree } from '@react-three/fiber';
+import { BackSide, type ShaderMaterial, type Texture } from 'three';
 import { useQuality } from '../quality';
 import { useSpaceTexture } from './textures';
 import { SKY_VERTEX_SHADER, STARFIELD_FRAGMENT_SHADER } from './starfieldShader';
@@ -13,6 +14,8 @@ import { SKY_VERTEX_SHADER, STARFIELD_FRAGMENT_SHADER } from './starfieldShader'
  */
 export function Skybox() {
  const tier = useQuality();
+ const material = useRef<ShaderMaterial>(null);
+ const invalidate = useThree(state => state.invalidate);
  const image = useSpaceTexture(tier === 'LOW' ? 'starmap-2020-1024.jpg' : 'starmap-2020-4096.jpg', 'starmap-2020-1024.jpg');
  const uniforms = useMemo(() => ({
   uSky: { value: null as Texture | null }, uHasSky: { value: false }, uDensity: { value: 1 },
@@ -20,9 +23,16 @@ export function Skybox() {
  uniforms.uSky.value = image?.texture ?? null;
  uniforms.uHasSky.value = image !== null;
  uniforms.uDensity.value = tier === 'LOW' ? 0.7 : 1;
+ useLayoutEffect(() => {
+  if (!material.current) return;
+  material.current.uniforms = uniforms;
+  material.current.uniformsNeedUpdate = true;
+  invalidate();
+ }, [uniforms, image, invalidate]);
  return <mesh name="mission-sky" frustumCulled={false} renderOrder={1000} raycast={() => null}>
   <sphereGeometry args={[1, 32, 16]}/>
   <shaderMaterial
+   ref={material}
    side={BackSide}
    depthWrite={false}
    uniforms={uniforms}

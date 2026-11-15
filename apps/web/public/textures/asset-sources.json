@@ -1,6 +1,9 @@
 {
-  "usage": "Historical illustrative composites, not current weather, spacecraft data, or live observations. No NASA endorsement. No clouds or weather are synthesized.",
+  "usage": "Archival observational maps for the explorable solar overview and Earth/Moon/Mars mission views, not live telemetry or current weather. Enhanced-color, radar, EUV, source gap fills and unobserved regions are identified per asset. No NASA endorsement. Display rotation and relative body sizes/distances are illustrative, not precision IAU geolocation.",
   "nasaMediaPolicy": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+  "opalAcknowledgement": "This work used data acquired from the NASA/ESA HST Space Telescope, associated with OPAL program (PI: Simon, GO13937), and archived by the Space Telescope Science Institute, which is operated by the Association of Universities for Research in Astronomy, Inc., under NASA contract NAS 5-26555. All maps are available at https://doi.org/10.17909/T9G593.",
+  "opalLicense": "https://creativecommons.org/licenses/by/4.0/",
+  "opalReferences": ["https://ui.adsabs.harvard.edu/abs/2015ApJ...812...55S/abstract", "https://ui.adsabs.harvard.edu/abs/2020ApJS..247...58W/abstract"],
   "assets": [
     {
       "files": ["starmap-2020-4096.jpg", "starmap-2020-1024.jpg"],
@@ -26,23 +29,113 @@
       "sourcePage": "https://svs.gsfc.nasa.gov/2915/",
       "original": "https://svs.gsfc.nasa.gov/vis/a000000/a002900/a002915/bluemarble-1024.png",
       "credit": "NASA/Goddard Space Flight Center Scientific Visualization Studio; Blue Marble Next Generation courtesy Reto Stockli (NASA/GSFC) and NASA Earth Observatory.",
-      "processing": "Existing 1024x512 historical surface retained unchanged; shown as explicitly archival Earth discovery/debrief context in the turn-based game."
+      "processing": "Existing 1024x512 historical surface retained unchanged; used for Earth in the explorable solar overview and mission context. Not current weather."
     },
     {
       "files": ["mars-viking-1024.jpg"],
       "sourcePage": "https://astrogeology.usgs.gov/search/map/mars_viking_global_color_mosaic_925m",
       "original": "https://astrogeology.usgs.gov/ckan/dataset/dfdc2242-52dc-4126-bc89-03af8253ae79/resource/0d7b31dc-0b2e-4ca6-89dc-e3c1404c0232/download/mars_viking_clrmosaic_global_1024.jpg",
       "credit": "USGS Astrogeology Science Center and NASA Viking. USGS public domain, no use constraints.",
-      "processing": "Existing 1024x512 Viking 1976-1980 color composite retained unchanged; no live weather claim."
+      "processing": "Existing 1024x512 Viking 1976-1980 color composite retained unchanged; used for Mars in the explorable solar overview and mission views. Red/violet observations with synthesized green; no live weather claim."
+    },
+    {
+      "files": ["sun-stereo-sdo-304-1024.jpg"],
+      "title": "STEREO+SDO: Around the Sun for 81 Days, frame 0200",
+      "sourcePage": "https://svs.gsfc.nasa.gov/3851/",
+      "original": "https://svs.gsfc.nasa.gov/vis/a000000/a003800/a003851/solarSphere304A.0200.jpg",
+      "credit": "NASA/Goddard Space Flight Center Scientific Visualization Studio; Tom Bridgman. STEREO EUVI and SDO AIA.",
+      "epoch": "April 1–June 20, 2011 source sequence; a single archival visualization frame, not current activity.",
+      "coordinates": "Global cylindrical-equidistant (equirectangular), 2:1, solar north at top; source orientation preserved.",
+      "limitations": "304 Å extreme-ultraviolet observations, displayed in false color, not a visible-light photosphere. Source mosaics combine three spacecraft, smooth overlaps and fill some gaps, particularly near the poles, from the preceding time step. Visualization, not scientific analysis.",
+      "processing": "NASA 4096x2048 JPEG resized with ImageMagick to 1024x512; metadata stripped, JPEG quality 90, 4:4:4. No invented solar features or color changes."
+    },
+    {
+      "files": ["mercury-messenger-enhanced-1024.jpg"],
+      "title": "Enhanced Color Mercury Map, PIA17386",
+      "sourcePage": "https://science.nasa.gov/photojournal/enhanced-color-mercury-map/",
+      "original": "https://assets.science.nasa.gov/content/dam/science/psd/photojournal/pia/pia17/pia17386/PIA17386.jpg",
+      "credit": "NASA/Johns Hopkins University Applied Physics Laboratory/Carnegie Institution of Washington.",
+      "epoch": "MESSENGER primary-mission MDIS observations; released July 18, 2013.",
+      "coordinates": "Simple cylindrical, north up, centre 0°N 180°E; left edge 0°E, longitude increases rightward.",
+      "limitations": "Enhanced-color compositional map over a monochrome base. Principal components and a 430/1000 nm ratio are assigned to RGB; not human-eye color.",
+      "processing": "NASA 4096x2048 JPEG resized with ImageMagick to 1024x512; metadata stripped, JPEG quality 90, 4:4:4. Source colors and orientation preserved."
+    },
+    {
+      "files": ["venus-magellan-radar-1024.jpg"],
+      "title": "Venus Magellan radar surface texture",
+      "sourcePage": "https://science.nasa.gov/3d-resources/venus/",
+      "original": "https://assets.science.nasa.gov/content/dam/science/cds/3d/resources/image/venus/Venus.jpg",
+      "credit": "NASA Magellan; JPL/Caltech planetary-map database.",
+      "coordinates": "Global 2:1 cylindrical texture, north at top; source orientation preserved. Catalog does not specify a precision longitude registration.",
+      "limitations": "RADAR surface mosaic, not visible clouds or visible-light surface color. NASA catalog explicitly says gaps are filled with global texture; those areas are not independent observations. The atmosphere is omitted to reveal the radar-mapped surface.",
+      "processing": "NASA 1440x720 JPEG resized with ImageMagick to 1024x512; metadata stripped, JPEG quality 90, 4:4:4. No additional gap filling."
+    },
+    {
+      "files": ["jupiter-voyager-1024.jpg"],
+      "title": "Jupiter Voyager planetary map",
+      "sourcePage": "https://science.nasa.gov/3d-resources/jupiter/",
+      "original": "https://assets.science.nasa.gov/content/dam/science/cds/3d/resources/image/jupiter/Jupiter.jpg",
+      "credit": "JPL & Caltech; NASA Voyager imagery.",
+      "coordinates": "Global 2:1 cylindrical texture, north at top; source orientation preserved. Catalog does not specify a precision longitude registration.",
+      "limitations": "Historical Voyager atmospheric image composite from the JPL/Caltech map database, not current cloud positions or a solid surface.",
+      "processing": "NASA 720x360 JPEG resampled with ImageMagick to 1024x512 for consistent bounded globe textures; this does not add observed detail. Metadata stripped, JPEG quality 90, 4:4:4."
+    },
+    {
+      "files": ["moon-lro-1024.jpg", "moon-lro-2048.jpg"],
+      "title": "CGI Moon Kit, 2025 LRO color map",
+      "sourcePage": "https://svs.gsfc.nasa.gov/4720/",
+      "original": "https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_2k.jpg",
+      "credit": "NASA's Scientific Visualization Studio; Ernie Wright. LRO LROC WAC: NASA/GSFC/Arizona State University. Polar albedo: LRO LOLA.",
+      "epoch": "December 2025 visualization of historical LRO observations.",
+      "coordinates": "Equirectangular, north up, centre 0° longitude, left -180° and right +180°.",
+      "limitations": "LROC 643/566/415 nm mosaic with exposure/white-balance adjustments and inpainted small high-latitude dropouts. Outside ±70° latitude the source uses lower-resolution monochrome LOLA laser albedo, not observed RGB. Optimized for aesthetics, not scientific analysis.",
+      "processing": "NASA 2048x1024 JPEG retained byte-for-byte as moon-lro-2048.jpg; 1024x512 derivative made with ImageMagick, metadata stripped, JPEG quality 90, 4:4:4."
+    },
+    {
+      "files": ["uranus-hubble-opal-1024.jpg"],
+      "title": "Uranus Hubble OPAL Cycle 25, rotation A color map",
+      "sourcePage": "https://archive.stsci.edu/hlsp/opal/opal-uranus-cycle-25",
+      "original": "https://archive.stsci.edu/hlsps/opal/cycle25/uranus/hlsp_opal_hst_wfc3-uvis_uranus-2017a_f467m-f547m-f657n_v1_globalmap.tif",
+      "readme": "https://archive.stsci.edu/hlsps/opal/cycle25/uranus/hlsp_opal_hst_wfc3-uvis_uranus-2017_all_v3_readme.txt",
+      "credit": "NASA/ESA Hubble Space Telescope, OPAL (PI: Amy Simon), STScI/AURA; see opalAcknowledgement and opalReferences.",
+      "license": "CC BY 4.0; https://creativecommons.org/licenses/by/4.0/",
+      "epoch": "October 25, 2017 18:51 to October 26, 2017 07:48 UT.",
+      "coordinates": "Cylindrical longitude/planetographic latitude, north up, left 0°E increasing rightward through 360°.",
+      "limitations": "Observed HST WFC3/UVIS RGB composite: F657N red, F547M green, F467M blue, contrast-enhanced; not calibrated natural-eye color. Southern polar no-data region remains black; limb/mosaic artifacts remain near coverage boundaries. Black is missing coverage, not a dark physical surface. Not the fictional solid-blue JPL catalog texture.",
+      "processing": "Source 721x361 TIFF resampled to bounded 1024x512; ImageMagick forced TrueColor to preserve RGB despite source grayscale type metadata, flattened on black, stripped metadata, JPEG quality 90, 4:4:4. No inpainting or fabricated atmospheric features."
+    },
+    {
+      "files": ["neptune-hubble-opal-1024.jpg"],
+      "title": "Neptune Hubble OPAL Cycle 25, rotation B color map",
+      "sourcePage": "https://archive.stsci.edu/hlsp/opal/opal-neptune-cycle-25",
+      "original": "https://archive.stsci.edu/hlsps/opal/cycle25/neptune/hlsp_opal_hst_wfc3-uvis_neptune-2018b_f467m-f547m-f657n_v1_globalmap.tif",
+      "readme": "https://archive.stsci.edu/hlsps/opal/cycle25/neptune/hlsp_opal_hst_wfc3-uvis_neptune-2018_all_v2_readme.txt",
+      "credit": "NASA/ESA Hubble Space Telescope, OPAL (PI: Amy Simon), STScI/AURA; see opalAcknowledgement and opalReferences.",
+      "license": "CC BY 4.0; https://creativecommons.org/licenses/by/4.0/",
+      "epoch": "November 5, 2018 03:58 to 14:08 UT.",
+      "coordinates": "Cylindrical longitude/planetographic latitude, north up, left 360°W decreasing rightward to 0°W.",
+      "limitations": "Observed HST WFC3/UVIS RGB composite: F657N red, F547M green, F467M blue, contrast-enhanced; greenish source appearance is not calibrated natural-eye color. Northern polar no-data region remains black; limb/mosaic artifacts remain near coverage boundaries. Black is missing coverage, not a dark physical surface. Not the fictional Don Davis/JPL catalog painting.",
+      "processing": "Source 721x361 TIFF resampled to bounded 1024x512; ImageMagick TrueColor, source transparency flattened on black, metadata stripped, JPEG quality 90, 4:4:4. No inpainting, recoloring or fabricated atmospheric features."
+    },
+    {
+      "files": ["saturn-cassini-rgb-1024.jpg"],
+      "title": "Cassini ISS RGB Saturn Global Color Map Original",
+      "sourcePage": "https://atmos.nmsu.edu/data_and_services/atmospheres_data/Cassini/sat_global_map.html",
+      "original": "https://atmos.nmsu.edu/PDS/data/PDS4/co_iss_global-maps/data_derived/Cassini_ISS_RGB_Saturn_global_color_map_original.fits",
+      "label": "https://atmos.nmsu.edu/PDS/data/PDS4/co_iss_global-maps/data_derived/Cassini_ISS_RGB_Saturn_global_color_map_original.xml",
+      "documentation": "https://atmos.nmsu.edu/PDS/data/PDS4/co_iss_global-maps/document/user_guide.pdf",
+      "credit": "Li, Liming, Robert West, Xun Jiang and Benjamin Knowles (2023), Cassini ISS Global Maps of Jupiter and Saturn Bundle, NASA Planetary Data System.",
+      "doi": "https://doi.org/10.17189/rkkb-6y30",
+      "epoch": "August 11, 2011 03:05:09.695 to 11:40:11.412 UTC.",
+      "coordinates": "Equirectangular, planetocentric latitude, north up; left 360°W decreasing rightward to 0°W. Source FITS latitude runs south to north, reversed for the JPEG.",
+      "limitations": "Observed Cassini ISS RED/GRN/BL1 RGB composite, original version rather than the contrast-enhanced variant. Black equatorial band is missing coverage where rings obstructed observations; polar no-data strips also remain black. Source mosaics use empirical illumination/seam correction. Not current clouds, not a solid surface, not the fictional JPL catalog texture. No invented fill is applied.",
+      "processing": "Decoded three big-endian float32 FITS planes at byte offset 2880, 3601x1801x3, into interleaved 8-bit RGB using source 0–255 values without rescaling. Reversed south-to-north row order; ImageMagick resized to 1024x512, stripped metadata, JPEG quality 90, 4:4:4. Source zero/no-data pixels remain black."
     }
   ],
   "decodedTextureBudget": {
-    "format": "RGBA8, no mipmaps; shared and reference-counted; released on tier/body changes",
-    "LOW_EARTH_MiB": 4,
-    "LOW_TRANSFER_MiB": 6,
-    "HIGH_EARTH_MiB": 64,
-    "HIGH_MARS_MiB": 34,
-    "HIGH_TRANSFER_MiB": 36,
-    "transferRule": "Use only 1k Earth and Mars surface maps while the shared sky may be 4k."
+    "format": "RGBA8, no mipmaps; ten bounded 1024x512 globe maps shared by the solar explorer. Source resampling does not add observed detail.",
+    "SOLAR_LOW_MiB": 22,
+    "SOLAR_HIGH_MiB": 52,
+    "solarRule": "Ten 1k globe maps total 20 MiB; the shared sky adds 2 MiB at LOW or 32 MiB at HIGH. Earth/Moon/Mars mission views reuse their body maps, with the 2k lunar derivative available for the higher-quality Moon view. These figures describe decoded solar textures, not total GPU or application memory."
   }
 }

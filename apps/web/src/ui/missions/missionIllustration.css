@@ -1,0 +1,4 @@
+.mission-illustration { display:block; width:100%; height:auto; max-height:160px; background:#091b2d; border-radius:8px; }
+.mission-offer > .mission-illustration { margin-bottom:.65rem; }
+.home-mission-grid .mission-illustration { max-height:190px; }
+@media(max-width:480px) { .mission-illustration { max-height:130px; } }

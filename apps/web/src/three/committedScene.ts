@@ -3,7 +3,7 @@ import { Euler, Quaternion, Vector3 } from 'three';
 import { renderAttitude } from './space/FloatingOrigin';
 
 export type ScenePoint = [number, number, number];
-export type SceneView = 'explore' | 'prepare' | 'play' | 'journal' | 'gmat' | 'help' | 'missing';
+export type SceneView = 'solar' | 'explore' | 'prepare' | 'play' | 'journal' | 'gmat' | 'help' | 'missing';
 const renderPoint = (r: readonly number[], radius: number): ScenePoint => [r[0]! / radius, r[2]! / radius, -r[1]! / radius];
 
 /** Instantaneous two-body conic, not a forecast or a record of travelled distance. */
@@ -33,6 +33,8 @@ function osculatingPath(current: Telemetry, radius: number): ScenePoint[] {
 }
 
 export interface CommittedScene {
+  /** Stable across decisions; a revision is deliberately not a camera identity. */
+  identity: string;
   body: BodyId;
   design: Design | null;
   current: Telemetry | null;
@@ -85,7 +87,8 @@ export function committedScene(design: Design | null, game: TurnGameState | null
   const moon = physical && central === 'EARTH' && moonPosition ? renderPoint(moonPosition, radiusKm) : null;
   const earth = physical && central === 'MOON' && moonPosition ? renderPoint(moonPosition.map(value => -value), radiusKm) : null;
   const epoch = hardware?.definition.environment.epochUTC;
-  return { body: central, design: hardware, current, physical, cruise, craft, marker, attitude, trail,
+  return { identity: mission ? `mission:${mission.identity}` : hardware ? `equipment:${hardware.definitionDigest}` : `destination:${body}`,
+    body: central, design: hardware, current, physical, cruise, craft, marker, attitude, trail,
     orbit: physical && current ? osculatingPath(current, radiusKm) : [], moon, earth,
     rotation: bodyRotationAngle(central, current?.t ?? 0, epoch), radiusKm };
 }

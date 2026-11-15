@@ -1,0 +1,12 @@
+.quick-tour-trigger { position:absolute; z-index:20; right:16px; top:var(--mission-resource-bottom,88px); display:inline-flex; align-items:center; gap:.4rem; min-height:44px; padding:.5rem .7rem; border:1px solid #557da2; border-radius:6px; color:#d9edff; background:#10283f; }
+.quick-tour-layer { position:fixed; inset:0; z-index:90; pointer-events:none; }
+.quick-tour-highlight { position:fixed; border:2px solid #ffb45f; border-radius:8px; box-shadow:0 0 0 9999px #020912a8; pointer-events:none; }
+.quick-tour-card { position:fixed; width:min(320px,calc(100vw - 24px)); max-height:calc(100dvh - 24px); overflow:auto; padding:1rem; border-radius:12px; background:#143555; color:#e9f4ff; box-shadow:0 10px 30px #0008; pointer-events:auto; }
+.quick-tour-card header { display:flex; align-items:center; justify-content:space-between; gap:.5rem; color:#bcd9f1; font-variant-numeric:tabular-nums; }
+.quick-tour-card h2 { font-size:1.3rem; margin:.3rem 0 .75rem; }
+.quick-tour-card p { color:#cce2f4; line-height:1.45; }
+.quick-tour-card footer { display:flex; align-items:center; justify-content:space-between; gap:.5rem; margin-top:1rem; }
+.quick-tour-card .button { padding:.55rem .65rem; }
+.quick-tour-card .primary { color:#10243a; background:#ffac51; border-color:#ffac51; }
+.quick-tour-card :focus-visible,.quick-tour-trigger:focus-visible { outline:3px solid #9bd7ff; outline-offset:3px; }
+.quick-tour-card button:disabled { opacity:.45; cursor:not-allowed; }

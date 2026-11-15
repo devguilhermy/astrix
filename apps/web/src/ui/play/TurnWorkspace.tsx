@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { telemetry, turnDecision, turnDebrief, type TurnGameState, type TurnReceipt, type TurnResult } from '@astrix/core';
+import { BatteryCharging, Camera, Check, CornerDownLeft, Eye, Flag, ListChecks, Navigation, Orbit, Radio, Rocket, Square, Target, Wrench, type LucideIcon } from 'lucide-react';
+import { telemetry, turnDecision, turnDebrief, type TurnGameState, type TurnPlanKind, type TurnReceipt, type TurnResult } from '@astrix/core';
 import type { SessionState } from '@astrix/session';
 import { labelText, objectiveTarget } from '../missions/definitionView';
 import { Duration, Evidence, FlightContext, ScienceLibrary } from './Evidence';
 import { attemptRecord, comparable, type AttemptRecord } from './persistence';
 import { usePlayCopy } from './copy';
 import { ScienceConnection } from './ScienceConnection';
+const planIcons:Record<TurnPlanKind,LucideIcon>={LAUNCH:Rocket,MANEUVER:Navigation,COAST:Orbit,OBSERVE:Camera,TRANSMIT:Radio,RECHARGE:BatteryCharging,RECOVER:Wrench,CAPTURE:Target,RETURN:CornerDownLeft,FINISH:Flag,ABORT:Square};
 
-export function TurnWorkspace({game,onCommit,onCheckpoint,onRetry,onRedesign,onTools,busy,disabled,host,proposals=[],roster=[],journal,hints}:{game:TurnGameState;onCommit:(planId:string)=>void;onCheckpoint:()=>void;onRetry:()=>void;onRedesign:()=>void;onTools:()=>void;busy:boolean;disabled:boolean;host:boolean;proposals?:SessionState['turnProposals'];roster?:SessionState['roster'];journal:readonly AttemptRecord[];hints:boolean}) {
+export function TurnWorkspace({game,onCommit,onInspectPlan,onCheckpoint,onRetry,onRedesign,onTools,busy,disabled,host,proposals=[],roster=[],journal,hints}:{game:TurnGameState;onCommit:(planId:string)=>void;onInspectPlan?:()=>void;onCheckpoint:()=>void;onRetry:()=>void;onRedesign:()=>void;onTools:()=>void;busy:boolean;disabled:boolean;host:boolean;proposals?:SessionState['turnProposals'];roster?:SessionState['roster'];journal:readonly AttemptRecord[];hints:boolean}) {
   const c=usePlayCopy(),{t,i18n}=useTranslation(),decision=useMemo(()=>turnDecision(game),[game]),current=useMemo(()=>telemetry(game.sim),[game]);
   const [selected,setSelected]=useState(''),[preview,setPreview]=useState<TurnResult|null>(null),[previewing,setPreviewing]=useState(false),[previewError,setPreviewError]=useState(''),[refresh,setRefresh]=useState(0);
   const [panel,setPanel]=useState<'choices'|'preview'>('choices');
@@ -36,26 +38,29 @@ export function TurnWorkspace({game,onCommit,onCheckpoint,onRetry,onRedesign,onT
     <section id="turn-choices-panel" className="context-panel choices-panel">
       <div className="panel-scroll">
         <header className="play-page-heading"><h1>{labelText(t,game.design.definition.name)}</h1><p>{c('elapsed')}: <Duration seconds={current.t}/> · {c(game.config.ambition)}{game.assisted&&<> · <strong>{c('assisted')}</strong></>}</p><p className="mission-deadline">{c('timeRemaining')}: <Duration seconds={current.clock.remainingSec}/></p></header>
-        <section className="turn-objective" aria-label={c('objective')}><h2>{c('objective')}</h2><Evidence items={decision.objective} definition={game.design.definition}/></section>
-        <div className="turn-resource-strip"><div><span>{c('fuel')}</span><output>{number.format(fuel)} kg</output></div><div><span>{c('energy')}</span><output>{number.format(current.socWh)} / {number.format(current.capacityWh)} Wh</output></div><div><span>{c('data')}</span><output>{number.format(current.downlinkedMB)} MB</output></div></div>
+        <section className="turn-objective" aria-label={c('objective')}><h2 className="icon-heading"><Target size={17} aria-hidden="true"/>{c('objective')}</h2><Evidence items={decision.objective} definition={game.design.definition}/></section>
+        <p className="mission-fuel">{c('fuel')}: <output>{number.format(fuel)} kg</output></p>
         <ImminentWarnings game={game}/>
         {receipt?.interrupted&&<p className="play-notice warning" role="status">{c('interrupted')}</p>}
-        <section className="turn-choices"><h2>{c('thinking')}</h2><p>{c('decisionIntro')}</p>{hints&&game.revision<3&&<p className="inline-guidance">{c(game.revision===0?'firstHint':game.revision===1?'secondHint':'thirdHint')}</p>}
-          <fieldset className="turn-plans"><legend className="sr-only">{c('selectPlan')}</legend>{decision.plans.map(option=><label key={option.id} className={selected===option.id?'selected':''}><input type="radio" name="turn-plan" checked={selected===option.id} disabled={busy} onChange={()=>setSelected(option.id)}/><span><strong>{c(option.kind)}</strong>{game.config.levelId==='ASPIRING'&&option.recommended&&<small className="plan-recommendation">{c('recommendedPlan')}</small>}<p>{c(`plan.${option.kind}`)}</p><small><Duration seconds={option.expectedElapsedSec}/> · {c(option.nextBoundary)}</small>{option.warnings.map((warning,index)=><p className="danger-text" key={index}>{c(warning)}</p>)}</span></label>)}</fieldset>
+        <section className="turn-choices"><h2 className="icon-heading"><ListChecks size={18} aria-hidden="true"/>{c('thinking')}</h2><p>{c('decisionIntro')}</p>{hints&&game.revision<3&&<p className="inline-guidance">{c(game.revision===0?'firstHint':game.revision===1?'secondHint':'thirdHint')}</p>}
           {proposals.length>0&&<section className="crew-proposals"><h3>{c('proposals')}</h3><ul>{proposals.filter(item=>item.decisionId===decision.id&&item.turnRevision===decision.revision).map(proposal=><li key={proposal.playerId}>{roster.find(player=>player.id===proposal.playerId)?.name??proposal.playerId}: <strong>{c(decision.plans.find(item=>item.id===proposal.planId)?.kind??proposal.planId)}</strong></li>)}</ul></section>}
           <details className="play-details"><summary>{c('details')}</summary><dl><dt>{c('stored')}</dt><dd>{number.format(current.storedMB)} / {number.format(current.storageMB)} MB</dd><dt>{c('seed')}</dt><dd>{game.config.seed}</dd><dt>{c('rules')}</dt><dd>{game.rulesVersion} / {game.modelVersion}</dd></dl><p>{current.mode} · {current.clock.phase}</p>{current.thermal&&<p>{number.format(current.thermal.temperatureK)} K · {number.format(current.thermal.heaterW)} W</p>}{current.crew&&<dl><dt>O₂ / N₂</dt><dd>{number.format(current.crew.oxygenKg)} / {number.format(current.crew.nitrogenKg)} kg</dd><dt>CO₂</dt><dd>{number.format(current.crew.co2MmHg)} mmHg</dd></dl>}<p className="identity">{game.identity}</p><FlightContext game={game}/></details>
         </section>
       </div>
     </section>
-    <aside id="turn-preview-panel" className="context-panel preview-panel" aria-label={c('preview')} aria-busy={previewing||busy}>
-      <div className="panel-scroll turn-preview"><h2>{c('preview')}</h2>{!selected&&<p>{c('selectPlan')}</p>}{previewing&&<p role="status">{c('previewing')}</p>}
+    <aside id="turn-preview-panel" className="context-panel preview-panel" data-tour="turn-preview" aria-label={c('preview')} aria-busy={previewing||busy}>
+      <div className="panel-scroll turn-preview"><h2 className="icon-heading"><Eye size={18} aria-hidden="true"/>{c('preview')}</h2>{!selected&&<p>{c('selectPlan')}</p>}{previewing&&<p role="status">{c('previewing')}</p>}
+        {plan&&<article className="plan-detail"><h3>{c(plan.kind)}</h3>{game.config.levelId==='ASPIRING'&&plan.recommended&&<p className="plan-recommendation">{c('recommendedPlan')}</p>}<p>{c(`plan.${plan.kind}`)}</p><p><Duration seconds={plan.expectedElapsedSec}/> · {c(plan.nextBoundary)}</p>{plan.warnings.map((warning,index)=><p className="danger-text" key={index}>{c(warning)}</p>)}</article>}
         {previewError&&<div role="alert"><p>{c('technicalError')}</p><button className="button" onClick={()=>setRefresh(value=>value+1)}>{c('recheck')}</button></div>}
         {preview&&!preview.ok&&<p role="alert">{c('technicalError')} <small>{preview.code}</small></p>}
-        {preview?.ok&&<><h3>{c(plan?.kind??'preview')}</h3><Receipt receipt={preview.value.receipt} definition={game.design.definition} preview/><p className="muted">{c('previewNote')}</p></>}
+        {preview?.ok&&<><Receipt receipt={preview.value.receipt} definition={game.design.definition} preview/><p className="muted">{c('previewNote')}</p></>}
         <details className="turn-last-receipt" key={receipt?.id??'first'} open={receipt?.interrupted||undefined}><summary>{c('receipt')}</summary>{receipt?<Receipt receipt={receipt} definition={game.design.definition}/>:<p>{c('noReceipt')}</p>}{game.config.levelId==='ASPIRING'&&game.revision>0&&host&&<button className="text-button" disabled={disabled||busy} onClick={onCheckpoint}>{c('checkpoint')}</button>}</details>
       </div>
-      <div className="panel-action"><button className="button primary turn-commit" disabled={disabled||busy||previewing||!validPreview||!plan} onClick={()=>{if(plan&&validPreview)onCommit(plan.id);}}>{busy?c('resolving'):host?`${c('commit')}: ${plan?c(plan.kind):c('selectPlan')}`:c('propose')}</button>{busy&&<p role="status">{c('resolveNote')}</p>}{!host&&<p>{c('phoneNote')}</p>}</div>
     </aside>
+    <section className="turn-action-dock" data-tour="turn-actions" aria-label={c('thinking')}>
+      <fieldset className="turn-plans"><legend className="sr-only">{c('selectPlan')}</legend>{decision.plans.map(option=>{const Icon=planIcons[option.kind];return <label key={option.id} className={selected===option.id?'selected':''} title={c(`plan.${option.kind}`)}><input type="radio" name="turn-plan" value={option.id} checked={selected===option.id} disabled={busy} aria-label={`${c(option.kind)}${game.config.levelId==='ASPIRING'&&option.recommended?` · ${c('recommendedPlan')}`:''}`} onChange={()=>{setSelected(option.id);setPanel('preview');onInspectPlan?.();}}/><Icon size={15} aria-hidden="true"/><span>{c(`action.${option.kind}`)}</span></label>;})}</fieldset>
+      <div className="panel-action"><button className="button primary turn-commit" disabled={disabled||busy||previewing||!validPreview||!plan} onClick={()=>{if(plan&&validPreview)onCommit(plan.id);}}><Check size={17} aria-hidden="true"/>{busy?c('resolving'):host?`${c('commit')}: ${plan?c(plan.kind):c('selectPlan')}`:c('propose')}</button>{busy&&<p role="status">{c('resolveNote')}</p>}{!host&&<p>{c('phoneNote')}</p>}</div>
+    </section>
   </section>;
 }
 

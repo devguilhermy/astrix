@@ -11,9 +11,13 @@ Rendering illustrates committed scientific state; it never advances physics, spe
 | External GMAT/OEM inspection | `apps/web/src/ui/advanced/AdvancedTools.tsx` | Read-only sampled reference data, no resource history or score |
 | Decision preview and receipt | `apps/web/src/ui/play/TurnWorkspace.tsx` | Display results from the shared core resolver, not a web-side physical estimate |
 
+The public landing is separate from the simulator. Its entry opens free solar-system exploration before the mission board. The overview includes Sun, eight planets and Moon with schematic spacing/radii and DOM alternatives to picking; exploration does not extend the core's supported mission bodies.
+
 ## Spacecraft context
 
-One R3F Canvas stays mounted across mission selection, preparation, play, debrief and tools. It uses bounded pixel ratio and paid catalogue-derived spacecraft geometry. Destination/equipment previews are distinguished from committed flight state. Spacecraft enlargement and schematic separations are disclosed where used for legibility. Camera controls have labelled DOM/keyboard alternatives; installed hardware also has a textual manifest.
+One R3F Canvas stays mounted across solar exploration, mission selection, preparation, play, debrief and tools. It uses bounded pixel ratio and paid catalogue-derived spacecraft geometry. Destination/equipment previews are distinguished from committed flight state. Spacecraft enlargement and schematic separations are disclosed where used for legibility. Camera controls have labelled DOM/keyboard alternatives; installed hardware also has a textual manifest.
+
+Successive decision snapshots preserve the user's camera orientation, zoom and pan. Following a changed craft position translates the camera and its target together; only a new mission/body/mode, focus selection or explicit Reset reframes the view. Scene framing accounts for the widened panels and persistent resource grid.
 
 Context loss or a renderer error shows an explicit unavailable message while preserving mission controls and state. A visual failure must not abort, reset or silently advance a flight. Decorative motion is not required; reduced-motion preferences must not change physical results.
 

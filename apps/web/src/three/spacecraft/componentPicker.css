@@ -1,0 +1,13 @@
+.immersive-scene-controls .component-picker-trigger { display:flex; align-items:center; gap:8px; max-width:100%; min-height:44px; text-align:left; }
+.component-picker-trigger>span { min-width:0; overflow-wrap:anywhere; }
+.component-picker-trigger>svg { flex:none; }
+.component-picker-list { position:fixed; z-index:80; box-sizing:border-box; overflow-y:auto; overscroll-behavior:contain; padding:6px; border:1px solid #5b7998; border-radius:12px; background:#102238; color:#ecf4fc; font-family:var(--font-sans); scrollbar-color:#6188ac #102238; }
+.component-picker-list:focus-visible { outline:2px solid #ffb16b; outline-offset:2px; }
+.component-picker-option { display:flex; align-items:start; gap:12px; min-height:64px; padding:12px; border-radius:7px; cursor:pointer; }
+.component-picker-option+ .component-picker-option { margin-top:3px; }
+.component-picker-option>svg { flex:none; margin-top:2px; color:#ffbd83; }
+.component-picker-option>span { flex:1; min-width:0; }
+.component-picker-option strong { display:block; font-size:15px; line-height:1.35; font-weight:600; overflow-wrap:anywhere; }
+.component-picker-option span>span { display:block; margin-top:4px; font-size:13px; line-height:1.45; color:#bdd3e9; }
+.component-picker-option[data-active=true] { background:#244b72; }
+.component-picker-option[aria-selected=true] strong { color:#ffd0a7; }

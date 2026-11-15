@@ -1,11 +1,10 @@
 :root { color-scheme: dark; }
 body { margin: 0; }
-.startup-screen, .recovery-screen { --boot-line: #ffffff22; --boot-cyan: #72dce5; --boot-muted: #a9bdc9; --boot-surface: #101c28; min-height: 100svh; display: grid; place-items: center; padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom)); box-sizing: border-box; background: #07101a; color: #dce6ec; font-family: 'Rajdhani', system-ui, sans-serif; }
-.startup-card, .recovery-card { width: min(100%, 36rem); box-sizing: border-box; border: 1px solid var(--boot-line); border-top: 2px solid var(--boot-cyan); border-radius: 4px; background: var(--boot-surface); padding: clamp(1.25rem, 5vw, 2.5rem); }
-.startup-brand { display: flex; align-items: center; gap: .8rem; border-bottom: 1px solid var(--boot-line); padding-bottom: 1.2rem; margin-bottom: 1.4rem; }
-.startup-mark { width: 44px; height: 44px; color: var(--boot-cyan); flex: 0 0 auto; }
-.startup-kicker { color: var(--boot-cyan); font-size: .75rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
-.startup-card h1 { color: #f2f7f9; font-size: clamp(1.5rem, 4vw, 2rem); line-height: 1.15; margin: .3rem 0 0; }
+.startup-screen, .recovery-screen { --boot-line: #79aaff33; --boot-cyan: #82b7ff; --boot-orange: #ff9d4d; --boot-muted: #b4c7e4; --boot-surface: #0d2344; min-height: 100svh; display: grid; place-items: center; padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom)); box-sizing: border-box; background: #061329; color: #e1ebfa; font-family: 'Rajdhani', system-ui, sans-serif; }
+.startup-card, .recovery-card { width: min(100%, 36rem); box-sizing: border-box; border: 1px solid var(--boot-line); border-radius: 12px; background: var(--boot-surface); padding: clamp(1.25rem, 5vw, 2.5rem); }
+.startup-brand { display: flex; justify-content: center; border-bottom: 1px solid var(--boot-line); padding-bottom: 1.2rem; margin-bottom: 1.4rem; }
+.startup-logo { display: block; width: min(100%, 14rem); height: auto; object-fit: contain; box-sizing: border-box; padding: .65rem; border-radius: 8px; background: #d6e9f5; }
+.startup-title { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 .startup-message { font-size: 1rem; line-height: 1.5; margin: 0; }
 .startup-message span { display: block; }
 .startup-message [lang='pt-BR'] { color: var(--boot-muted); font-size: .9rem; margin-top: .3rem; }
@@ -14,11 +13,14 @@ body { margin: 0; }
 .startup-progress::-webkit-progress-value { background: var(--boot-cyan); }
 .startup-note { color: var(--boot-muted); font-size: .8rem; letter-spacing: .04em; margin: 1rem 0 0; }
 .startup-actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1rem; }
-.startup-actions a, .startup-actions button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: .4rem .9rem; border: 1px solid var(--boot-line); border-radius: 4px; background: #07101a; color: var(--boot-cyan); font: inherit; text-decoration: none; cursor: pointer; }
+.startup-actions a, .startup-actions button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: .4rem .9rem; border: 1px solid var(--boot-cyan); border-radius: 6px; background: #061329; color: var(--boot-cyan); font: inherit; text-decoration: none; cursor: pointer; }
+.startup-actions > :first-child { background: var(--boot-orange); color: #182239; border-color: var(--boot-orange); font-weight: 700; }
+.startup-actions > :first-child:hover { background: #ffb473; border-color: #ffb473; }
+.startup-actions > :not(:first-child):hover { background: #17365e; }
 .startup-actions :focus-visible { outline: 2px solid var(--boot-cyan); outline-offset: 4px; }
 .startup-actions[hidden] { display: none; }
-.startup-noscript { padding: 1rem; background: #101c28; color: #dce6ec; font: 1rem/1.5 system-ui, sans-serif; }
-.startup-noscript a { color: #72dce5; }
+.startup-noscript { padding: 1rem; background: #0d2344; color: #e1ebfa; font: 1rem/1.5 system-ui, sans-serif; }
+.startup-noscript a { color: #82b7ff; }
 .startup-failed .startup-progress { display: none; }
 @media (prefers-reduced-motion: reduce) { .startup-progress { display: none; } }
 [data-reduced-motion='true'] .startup-progress { display: none; }

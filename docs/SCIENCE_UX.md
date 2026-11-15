@@ -1,6 +1,6 @@
 # Scientific design without a science prerequisite
 
-ASTRIX serves learners, educators and technically experienced players. Simplify the choices and explanations, not their consequences. The product is a fun space-exploration game, not a mission-design studio or flight-qualified tool. [Verification](./VERIFICATION.md) records functional evidence; automation is not a novice-comprehension or enjoyment study.
+ASTRIX11 serves learners, educators and technically experienced players. Simplify the choices and explanations, not their consequences. The product is a fun space-exploration game, not a mission-design studio or flight-qualified tool. [Verification](./VERIFICATION.md) records functional evidence; automation is not a novice-comprehension or enjoyment study.
 
 ## One loop for both levels
 
@@ -9,6 +9,14 @@ Both Aspiring and Expert use **discovery → quick design → preview → commit
 Preparation keeps the coupled choices together: destination-compatible goal, ambition, kit and approach. The live brief displays the actual success target, budget allowance, deadline and dominant constraints. A suggested configuration remains editable. A change must not silently alter the player's goal, buy hardware, raise a budget or repair a failure.
 
 Readiness has distinct meanings: compatible; within limits; checking; no viable plan found; Ready; Stretched. Ready requires a successful reference-policy witness through the actual engine. It is not an arbitrary score, probability, NASA endorsement or guaranteed victory. Unsupported or unfinished checks remain explicit.
+
+## Learn the discipline before the controls
+
+The first entry from the landing offers a **skippable general mission-design lesson**, not a game-specific tutorial. Five short sections cover purpose and measurable success; launch/space/ground/user architecture; requirements, trade-offs and margins; verification versus validation; and operations, evidence and iteration. A coastline-observation example links the sections without implying that every example phenomenon is simulated. NASA's systems-engineering handbook is linked as further reading.
+
+Completion or Skip is remembered locally (`astrix.learning.mission-design.v1`); subsequent entry goes directly to solar exploration. The lesson remains replayable from the landing and game menu. It cannot buy hardware, start an attempt or advance mission time.
+
+In the simulator, **Quick tour** uses six short spotlight cards across exploration (one), the mission board (one), preparation (two), and active play (two). It points at existing controls and only explains the immediate interaction. Skip suppresses subsequent automatic offers; manual replay remains available. Progress is device-local (`astrix.quick-tour.v1`). Spotlight guidance never invokes mission actions, and the actual controls remain usable.
 
 ## Meaningful equipment tradeoffs
 
@@ -31,7 +39,7 @@ At a decision the player must be able to identify the goal, relevant choices, ex
 
 Plans are declared operational automation. Observation, transmit, recharge, maneuver, recovery and return resolve actual commands, slew, geometry, inventories and deadlines. An Observe plan is not a magic data grant; recharge is not an instantaneous refill; a lunar encounter is not capture. An unsupported repair must not appear as a universal recovery button.
 
-The receipt communicates **choice → measured change → consequence → next experiment**. Show elapsed mission time and objective progress independently of resource indicators. Use up to three relevant normal resource indicators; imminent thermal, crew or other failure conditions must still surface. W and Wh, stored and returned data, and planning reserve versus flown reserve remain distinct.
+The receipt communicates **choice → measured change → consequence → next experiment**. Show elapsed mission time and objective progress independently of the persistent seven-resource grid (mass, power, budget, data, communications, time, crew). Icons, bars, values and text states work together; unknown/not-applicable states remain explicit. Imminent thermal, crew or other failure conditions must still surface. W and Wh, stored and returned data, and planning reserve versus flown reserve remain distinct.
 
 Internal resolution errors preserve the committed boundary and explain that resolution failed. They must not masquerade as physical mission losses. Thinking, reading, settings, animation and browser backgrounding do not advance the game. LAN readers may see newer host commits after opening an explanation, so frozen contextual values must be labelled as snapshots.
 
@@ -82,6 +90,6 @@ Debrief distinguishes success, failure, incomplete objectives and assistance. De
 
 ## Accessibility and evaluation
 
-Use native labelled controls, visible focus, keyboard alternatives, bounded scrolling panels, textual result/error states and reduced-motion support. The immersive 3D scene remains visible behind or beside the panels, including on compact screens; it is not an opt-in illustration below the workflow. Optional dialogs retain focus/inert behavior and return to a connected opener. Teach the first decisions inline rather than through a mandatory full-screen tour chain.
+Use native labelled controls, visible focus, keyboard alternatives, bounded scrolling panels, textual result/error states and reduced-motion support. The immersive 3D scene remains visible behind or beside the panels, including on compact screens. Styled confirmation dialogs retain focus/inert behavior and return to a connected opener. The preflight design lesson is skippable; the lighter simulator spotlights are dismissible and replayable, not a mandatory full-screen tour chain.
 
 Functional verification covers design constraints, stale checks, preview purity, commit/retry/save behavior, both languages, compact layouts and multiplayer. Human sessions must separately measure assistance, comprehension, enjoyment and replay intent. The proposed first-choice/first-outcome/mission-duration targets in the [revision plan](./plans/TURN_BASED_EXPLORATION_REVISION.md) remain hypotheses until measured with participants.

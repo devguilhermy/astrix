@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 import { useThree } from '@react-three/fiber';
 import { LinearFilter, RepeatWrapping, SRGBColorSpace, Texture } from 'three';
 
@@ -71,11 +71,16 @@ function acquireTexture(file: string) {
  * A failed high-tier surface falls back to the existing low-tier historical map;
  * exhausted imagery leaves the original procedural sky or plain planet visible.
  */
-/** `null` means the body has no authored surface image (the Moon draws a plain lit sphere); nothing is requested. */
+/** `null` means this component requests no authored image; its caller owns the untextured display. */
 export function useSpaceTexture(file: string | null, fallback?: string): LoadedTexture | null {
  const invalidate = useThree(state => state.invalidate);
  const requestKey = `${file}|${fallback ?? ''}`;
  const [result, setResult] = useState<{ key: string; loaded: LoadedTexture } | null>(null);
+ // Custom planet/sky uniforms keep stable objects. In demand mode, draw only after
+ // React commits the decoded image into those uniforms, not before that commit.
+ useLayoutEffect(() => {
+  if (result?.key === requestKey) invalidate();
+ }, [result, requestKey, invalidate]);
  useEffect(() => {
   let active = true;
   let release: (() => void) | undefined;
@@ -87,7 +92,7 @@ export function useSpaceTexture(file: string | null, fallback?: string): LoadedT
     release = acquired.release;
     try {
      const loaded = await acquired.promise;
-     if (active) { setResult({ key: requestKey, loaded }); invalidate(); }
+     if (active) setResult({ key: requestKey, loaded });
      return;
     } catch {
      // Cleanup may already have released an aborted request.

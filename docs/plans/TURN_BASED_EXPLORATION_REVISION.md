@@ -34,6 +34,10 @@ A turn is one commitment until the next meaningful decision, not a fixed number 
 
 This is a gameplay replacement, not an additional mode beside the old real-time experience. Keep visual playback; remove the need to manage simulation speed.
 
+**User clarification during implementation:** keep the 3D space scene visible at all times. Mission selection, quick design, turns and debrief are contextual panels over the persistent scene, not a document form with an optional 3D illustration. Keep plan-action toggles visible at the bottom or beside the turn panels. Camera, component inspection and rendering remain presentation-only; selecting a plan still previews rather than commits.
+
+Mission display names must explain destination, operation and purpose in both languages. Stable IDs and saved identity remain unchanged; ambition-dependent numerical targets come from the actual definition rather than fixed numbers in a display name.
+
 ## 3. Research and what it changes
 
 These sources establish precedents and design guidance, not evidence that our proposed game is usable. We have not playtested these games or the proposed ASTRIX flow in this research pass.
@@ -270,3 +274,29 @@ Recommended approval package:
 4. **Local decision-boundary saves are required**; LAN remains one host authority. Host restart persistence needs an explicit scope decision.
 5. **GMAT support remains optional and functional**, with honest interchange/validation limits.
 6. **Enjoyment and player-comprehension evaluation remain required evidence.** Execution is approved; automated browser verification establishes functionality, not human usability or enjoyment.
+
+## 12. Finalization sequence after the session recap
+
+The owner requested a full session recap and finalizing plan. Implementation is paused for that report, not declared release-complete.
+
+### Observed state
+
+- Latest full integrated suite: 425 passed, zero failed, 52 files, 55,075 assertions. Later component-picker/detail refinements have typecheck/build and partial browser evidence, not a new full-suite result.
+- Latest typecheck passed. Latest production build passed with 2,841 modules and existing >500 kB chunk warnings.
+- Production HTTP/WebSocket host/controller checks passed for protocol 3: admission, roles, proposals, host-only commits, duplicates, stale requests, reconnects and frozen idle mission time. The final subsequent change was detail-panel CSS; physical phones remain untested.
+- Browser evidence includes real Earth/Moon textures, seven persistent resource cells, collapsed-panel action availability, modal cancellation/focus return and explicit replacement, localized component options at 320 px, keyboard component inspection and dismissible spotlights.
+- A production `removeChild` exception was recorded during the earlier component/scene walkthrough. Its root cause is not established; subsequent interactions without a new exception do not resolve it.
+- A global definition-list grid compressed component specification rows. The local one-column grid fix is built, but its final visual check was interrupted.
+- The latest reload at `#play` shows no active attempt and a Mission board action. The explicit saved-mission resume path has not yet been completed on that build; this observation alone does not establish lost save data.
+
+### Ordered closing gates
+
+1. **Resolve the known renderer lifecycle error.** Trace the recorded DOM ownership/unmount failure around HTML scene overlays and component selection. Fix the cause, cover the affected lifecycle and verify selection, close, destination changes and reload without losing the scene.
+2. **Finish component inspection proof.** Inspect the corrected detail rows and custom icon/title/description picker at desktop and 320 px, in both languages. Check keyboard movement/selection, Escape and outside dismissal, focus return, overflow, readable descriptions and unchanged mission state.
+3. **Complete the final player journey.** Landing → optional lesson/skip → solar exploration → mission board → constrained design → preview/commit → debrief/journal → reload/resume → same-condition retry. Verify one retained Canvas, resource/action visibility, actual planet textures, preserved camera angle/zoom and meaningful refusals. Include compact, keyboard and reduced-motion paths.
+4. **Close retained scientific and content acceptance.** Preserve the recorded 648-configuration balance sweep and independent GMAT residuals. Exercise representative ascent, maneuver, lunar and crew paths through the final UI; repeat numerical checks only if their implementation changes. Do not equate nominal feasibility with human playability.
+5. **Freeze source and verify one production artifact.** Run the requested final typecheck/tests/build after actual remaining fixes. Start the host against that exact artifact and complete browser lobby/controller/proposal/commit/reconnect checks. Keep desktop clients distinct from real-device qualification.
+6. **Finalize canonical documentation and evidence.** Reconcile stale integration-pending text in INDEX, VERIFICATION, CHANGELOG and affected canonical pages. Record actual build/check boundaries, screenshots, remaining warnings, source attribution and unsupported capabilities. Check documentation links and refresh public copies.
+7. **Close the delivery environment.** Remove assistant-created throwaway proof files and stop obsolete preview services, preserving any explicitly wanted preview. Provide launch commands and a concise acceptance report. Physical-phone testing, independent language/science review and novice enjoyment/comprehension studies remain separate evidence requirements.
+
+No new gameplay systems, raw authoring studio or additional mission destinations are added during finalization.

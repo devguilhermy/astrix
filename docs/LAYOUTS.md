@@ -2,9 +2,17 @@
 
 The **persistent 3D space scene is the main surface**. Mission selection, preparation, turns and debrief are panels over it, not a scrolling page that pushes the scene out of view. This is the user's explicit immersive-game requirement. `ui/play/PlayApp.tsx` owns the current contextual panels while the scene remains mounted. Functional and visual evidence belongs in [Verification](./VERIFICATION.md).
 
+## Landing and brand
+
+The public landing (`ui/landing/Home.tsx`) precedes the simulator and retains the display-led introduction, mission overview and challenge explanations. ASTRIX11 uses the supplied `public/assets/logo.png`, deep blue surfaces and orange primary actions. Storage keys, package names and saved mission IDs do not change with the displayed brand.
+
+Entering opens `#solar`: free exploration of the Sun, eight planets and Moon, with accessible body selection as well as 3D picking. Choosing missions is a separate action. Earth, Moon and Mars open the supported mission board; the other bodies are exploration-only. Spacing, radii and positions are explicitly schematic, not a live ephemeris. Returning to the landing hides rather than destroys the mounted simulator.
+
 ## Explore → Design & Play
 
 The mission board groups destinations and offers a small initial selection with more missions available on demand. Both levels have the same first-class **Design & Play** entry. The goal comes before equipment; mission cards explain the discovery rather than requiring the player to understand spacecraft architecture first.
+
+Mission cards and the landing mission overview use decorative spacecraft/orbit/launch diagrams (`ui/missions/MissionIllustration.tsx`), not fabricated flight samples or previews of installed hardware.
 
 Preparation is one workspace, not a sequence of approval screens:
 
@@ -20,7 +28,9 @@ Cost, fit and constraints update together. Selecting a new configuration cancels
 
 The stable workspace shows the mission objective, elapsed mission time and current decision. It presents no more than four relevant plans, one selected preview and one named commit action. The preview explains time, resource deltas and boundary. Commit publishes a complete receipt; a selection alone does not move the spacecraft.
 
-Normal resource presentation emphasizes at most three relevant indicators. Imminent crew, thermal or other failures remain visible even when not one of those indicators. Details expand exact evidence and model identity without hiding information required for a good decision.
+Compact plan-action toggles and the single guarded commit stay visible below or beside the turn panels, even while panel content scrolls or is collapsed. Choosing a toggle selects a preview; only commit advances the mission. Camera controls occupy a separate scene-safe area.
+
+During a mission the persistent seven-resource grid shows mass, power, budget, data, communications, time and crew from core budgets and committed telemetry. Icon labels, values, units and status text accompany the bars; unknown and not-applicable values remain explicit. It stays outside scrolling/collapsed panels, and compact layouts reserve scene space below it. Fuel remains available in mission details and turn receipts. Imminent warnings and consequence previews remain visible rather than being replaced by the resource grid.
 
 Routine pointing, instrument switching and contact handling belong to a disclosed operational plan. The player does not manage warp, pause/resume, manual burn vectors, stages, signoffs or subsystem paperwork. The scene remains visible beside the turn panels and renders the installed spacecraft and model-derived context; its camera cannot change the physical outcome.
 
@@ -35,6 +45,8 @@ The discovery journal records simulated achievements and qualified comparisons. 
 Local save controls expose the saved committed boundary, export/import and explicit continuation. Two-slot writes commit the pointer last so a failed write preserves the prior selected save. Restore validates the format, versions, identity and deterministic history before presenting a runnable game. Corrupt/incompatible content is explained and remains exportable; an old user definition is not silently relabelled as a quick mission.
 
 Navigation never executes a plan. Returning to the mission restores its current committed decision. Loading, resolution and network errors remain visible; retries must not double-commit. Local browser persistence and a live LAN room are separate recovery mechanisms.
+
+Replacing a saved attempt or importing over it uses the shared styled modal, not browser-native confirmation. Cancel, Escape and backdrop dismissal do not change the attempt. Focus is contained while open and returned on close; only explicit confirmation can run the guarded replacement.
 
 ## Optional tools
 

@@ -15,7 +15,7 @@ interface State { failed: boolean; error?: unknown }
 function ErrorSurface({ error, scope, retry }: { error: unknown; scope: Scope; retry(): void }) {
   const { t } = useTranslation();
   const card = <section className="recovery-card error-surface" role="alert">
-    <span className="startup-kicker">ASTRIX · {scope === 'application' ? '500' : '!'}</span>
+    <img className="recovery-logo" src={`${import.meta.env.BASE_URL}assets/logo.png`} alt="ASTRIX11" width="512" height="426"/>
     <h2><AlertIcon size={24}/>{t(`recovery.${scope}Title`)}</h2>
     <p>{t(`recovery.${scope}Body`)}</p>
     <details><summary>{t('recovery.details')}</summary><pre>{error instanceof Error ? error.message : String(error)}</pre></details>
@@ -34,7 +34,7 @@ export class ErrorBoundary extends Component<Props, State> {
   state: State = { failed: false };
   static getDerivedStateFromError(error: unknown): State { return { failed: true, error }; }
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error('ASTRIX render boundary', error, info.componentStack);
+    console.error('ASTRIX11 render boundary', error, info.componentStack);
     this.props.onError?.(error);
   }
   retry = () => {

@@ -1,0 +1,10 @@
+.gmat-page { max-width: 760px; margin: 0 auto; padding: 1.2rem 1.25rem 4rem; min-height: 100dvh; }
+.gmat-back { display: inline-block; margin-bottom: 1.4rem; }
+.gmat-export-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin: 1.2rem 0; }
+.gmat-export-grid > label, .gmat-script { display: flex; flex-direction: column; gap: .4rem; }
+.gmat-script textarea { font-family: var(--font-mono); font-size: .8rem; line-height: 1.45; width: 100%; resize: vertical; border: 1px solid #668ab8; background: #071a35; color: #eef4ff; padding: .6rem .75rem; border-radius: 4px; white-space: pre; overflow: auto; }
+.gmat-export [role='status'] { margin: .8rem 0; }
+.gmat-ok { color: #9fe0b4; }
+.gmat-bad { color: #ffb4ab; }
+.gmat-export .button-wrap { margin-top: 1rem; }
+@media (max-width: 520px) { .gmat-export-grid { grid-template-columns: 1fr; } }

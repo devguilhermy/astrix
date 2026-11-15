@@ -2,12 +2,16 @@ import { describe, expect, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createInstance } from 'i18next';
 import { I18nextProvider } from 'react-i18next';
-import { createTurnGame, defaultQuickDesign, missionById, missionOffers } from '@astrix/core';
+import { computeBudgets, createTurnGame, defaultQuickDesign, missionById, missionOffers, telemetry, turnDecision } from '@astrix/core';
 import { english, portuguese } from '../../i18n/resources';
 import { MissionBoard, Preparation } from './Preparation';
 import { TurnWorkspace } from './TurnWorkspace';
 import { ScienceConnection } from './ScienceConnection';
 import { Duration } from './Evidence';
+import { SolarWelcome } from './SolarWelcome';
+import { MissionResources, MissionResourceCell } from './MissionResources';
+import { ReplaceSaveDialog } from './ReplaceSaveDialog';
+import { resourceModel, RESOURCE_ORDER } from '../hud/resourceModel';
 import type { ReactNode } from 'react';
 
 async function render(language:'en'|'pt-BR',children:ReactNode) {
@@ -17,6 +21,52 @@ async function render(language:'en'|'pt-BR',children:ReactNode) {
 }
 const ignore=()=>{};
 describe('one bilingual Design & Play surface',()=>{
+  test('free exploration offers mission entry without presenting or selecting a mission',async()=>{
+    for(const language of ['en','pt-BR'] as const){
+      const html=await render(language,<SolarWelcome onMissions={ignore}/>);
+      expect(html.match(/<button\b/g)).toHaveLength(1);
+      expect(html).toContain(language==='en'?'Choose a mission':'Escolher uma missão');
+      expect(html).not.toContain('<select');expect(html).not.toContain('type="radio"');
+      expect(html).not.toContain('play.solar');
+    }
+  });
+  test('all seven live resources retain actual model values, units and uncrewed n/a in both languages',async()=>{
+    const game=createTurnGame(defaultQuickDesign()),current=telemetry(game.sim);
+    const models=resourceModel(game.design.definition,game.design,computeBudgets(game.design),current);
+    expect(models.map(item=>item.id)).toEqual([...RESOURCE_ORDER]);
+    for(const language of ['en','pt-BR'] as const){
+      const html=await render(language,<MissionResources game={game}/>);
+      expect(html.match(/<li\b/g)).toHaveLength(7);
+      expect(html.match(/<output\b/g)).toHaveLength(7);
+      const measurable=models.filter(item=>!['na','unknown'].includes(item.status)&&item.value!==null&&item.limit!==null&&item.limit>0);
+      expect(html.match(/role="meter"/g)).toHaveLength(measurable.length);
+      for(const model of measurable){
+        expect(html).toContain(`aria-valuemax="${model.limit}"`);
+        expect(html).toContain(`aria-valuenow="${Math.min(model.limit!,Math.max(0,model.value!))}"`);
+      }
+      expect(html).toContain('n/a');expect(html).not.toContain('NaN');expect(html).not.toContain('play.resource.');
+    }
+  });
+  test('unknown resource capacity is labeled, never rendered as a fabricated full or empty measurement',async()=>{
+    const game=createTurnGame(defaultQuickDesign()),models=resourceModel(game.design.definition,game.design,computeBudgets(game.design),telemetry(game.sim));
+    const unknown={...models[1],status:'unknown' as const,value:null,limit:null,fill:0};
+    for(const language of ['en','pt-BR'] as const){
+      const html=await render(language,<MissionResourceCell resource={unknown}/>);
+      expect(html).toContain(language==='en'?'Unknown':'Desconhecido');
+      expect(html).not.toContain('role="meter"');expect(html).not.toContain('NaN');
+    }
+  });
+  test('save replacement uses the shared accessible dialog with explicit cancel and guarded confirmation',async()=>{
+    for(const language of ['en','pt-BR'] as const){
+      const html=await render(language,<ReplaceSaveDialog busy onCancel={ignore} onConfirm={ignore}/>);
+      expect(html).toContain('role="dialog"');expect(html).toContain('aria-modal="true"');
+      expect(html).toContain(language==='en'?'Cancel':'Cancelar');
+      expect(html).toContain(language==='en'?'Replace attempt':'Substituir tentativa');
+      expect(html.match(/<button\b/g)).toHaveLength(3);
+      expect(html.match(/<button\b[^>]* disabled=""/g)).toHaveLength(1);
+      expect(html).not.toContain('play.replace');
+    }
+  });
   test('the mission board begins with the short Earth mission and exposes design without a studio wizard',async()=>{
     const offers=missionOffers('EARTH','ASPIRING');
     expect(offers[0].missionId).toBe('FIRST_SIGNAL');
@@ -55,6 +105,20 @@ describe('one bilingual Design & Play surface',()=>{
         expect(html.match(/aria-pressed="true"/g)).toHaveLength(1);
         expect(html.match(/<button\b[^>]* disabled=""/g)).toHaveLength(1);
         expect(html).not.toContain('play.missionPanels');
+      }
+    }
+  });
+  test('the persistent action rail contains every actual plan once and locks all toggles during commitment',async()=>{
+    const game=createTurnGame(defaultQuickDesign()),plans=turnDecision(game).plans;
+    for(const language of ['en','pt-BR'] as const){
+      for(const busy of [false,true]){
+        const html=await render(language,<TurnWorkspace game={game} onCommit={ignore} onCheckpoint={ignore} onRetry={ignore} onRedesign={ignore} onTools={ignore} busy={busy} disabled={false} host journal={[]} hints/>);
+        const radios=[...html.matchAll(/<input\b[^>]*name="turn-plan"[^>]*>/g)].map(match=>match[0]);
+        expect(radios).toHaveLength(plans.length);
+        for(const plan of plans)expect(radios.filter(radio=>radio.includes(`value="${plan.id}"`))).toHaveLength(1);
+        expect(radios.filter(radio=>radio.includes('disabled=""'))).toHaveLength(busy?plans.length:0);
+        expect(html).not.toContain('play.action.');
+        expect(html.match(/<button\b[^>]* disabled=""/g)).toHaveLength(1);
       }
     }
   });

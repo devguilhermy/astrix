@@ -7,13 +7,13 @@ export function NotFound({ onHome }: { onHome(): void }) {
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
     const title = document.title;
-    document.title = `404 — ASTRIX`;
+    document.title = `404 — ASTRIX11`;
     heading.current?.focus();
     return () => { document.title = title; };
   }, []);
   return <main className="recovery-screen" aria-labelledby="not-found-title">
     <section className="recovery-card not-found-card">
-      <span className="startup-kicker">ASTRIX · Mission Studio</span>
+      <img className="recovery-logo" src={`${import.meta.env.BASE_URL}assets/logo.png`} alt="ASTRIX11" width="512" height="426"/>
       <div className="not-found-orbit" aria-hidden="true"><span>404</span></div>
       <h1 id="not-found-title" ref={heading} tabIndex={-1}>{t('recovery.notFoundTitle')}</h1>
       <p>{t('recovery.notFoundBody')}</p>

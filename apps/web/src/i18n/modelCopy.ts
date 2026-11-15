@@ -88,7 +88,7 @@ Object.assign(modelPortuguese,{
 });
 
 modelPortuguese['assumption.ride.RIDE_LEO_STAGE.cost']='Custo autoral da entrega em órbita com estágio superior; não é uma cotação de lançamento nem uma especificação qualificada para voo.';
-for(const launcher of listLaunchers())modelPortuguese[`assumption.launcher.${launcher.id}.cost`]='Custo de um lançador fictício dimensionado para as missões didáticas do ASTRIX; não é uma especificação de fabricante.';
+for(const launcher of listLaunchers())modelPortuguese[`assumption.launcher.${launcher.id}.cost`]='Custo de um lançador fictício dimensionado para as missões didáticas do ASTRIX11; não é uma especificação de fabricante.';
 function objectivePortuguese(spec:ObjectiveSpec):string {
  switch(spec.kind){
   case 'DELIVERED_PRODUCT':return `Entregar ${spec.targetMB} MB de ${spec.metric==='IMAGES'?'imagens':spec.metric==='MAPS'?'mapas':'dados científicos'}.`;

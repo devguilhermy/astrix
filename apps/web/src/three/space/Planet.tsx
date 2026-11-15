@@ -1,6 +1,6 @@
-import { forwardRef, useMemo } from 'react';
-import { useFrame } from '@react-three/fiber';
-import { BackSide, Color, Vector3, type Group, type Texture } from 'three';
+import { forwardRef, useLayoutEffect, useMemo, useRef } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
+import { BackSide, Color, Vector3, type Group, type ShaderMaterial, type Texture } from 'three';
 import { CONSTANTS, sunDirection as coreSunDirection, type BodyId } from '@astrix/core';
 import { useQuality, useQualityProfile } from '../quality';
 import { renderDirection, type KmVector } from './FloatingOrigin';
@@ -27,9 +27,12 @@ export const Planet = forwardRef<Group, PlanetProps>(function Planet({
 }, ref) {
  const tier = useQuality();
  const quality = useQualityProfile();
+ const surfaceMaterial = useRef<ShaderMaterial>(null), atmosphereMaterial = useRef<ShaderMaterial>(null);
+ const invalidate = useThree(state => state.invalidate);
  const highEarth = body === 'EARTH' && tier !== 'LOW' && !lowResolution;
- const lowFile = body === 'EARTH' ? 'earth-blue-marble-1024.png' : body === 'MARS' ? 'mars-viking-1024.jpg' : null;
- const image = useSpaceTexture(highEarth ? 'earth-blue-black-marble-4096.webp' : lowFile, highEarth ? lowFile ?? undefined : undefined);
+ const highMoon = body === 'MOON' && tier !== 'LOW' && !lowResolution;
+ const lowFile = body === 'EARTH' ? 'earth-blue-marble-1024.png' : body === 'MARS' ? 'mars-viking-1024.jpg' : 'moon-lro-1024.jpg';
+ const image = useSpaceTexture(highEarth ? 'earth-blue-black-marble-4096.webp' : highMoon ? 'moon-lro-2048.jpg' : lowFile, highEarth || highMoon ? lowFile : undefined);
  const initialSun = useMemo(() => coreSunDirection(body, 0), [body]);
  const uniforms = useMemo(() => ({
   uSurface: { value: null as Texture | null },
@@ -50,6 +53,19 @@ export const Planet = forwardRef<Group, PlanetProps>(function Planet({
  atmosphere.uRimColour.value.set(body === 'EARTH' ? '#438de6' : '#ba7755');
  atmosphere.uStrength.value = body === 'EARTH' ? 0.6 : body === 'MOON' ? 0 : 0.25;
  renderDirection(uniforms.uSunDirection.value, sunDirection ?? initialSun).normalize();
+ useLayoutEffect(() => {
+  // The reconciler retains its own uniforms object. Bind the live objects to the
+  // actual materials so async readiness and subsequent sun updates reach the GPU.
+  if (surfaceMaterial.current) {
+   surfaceMaterial.current.uniforms = uniforms;
+   surfaceMaterial.current.uniformsNeedUpdate = true;
+  }
+  if (atmosphereMaterial.current) {
+   atmosphereMaterial.current.uniforms = atmosphere;
+   atmosphereMaterial.current.uniformsNeedUpdate = true;
+  }
+  invalidate();
+ }, [uniforms, atmosphere, image, body, invalidate]);
  useFrame(() => {
   renderDirection(uniforms.uSunDirection.value, sunDirection ?? initialSun).normalize();
  }, -1);
@@ -57,11 +73,12 @@ export const Planet = forwardRef<Group, PlanetProps>(function Planet({
  return <group ref={ref} name={`planet-${body.toLowerCase()}`} scale={radiusKm} rotation-y={rotationRad}>
   <mesh>
    <sphereGeometry args={[1, quality.gridDensity * 8, quality.gridDensity * 4]}/>
-   <shaderMaterial uniforms={uniforms} vertexShader={PLANET_VERTEX_SHADER} fragmentShader={PLANET_FRAGMENT_SHADER}/>
+   <shaderMaterial ref={surfaceMaterial} uniforms={uniforms} vertexShader={PLANET_VERTEX_SHADER} fragmentShader={PLANET_FRAGMENT_SHADER}/>
   </mesh>
   <mesh scale={shell} raycast={() => null}>
    <sphereGeometry args={[1, quality.gridDensity * 6, quality.gridDensity * 3]}/>
    <shaderMaterial
+    ref={atmosphereMaterial}
     uniforms={atmosphere}
     vertexShader={PLANET_VERTEX_SHADER}
     fragmentShader={ATMOSPHERE_FRAGMENT_SHADER}

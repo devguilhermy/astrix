@@ -11,7 +11,7 @@ export function JoinRoom({onHome,mission}:{onHome:()=>void;mission:ReactNode}){
   const [invite]=useState(()=>{const params=new URLSearchParams(location.hash.slice(1));return {room:params.get('room')??'',token:params.get('token')??''};});
   const [roomId,setRoomId]=useState(invite.room),[token,setToken]=useState(invite.token),[name,setName]=useState(''),[pending,setPending]=useState<string|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null);
   const heading=useRef<HTMLHeadingElement>(null);
-  useEffect(()=>{document.title=`${t('lan.join')} — ASTRIX`;heading.current?.focus();},[t]);
+  useEffect(()=>{document.title=`${t('lan.join')} — ASTRIX11`;heading.current?.focus();},[t]);
   useEffect(()=>{history.replaceState(null,'',location.pathname);if(room.status==='local')void connectSavedRoom();},[]);
   useEffect(()=>{if(!pending)return;let active=true;const poll=()=>void roomApi<{status:'pending'|'admitted';deviceId?:string;playerId?:string}>('pair',{},pending).then(result=>{if(active&&result.status==='admitted'){setPending(null);void roomClient().start({credential:pending,host:false,deviceId:result.deviceId,playerId:result.playerId});}}).catch(cause=>{if(active){setPending(null);setError(cause instanceof Error?cause.message:'NETWORK');}});poll();const timer=window.setInterval(poll,2000);return()=>{active=false;clearInterval(timer);};},[pending]);
   const join=async()=>{setBusy(true);setError(null);try{
@@ -22,7 +22,7 @@ export function JoinRoom({onHome,mission}:{onHome:()=>void;mission:ReactNode}){
   const me=room.snapshot?.roster.find(p=>p.id===room.identity?.playerId);
   const unavailable=['repair','ended','version','replaced'].includes(room.status);
   if(room.identity&&room.snapshot?.game)return <>{mission}</>;
-  return <main className="lan-screen"><div className="lan-content"><button className="button" onClick={onHome}>{c('home')}</button><h1 ref={heading} tabIndex={-1}>{c('join')}</h1><p className="lan-notice">{c('trusted')}</p><Presence/>
+  return <main className="lan-screen"><div className="lan-content"><header className="lan-header"><img className="lan-logo" src={`${import.meta.env.BASE_URL}assets/logo.png`} alt="ASTRIX11" width="512" height="426"/><button className="button" onClick={onHome}>{c('home')}</button></header><h1 ref={heading} tabIndex={-1}>{c('join')}</h1><p className="lan-notice">{c('trusted')}</p><Presence/>
     {!room.storageAvailable&&<p role="status">{c('storage')}</p>}
     {(error||room.error)&&<p role="alert" className="lan-error">{errorCopy(error??room.error)}</p>}
     {unavailable&&<p role="status">{c(room.status==='version'?'version':room.status==='ended'?'ended':room.status==='replaced'?'replaced':'repair')}</p>}

@@ -1,14 +1,14 @@
-# ASTRIX documentation
+# ASTRIX11 documentation
 
 ## System overview
 
-ASTRIX is an educational mission-design and operations game built for NASA Space Apps' [Space Mission Design Game](https://www.spaceappschallenge.org/2026/challenges/space-mission-design-game/). Players connect a measurable objective to spacecraft hardware, launch/trajectory choices, resource limits, operations and an evidence-based debrief. It is a reduced teaching simulation, **not flight-planning software, a medical simulator or NASA-certified engineering**.
+ASTRIX11 is an educational mission-design and operations game built for NASA Space Apps' [Space Mission Design Game](https://www.spaceappschallenge.org/2026/challenges/space-mission-design-game/). Players connect a measurable objective to spacecraft hardware, launch/trajectory choices, resource limits, operations and an evidence-based debrief. It is a reduced teaching simulation, **not flight-planning software, a medical simulator or NASA-certified engineering**.
 
-**Current status:** the [turn-based learning-game revision](./plans/TURN_BASED_EXPLORATION_REVISION.md) is approved and being implemented. The pre-revision baseline was 381 passing / 24 failing tests; integrated typecheck, full tests, production build and browser/multiplayer verification will be recorded after the cutover. The goal is a fun exploration game with a clear **Design & Play** path, not a full design studio; GMAT support stays. Descriptions below are being reconciled with the new implementation and are not release acceptance evidence.
+**Current status:** the [turn-based learning-game revision](./plans/TURN_BASED_EXPLORATION_REVISION.md) is implemented, with final immersive-scene/branding integration underway. Earlier engine, browser, GMAT and multiplayer results are recorded in [Verification](./VERIFICATION.md); they do not automatically verify later presentation changes. The game has a clear **Design & Play** path, not a full design studio; GMAT support stays.
 
 ### What the player does
 
-1. **Choose a discovery.** The small mission board groups Earth, Moon and Mars goals; **Design & Play** is available to both levels.
+1. **Learn, explore, then choose a discovery.** The separate ASTRIX11 landing offers a skippable general mission-design lesson before free solar-system exploration. The mission board is a subsequent action and groups the supported Earth, Moon and Mars goals; **Design & Play** is available to both levels.
 2. **Prepare in one workspace.** Choose a bounded ambition, real hardware kit and approach. See objective targets, deadline, cost/fit and constraints together; no naming, publishing or engineering signoff is required.
 3. **Check a feasible path.** Compatibility is not enough: a Ready design has a successful reference-policy witness using the actual engine. Changing the design invalidates that proof. Ready is not a guarantee that every choice will succeed.
 4. **Choose and preview.** Each decision offers relevant operational plans, expected elapsed mission time, resource changes and the next boundary. Selecting does not execute.
@@ -17,7 +17,9 @@ ASTRIX is an educational mission-design and operations game built for NASA Space
 
 Aspiring and Expert share this interaction. Expert tightens tradeoffs rather than exposing a second design studio. English/Brazilian Portuguese, keyboard access, reduced motion and compact layouts remain requirements. Scientific details are optional; no numeric orbital elements, attitude controller or burn-vector entry is needed for ordinary missions.
 
-**Immersion:** the 3D scene remains visible throughout the game. Preparation, turn choices, consequence previews and debrief use contextual panels over the scene; the new turn rules do not replace space exploration with a document form. Mission names explicitly identify destination, operation and purpose.
+**Immersion and brand:** the 3D scene remains visible throughout the simulator, separate from the public landing. Preparation, turn choices, consequence previews and debrief use contextual panels over the scene. Plan toggles and the guarded commit remain visible outside scrolling panels. Mission names explicitly identify destination, operation and purpose. The supplied ASTRIX11 logo, deep blues and orange actions are shared across entry, loading/recovery, multiplayer and gameplay; existing save/package identifiers are preserved.
+
+The seven-resource grid remains visible during missions, including when panels collapse. Short **Quick tour** spotlights explain current controls; the general mission-design lesson is separately replayable. Camera adjustments persist across decisions. Installed components can be inspected through the spacecraft or a custom dropdown with category icons, localized names and descriptions.
 
 ### Components and ownership
 
@@ -93,9 +95,13 @@ ASTRIX labels sourced quantities separately from authored assumptions. Watts ver
 
 | Asset | Current use | Provenance and display limits |
 |---|---|---|
-| [NASA SVS Blue Marble](https://svs.gsfc.nasa.gov/2915/) | Local `earth-blue-marble-1024.png` beside Earth discovery/debrief context | NASA/GSFC SVS; Blue Marble Next Generation courtesy Reto Stockli and NASA Earth Observatory. Historical surface composite, not the player's new observation |
-| [USGS/NASA Viking Mars mosaic](https://astrogeology.usgs.gov/search/map/mars_viking_global_color_mosaic_925m) | Local `mars-viking-1024.jpg` beside Mars discovery/debrief context and mission comparisons | USGS Astrogeology/NASA Viking, 1976–1980 archival imagery; not live or generated mission data |
-| [NASA SVS Deep Star Maps 2020](https://svs.gsfc.nasa.gov/4851/) and [Black Marble](https://science.nasa.gov/earth/earth-observatory/earth-at-night/maps/) | Retained credited assets from the previous renderer; not loaded by the new ordinary gameplay context | Their presence in the repository is not a current runtime-use claim |
+| [NASA SVS Blue Marble](https://svs.gsfc.nasa.gov/2915/) and [Black Marble](https://science.nasa.gov/earth/earth-observatory/earth-at-night/maps/) | Earth globe and discovery/debrief context | NASA/GSFC SVS, Reto Stockli, NASA Earth Observatory, NASA/NOAA VIIRS; historical composites, not current weather or the player's observation |
+| [USGS/NASA Viking Mars mosaic](https://astrogeology.usgs.gov/search/map/mars_viking_global_color_mosaic_925m) | Mars globe and discovery/debrief context | USGS/NASA Viking, 1976–1980 archival imagery; not live or generated mission data |
+| [NASA SVS Deep Star Maps 2020](https://svs.gsfc.nasa.gov/4851/) | Shared sky | NASA/GSFC SVS and ESA/Gaia/DPAC; archival celestial map, not a live sky observation |
+| [STEREO/SDO](https://svs.gsfc.nasa.gov/3851/), [MESSENGER](https://science.nasa.gov/photojournal/enhanced-color-mercury-map/), [Magellan](https://science.nasa.gov/3d-resources/venus/), [Voyager](https://science.nasa.gov/3d-resources/jupiter/) | Sun, Mercury, Venus and Jupiter globes | Sun is false-color 304 Å EUV; Mercury is enhanced geological color; Venus shows radar surface, not clouds; Jupiter is an archival atmospheric mosaic |
+| [LRO CGI Moon Kit](https://svs.gsfc.nasa.gov/4720/) | Moon globe, including mission views | LROC color mosaic and monochrome polar LOLA albedo, with source processing/inpainting; not an unprocessed photograph |
+| [Cassini PDS global maps](https://atmos.nmsu.edu/data_and_services/atmospheres_data/Cassini/sat_global_map.html) | Saturn globe | Observed RGB, not the fictional NASA 3D catalog painting. Black bands mark missing coverage; rings are separate illustrative geometry |
+| [Hubble OPAL Uranus](https://archive.stsci.edu/hlsp/opal/opal-uranus-cycle-25) and [Neptune](https://archive.stsci.edu/hlsp/opal/opal-neptune-cycle-25) | Ice-giant globes | NASA/ESA/STScI, CC BY 4.0; enhanced RGB, not natural-eye colors. Black polar regions are unobserved data, not physical dark surfaces |
 
 The [texture manifest](../apps/web/public/textures/asset-sources.json) records exact source URLs, credits, conversion/resizing, coordinate conventions and decoded-memory limits. [CREDITS.md](../CREDITS.md) records attribution and use conditions. Spacecraft geometry and explanatory diagrams are application-generated, not NASA vehicle models. NASA logos or endorsements are not implied.
 
