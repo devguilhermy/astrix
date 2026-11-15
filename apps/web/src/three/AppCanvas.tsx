@@ -28,6 +28,7 @@ import { isCloseShot, resolveCameraMode, useCameraMode, type CameraMode } from '
 import { PilotDragSurface } from '../ui/flight/PilotControls';
 import { usePilot } from '../ui/flight/pilotState';
 import { WorkbenchControls } from '../ui/scene/WorkbenchControls';
+import { PartTracker } from './spacecraft/PartTracker';
 import { BUS_GEOMETRY } from './spacecraft/slots';
 
 interface AppCanvasProps { onReady?(): void; onFailure?(error?: unknown): void }
@@ -165,6 +166,7 @@ export function AppCanvas({ onReady, onFailure: reportFailure }: AppCanvasProps)
    {!viewer && starters.map(item => <PreviewSnapshot key={`${item.scenarioId}:${item.levelId}`} design={item}/>)}
    {!viewer && activeDesign && <PreviewSnapshot key={`built:${activeDesign.scenarioId}:${activeDesign.levelId}`} design={activeDesign}/>}
    <CameraRig identity={identity} kit={kit} kind={viewer ? 'orbit' : kind} mode={mode} radius={radius} orbit={viewer ? null : design.orbit} reducedMotion={reducedMotion} interactive={(!touch || exploring) && !pilot} bridge={bridge} onMounted={onCameraMounted} viewer={viewer}/>
+   {!viewer && <PartTracker/>}
    <CommittedDraw identity={readyIdentity} ready={domReady && cameraReady && !failed} onReady={onReady} onFailure={onFailure}/>
    <WebGLFailureNotice onFailure={onFailure}/><AdaptivePixelBudget enabled={live && running}/>
   </Canvas></MissionPoseProvider></RenderBoundary>

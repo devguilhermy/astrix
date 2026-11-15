@@ -113,6 +113,8 @@ function Craft({ design, previewEquipment, telemetry, workbench, reducedMotion, 
   const hovered = useWorkbench(state => workbench ? state.hoveredCategory : null);
   const selected = useWorkbench(state => workbench ? state.selectedCategory : null);
   const proposalId = useWorkbench(state => previewEquipment ? state.previewPartId : null);
+  // The component whose details panel is open stays lit, so the panel beside it reads as attached.
+  const inspected = useWorkbench(state => inspectable ? state.inspectedPartId : null);
   const explodedSetting = useWorkbench(state => workbench && state.exploded);
   const dimensions = useWorkbench(state => workbench && state.dimensions);
   const exploded = workbench && explodedSetting;
@@ -147,13 +149,13 @@ function Craft({ design, previewEquipment, telemetry, workbench, reducedMotion, 
     }, 290);
     return () => clearTimeout(timeout);
   }, [installed, workbench, reducedMotion, invalidate]);
-  useLayoutEffect(() => { invalidate(); }, [hovered, selected, proposalId, dimensions, invalidate]);
+  useLayoutEffect(() => { invalidate(); }, [hovered, selected, inspected, proposalId, dimensions, invalidate]);
   return <group name="spacecraft-body-metres" userData={{ units: 'm', panelNormal: '+X', opticalBoresight: '+Z', antennaBoresight: '+Z' }}>
     <BusFrame busId={design.busId}/>
     {room && <RoomVolumes busId={design.busId} room={room}/>}
-    {entries.map(entry => <EquipmentInstance key={entry.instance.key} entry={entry} exploded={exploded} reducedMotion={reducedMotion || !workbench} telemetry={telemetry} inspectable={inspectable} highlighted={workbench && (hovered === entry.instance.part.category || selected === entry.instance.part.category)}/>)}
+    {entries.map(entry => <EquipmentInstance key={entry.instance.key} entry={entry} exploded={exploded} reducedMotion={reducedMotion || !workbench} telemetry={telemetry} inspectable={inspectable} highlighted={inspected === entry.instance.part.id || workbench && (hovered === entry.instance.part.category || selected === entry.instance.part.category)}/>)}
     {preview && <EquipmentInstance entry={{ instance: preview, present: true, entering: false }} proposal exploded={exploded} reducedMotion={reducedMotion} telemetry={telemetry} highlighted={false}/>}
-    {workbench && SPACECRAFT_SLOTS[design.busId].map(slot => <PickableSlot key={slot.partId} slot={slot} installed={installed.some(instance => instance.part.id === slot.partId)} highlighted={slot.category === hovered || slot.category === selected} exploded={exploded} reducedMotion={reducedMotion}/>)}
+    {workbench && SPACECRAFT_SLOTS[design.busId].map(slot => <PickableSlot key={slot.partId} slot={slot} installed={installed.some(instance => instance.part.id === slot.partId)} highlighted={slot.partId === inspected || slot.category === hovered || slot.category === selected} exploded={exploded} reducedMotion={reducedMotion}/>)}
     {workbench && dimensions && <Dimensions busId={design.busId}/>}
   </group>;
 }

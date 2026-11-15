@@ -93,6 +93,9 @@ Pinned source: `~/dev/void_protocol` commit `218625d`, owner-authorized for this
 | `apps/web/src/ui/tour/TourHost.tsx` | `apps/web/src/components/ui/GuidedTour.tsx` | ADAPT: device-local per-surface tours, readiness and pause integration |
 | `apps/web/src/ui/tour/tours.ts` | `apps/web/src/components/ui/tourSteps.ts` | ADAPT data shape: all mission-specific step content is new |
 | `apps/web/src/ui/tour/tourNavigation.ts` | `apps/web/src/components/ui/tourNavigation.ts` | COPY: navigation helper plus attribution |
+| `apps/web/src/ui/layout/trackedTargets.ts` | `apps/web/src/stores/uiTracking.ts` | ADAPT: tracked targets and listeners outside Zustand; viewport-pixel rectangles |
+| `apps/web/src/ui/layout/panelPlacement.ts` | `apps/web/src/utils/panelPlacement.ts` | ADAPT: beside-silhouette placement, containment and the manual-drag gate over ASTRIX workspace rectangles |
+| `apps/web/src/three/spacecraft/projectBounds.ts` | `apps/web/src/rendering/celestial/projectBodyBounds.ts` | PATTERN: conservative projected silhouette; independent implementation |
 | `apps/web/src/three/space/Skybox.tsx` | `apps/web/src/components/StarfieldSkybox.tsx` | PATTERN: camera-centred vacuum sphere, far depth; independent implementation |
 | `apps/web/src/three/space/starfieldShader.ts` | `apps/web/src/rendering/starfieldShader.ts` | PATTERN: angular cells/density layers only; independent shader and integer hash. Dave Hoskins hash not copied |
 | `apps/web/src/three/camera/approach.ts` | `apps/web/src/utils/flightInput.ts` | ADAPT: exponential approach formula only |

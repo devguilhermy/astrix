@@ -184,7 +184,8 @@ legend { font-weight: 700; margin-bottom: .7rem; }
 .chapter-progress { display: flex; align-items: center; gap: 0; list-style: none; padding: 0; margin: 0 auto; }
 .chapter-progress > li > span { width: 30px; min-height: 44px; color: #b6c9d0; }
 .chapter-progress [aria-current='step'] > span { color: var(--cyan); }
-.top-bar > .primary { max-width: 360px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: .82rem; padding-inline: .65rem; }
+/* Long step names wrap to a second line instead of being clipped on both sides of the centred flex label. */
+.top-bar > .primary { max-width: 360px; overflow: hidden; white-space: normal; overflow-wrap: anywhere; text-align: center; line-height: 1.15; font-size: .82rem; padding-inline: .65rem; }
 .resource-grid { position: fixed; top: calc(var(--hud-top,48px) + 8px); left: 8px; width: 178px; z-index: 72; pointer-events: auto; }
 .resource-grid > header { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font: 600 .65rem var(--font-mono); text-transform: uppercase; }
 .resource-grid > header button { min-width: 44px; min-height: 44px; }

@@ -45,6 +45,9 @@
  .scene-dom > [role='status'] { left: 5px; top: 224px; max-width: calc(100% - 10px); }
  .scene-launch-presentation { right: 5px; bottom: 145px; }
  .scene-workbench { right: 5px; bottom: 135px; width: min(240px, calc(100% - 10px)); }
+ /* Phones and narrow tablets: scene widgets stack in one column under the measured HUD chrome instead of sitting behind it. */
+ .mission-scene > .scene-dom { inset: auto; top: calc(var(--window-chrome-height, 300px) + 8px); right: 5px; width: min(225px, calc(100% - 10px)); display: flex; flex-direction: column; gap: 6px; }
+ .scene-dom > .scene-camera, .scene-dom > .scene-caption, .scene-dom > .scene-workbench, .scene-dom > .scene-launch-presentation, .scene-dom > [role='status'], .mission-scene[data-scene-stage='IMPLEMENT'] .scene-dom > .scene-camera { position: static; inset: auto; width: auto; max-width: none; }
 }
 :root[data-window-layout='reading'] .mission-scene { position: relative; height: auto; min-height: 240px; overflow: visible; }
 :root[data-window-layout='reading'] .mission-scene > .scene-renderer { height: 240px !important; bottom: auto; }

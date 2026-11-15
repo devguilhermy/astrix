@@ -29,7 +29,7 @@ Choose a mission and level on one setup screen, optionally divide roles under **
 
 Panels collapse to draggable pills in place, retaining their positions; there is no window dock. Compact screens use one adjustable bottom sheet; short/high-zoom views use a reading layout. Help contains tours and model limits.
 
-Click any component on the spacecraft (or a workbench slot) to open its **Component** panel: catalogue specifications, the simulator's constraints and, in flight, live readings from the simulation. Keyboard users reach the same panel from **Spacecraft slots → Components** while building and from **As flown** in flight. Inspecting never changes the design or the flight.
+Click any component on the spacecraft (or a workbench slot) to open its **Component** panel, anchored beside that part and following it as you turn the view: catalogue specifications, the simulator's constraints and, in flight, live readings from the simulation. Keyboard users reach the same panel from **Spacecraft slots → Components** while building and from **As flown** in flight. Inspecting never changes the design or the flight.
 
 Explain/Entenda buttons open short science explanations, optional deeper material and evidence/assumptions. Reading pauses operation. Closing an explanation never automatically resumes: choose Resume when ready.
 

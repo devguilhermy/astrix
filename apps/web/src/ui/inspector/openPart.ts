@@ -1,5 +1,6 @@
 import { useWorkbench } from '../../three/spacecraft/workbenchState';
 import { showWindow, useWindows } from '../layout/windows';
+import { setTracking } from '../layout/trackedTargets';
 
 let opener: HTMLElement | null = null;
 
@@ -8,6 +9,8 @@ export function openPartDetails(partId: string, from: HTMLElement | null = null)
   const active = typeof document === 'undefined' ? null : document.activeElement;
   opener = from ?? (active instanceof HTMLElement && active !== document.body ? active : null);
   useWorkbench.getState().inspect(partId);
+  // Every new inspection re-anchors the panel beside the component, even after a manual move.
+  setTracking('part', true);
   showWindow('part', '#part-inspector-heading');
 }
 

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect, useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
 import { listParts } from '@astrix/core';
 import { useMission } from '../../store';
@@ -11,6 +11,7 @@ import { categoryTopic } from '../phases/Design';
 import { partIcons } from '../icons';
 import { liveReadings, partSpecs, partTraits, type DetailRow } from './partDetails';
 import { closePartDetails } from './openPart';
+import { getTrackedTarget, setTracking, subscribeTrackedTarget } from '../layout/trackedTargets';
 import './inspector.css';
 
 function Row({ row, prefix }: { row: DetailRow; prefix: 'spec' | 'live' }) {
@@ -25,6 +26,7 @@ export function PartInspector() {
   const design = useMission(state => state.design), telemetry = useMission(state => state.telemetry), sim = useMission(state => state.sim);
   const attemptId = useMission(state => state.attemptId), stage = useMission(state => state.activeStage);
   const layout = useWindows(state => state.layout), compactWindow = useWindows(state => state.compactWindow);
+  const tracking = useSyncExternalStore(useCallback((listener: () => void) => subscribeTrackedTarget('part', listener), []), () => getTrackedTarget('part')?.isTracking === true);
   const part = design && partId ? listParts(design.busId).find(item => item.id === partId) ?? null : null;
   useEffect(() => { useWorkbench.getState().inspect(null); }, [attemptId]);
   useEffect(() => { if (partId && !part) useWorkbench.getState().inspect(null); }, [partId, part]);
@@ -34,7 +36,7 @@ export function PartInspector() {
   const qty = design.parts.filter(item => item.partId === part.id).reduce((sum, item) => sum + item.qty, 0);
   const specs = partSpecs(part, design), traits = partTraits(part), live = liveReadings(part, sim ? telemetry : null, qty > 0);
   const name = t(part.nameKey), Icon = partIcons[part.category];
-  return <DraggablePanel id="part" title={`${t('inspector.title')}: ${name}`}>
+  return <DraggablePanel id="part" track title={`${t('inspector.title')}: ${name}`}>
     <article className="part-inspector" aria-labelledby="part-inspector-heading">
       <header className="part-inspector-head"><Icon size={22} aria-hidden="true"/><div><h2 id="part-inspector-heading" tabIndex={-1}>{name}</h2>
         <p className="muted">{t(`flight.cat${part.category}`)} · {t('inspector.owner')}: {t(`role.${part.role}`)}</p></div>
@@ -49,6 +51,7 @@ export function PartInspector() {
       <div className="button-wrap">
         <ExplainButton topic={categoryTopic[part.category]}/>
         {!sim && stage === 'DESIGN' && <button type="button" className="button" onClick={() => { useWorkbench.getState().selectCategory(part.category); showWindow('mission', `#part-${part.id}`); }}>{t('inspector.findInWorkshop')}</button>}
+        {layout === 'desktop' && !tracking && <button type="button" className="button" title={t('inspector.followHint')} onClick={() => setTracking('part', true)}>{t('inspector.follow')}</button>}
         <button type="button" className="button" onClick={closePartDetails}>{t('inspector.close')}</button>
       </div>
     </article>

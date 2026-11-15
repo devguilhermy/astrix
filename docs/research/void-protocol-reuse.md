@@ -206,6 +206,10 @@ The approved [Line B plan](../plans/GUIDED_IMMERSIVE_REDESIGN_PLAN.md) adds the 
 | `components/CameraController.tsx` | 1102 | PATTERN | `three/camera/CameraRig.tsx`: chase/quick-look/recenter with original ASTRIX pose/clearance |
 | `rendering/renderOrigin.ts` | 78 | PATTERN | `three/space/FloatingOrigin.ts`: km CPU origin subtraction |
 | `components/RcsThrusters.tsx`, `rendering/rcsBurstMath.ts` | 265 / 280 | PATTERN | `three/spacecraft/RcsPuffs.tsx`: independent paired-vent slew illustration, no particle/ECS/input emissions |
+| `stores/uiTracking.ts` | 105 | ADAPT | `ui/layout/trackedTargets.ts`: per-id tracked target and listeners outside Zustand; ASTRIX stores viewport-pixel rectangles, no point mode |
+| `utils/panelPlacement.ts` | 242 | ADAPT narrowly | `ui/layout/panelPlacement.ts`: `placeBesideBounds`, `containmentShift`, `followsTrackedTarget` over ASTRIX workspace rectangles; no deployment frame or rotated-portrait mapping |
+| `rendering/celestial/projectBodyBounds.ts` | 125 | PATTERN | `three/spacecraft/projectBounds.ts`: conservative projected silhouette, whole canvas when crossing the camera plane; independent `Box3` corner projection |
+| `components/ui/DraggablePanel.tsx` (tracked placement) | — | PATTERN | `ui/layout/DraggablePanel.tsx` `track`: follow the component until a manual drag; a new inspection or **Follow component** resumes |
 
 `rendering/rcsShader.ts` (33 LOC) was inspected but not copied; declarative cone feedback made the planned COPY unnecessary. No VP flight dynamics or unknown-licence hash is included.
 

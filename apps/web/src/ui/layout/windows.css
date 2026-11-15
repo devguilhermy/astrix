@@ -66,7 +66,10 @@ html[data-window-layout='compact'] .floating-studio .interface-header {
 .floating-panel[data-collapsed='true'] .window-title-row { border-bottom: 0; }
 .floating-panel[data-collapsed='true'] .panel-drag-handle { font-size: .76rem; padding: 4px 6px; }
 .floating-panel[data-collapsed='true'] .window-title-row .window-title-action:first-of-type { display: none; }
-.panel-badge { border-radius: 99px; background: #f6c877; color: #14202a; padding: 1px 5px; }
+.panel-title { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.panel-badge { flex: 0 0 auto; border-radius: 99px; background: #f6c877; color: #14202a; padding: 1px 5px; white-space: nowrap; }
+/* A collapsed pill keeps one line: the title truncates, the badge stays whole. */
+.floating-panel[data-collapsed='true'] .panel-title-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; overflow-wrap: normal; }
 .floating-panel[data-layout='reading'] { margin-bottom: 8px; }
 html[data-window-layout='reading'] .floating-workspace { display: grid; gap: 8px; }
 

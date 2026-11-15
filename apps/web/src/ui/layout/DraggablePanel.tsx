@@ -1,10 +1,25 @@
 // Collapse-in-place header pattern from Void Protocol AuraStrip.tsx, pin 218625d; owner-authorized project Apache-2.0 reuse.
-import { useCallback, useId, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+// Tracked placement follows Void Protocol DraggablePanel.tsx + utils/panelPlacement.ts at the same pin.
+import { useCallback, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import type { Phase } from '@astrix/core';
 import { clampRectangle, compactSheetBounds, MINIMUM_SIZE, moveRectangle, resizeRectangle, sheetRectangle, type LayoutClass, type PanelId, type Point, type Rectangle, type ResizeEdge } from './panelLayout';
 import { effectiveRectangle, useWindows } from './windows';
 import { useWindowCopy } from './windowCopy';
+import { followsTrackedTarget, placeBesideBounds, type Placement } from './panelPlacement';
+import { getTrackedTarget, setTracking, subscribeTrackedTarget } from './trackedTargets';
 import './windows.css';
+
+/** HUD surfaces a tracked panel should avoid covering. */
+const OCCUPIED = '[data-hud-zone], .floating-panel, .scene-camera, .scene-workbench, .scene-caption';
+function occupiedRects(self: HTMLElement): Rectangle[] {
+ const rects: Rectangle[] = [];
+ for (const element of document.querySelectorAll<HTMLElement>(OCCUPIED)) {
+  if (element === self || self.contains(element) || element.contains(self)) continue;
+  const r = element.getBoundingClientRect();
+  if (r.width > 0 && r.height > 0) rects.push({ x: r.left, y: r.top, width: r.width, height: r.height });
+ }
+ return rects;
+}
 
 interface Gesture {
  pointerId: number; target: HTMLElement; start: Point; origin: Rectangle; current: Rectangle;
@@ -12,7 +27,8 @@ interface Gesture {
 }
 const EDGES: ResizeEdge[] = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
 
-export function DraggablePanel({ id, title, phase, children, badge = 0 }: { id: PanelId; title: string; phase?: Phase; active?: boolean; children: ReactNode; badge?: number }) {
+/** `track`: on desktop the panel sits beside its tracked 3D object (`trackedTargets`, keyed by panel id) until moved by hand. */
+export function DraggablePanel({ id, title, phase, children, badge = 0, track = false }: { id: PanelId; title: string; phase?: Phase; active?: boolean; children: ReactNode; badge?: number; track?: boolean }) {
  const copy = useWindowCopy(), instructions = useId(), optionsId = useId();
  const ref = useRef<HTMLElement>(null), body = useRef<HTMLDivElement>(null), optionsButton = useRef<HTMLButtonElement>(null);
  const gesture = useRef<Gesture | null>(null);
@@ -23,7 +39,15 @@ export function DraggablePanel({ id, title, phase, children, badge = 0 }: { id: 
  const revision = useWindows(state => state.revision);
  const collapsed = entry.visibility === 'COLLAPSED' || (layout !== 'desktop' && compactWindow !== id);
  const toggle = () => { cancelGesture(); if (collapsed) useWindows.getState().expand(id); else useWindows.getState().collapse(id); }; 
- const rectangle = draft ?? effectiveRectangle(id), view = phase ?? 'default';
+ const trackId = track ? id : null;
+ const subscribeTracking = useCallback((listener: () => void) => trackId ? subscribeTrackedTarget(trackId, listener) : () => {}, [trackId]);
+ const isTracking = useSyncExternalStore(subscribeTracking, () => !!trackId && getTrackedTarget(trackId)?.isTracking === true);
+ const following = isTracking && layout === 'desktop';
+ const placed = useRef<Placement | null>(null);
+ const displayed = (): Rectangle => { const base = effectiveRectangle(id); return following && placed.current ? { ...base, x: placed.current.x, y: placed.current.y } : base; };
+ const rectangle = draft ?? displayed(), view = phase ?? 'default';
+ const boundsRef = useRef(bounds);
+ boundsRef.current = bounds;
  const cancelGesture = useCallback(() => {
   const current = gesture.current;
   gesture.current = null; setDraft(null);
@@ -47,11 +71,31 @@ export function DraggablePanel({ id, title, phase, children, badge = 0 }: { id: 
  useLayoutEffect(() => {
   if (collapsed) setOptions(false);
  }, [collapsed]);
+ // Beside the tracked silhouette every time the scene publishes it; direct DOM writes, no React render per frame.
+ useLayoutEffect(() => {
+  const element = ref.current;
+  if (!following || !trackId || !element) { placed.current = null; return; }
+  let occupied: Rectangle[] = [], measuredAt = -Infinity;
+  const place = () => {
+   const target = getTrackedTarget(trackId);
+   if (!followsTrackedTarget(target, !!gesture.current) || !target?.rect) return;
+   const now = performance.now();
+   if (now - measuredAt > 250) { occupied = occupiedRects(element); measuredAt = now; }
+   const next = placeBesideBounds(target.rect, { width: element.offsetWidth, height: element.offsetHeight }, boundsRef.current, occupied, placed.current?.side);
+   const moved = !placed.current || placed.current.x !== next.x || placed.current.y !== next.y;
+   placed.current = next;
+   if (moved) { element.style.left = `${next.x}px`; element.style.top = `${next.y}px`; }
+  };
+  place();
+  const unsubscribe = subscribeTrackedTarget(trackId, place), resize = new ResizeObserver(place);
+  resize.observe(element);
+  return () => { unsubscribe(); resize.disconnect(); };
+ }, [following, trackId, collapsed]);
  const startGesture = (event: ReactPointerEvent<HTMLElement>, edge: Gesture['edge']) => {
   if (layout === 'reading' || event.button !== 0 || !event.isPrimary || gesture.current) return;
   event.preventDefault(); event.stopPropagation(); event.currentTarget.focus({ preventScroll: true });
   event.currentTarget.setPointerCapture(event.pointerId);
-  const origin = effectiveRectangle(id);
+  const origin = displayed();
   gesture.current = { pointerId: event.pointerId, target: event.currentTarget, start: { x: event.clientX, y: event.clientY }, origin,
    current: origin, edge, layout, bounds };
   setDraft(origin);
@@ -61,6 +105,8 @@ export function DraggablePanel({ id, title, phase, children, badge = 0 }: { id: 
   if (!current || current.pointerId !== event.pointerId) return;
   event.preventDefault(); event.stopPropagation();
   const delta = { x: event.clientX - current.start.x, y: event.clientY - current.start.y };
+  // A real drag hands the position to the player; a press without movement keeps following.
+  if (trackId && Math.hypot(delta.x, delta.y) > 3) setTracking(trackId, false);
   current.current = current.layout !== 'desktop'
    ? sheetRectangle(current.origin.height - delta.y, current.bounds, id)
    : current.edge === 'move'
@@ -101,14 +147,15 @@ export function DraggablePanel({ id, title, phase, children, badge = 0 }: { id: 
     onKeyDown={event => {
      if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key) || layout === 'reading') return;
      event.preventDefault(); event.stopPropagation();
-     const state = useWindows.getState(), origin = effectiveRectangle(id);
+     const state = useWindows.getState(), origin = displayed();
+     if (trackId && layout === 'desktop') setTracking(trackId, false);
      if (layout === 'desktop') {
       const next = moveRectangle(origin, event.key, event.shiftKey, bounds, collapsed ? { width: 180, height: 44 } : MINIMUM_SIZE[id]);
       if (collapsed) state.setPosition(id, next);
       else state.setGeometry(id, next);
      }
      else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') state.setCompactHeight(id, sheetRectangle(origin.height + (event.key === 'ArrowUp' ? 1 : -1) * (event.shiftKey ? 40 : 10), bounds, id).height);
-    }}><span className="drag-grip" aria-hidden="true"/><span>{title}{badge > 0 && <span className="panel-badge"> {badge}</span>}</span></button>
+    }}><span className="drag-grip" aria-hidden="true"/><span className="panel-title"><span className="panel-title-text">{title}</span>{badge > 0 && <span className="panel-badge">{badge}</span>}</span></button>
    <button ref={optionsButton} type="button" className="window-title-action" aria-label={`${copy.options}: ${title}`} aria-expanded={options} aria-controls={optionsId}
     onClick={() => { if(collapsed)useWindows.getState().expand(id);setOptions(value => !value); }}><span aria-hidden="true">⋯</span></button>
    <button type="button" className="window-title-action" aria-label={`${collapsed ? copy.expand : copy.collapse}: ${title}`} aria-expanded={!collapsed} aria-controls={`window-body-${id}`} onClick={toggle}><span aria-hidden="true">{collapsed ? '⌄' : '⌃'}</span></button>
@@ -130,12 +177,15 @@ function WindowOptions({ id, optionsId, onClose }: { id: PanelId; optionsId: str
  const copy = useWindowCopy(), layout = useWindows(state => state.layout), viewportBounds = useWindows(state => state.bounds);
  const bounds = useMemo(() => layout === 'compact' ? compactSheetBounds(viewportBounds) : viewportBounds, [layout, viewportBounds]);
  const entry = useWindows(state => state.windows[id]);
- const effective = effectiveRectangle(id), [numeric, setNumeric] = useState<Rectangle>(effective);
+ const shown = getTrackedTarget(id)?.isTracking && layout === 'desktop' ? document.getElementById(`floating-${id}`)?.getBoundingClientRect() : undefined;
+ // A following panel's live position comes from the DOM; nudges start where the player sees it.
+ const effective = shown ? { ...effectiveRectangle(id), x: Math.round(shown.left), y: Math.round(shown.top) } : effectiveRectangle(id), [numeric, setNumeric] = useState<Rectangle>(effective);
  useLayoutEffect(() => {
   setNumeric({ x: effective.x, y: effective.y, width: effective.width, height: effective.height });
  }, [effective.x, effective.y, effective.width, effective.height]);
  const commit = (next: Rectangle) => {
-  if (layout === 'desktop') useWindows.getState().setGeometry(id, clampRectangle(next, bounds, MINIMUM_SIZE[id]));
+  // Explicit geometry is a manual placement: stop following a tracked object.
+  if (layout === 'desktop') { setTracking(id, false); useWindows.getState().setGeometry(id, clampRectangle(next, bounds, MINIMUM_SIZE[id])); }
   else useWindows.getState().setCompactHeight(id, next.height);
   setNumeric(layout === 'desktop' ? clampRectangle(next, bounds, MINIMUM_SIZE[id]) : sheetRectangle(next.height, bounds, id));
  };

@@ -9,7 +9,7 @@ This section records the Line B redesign ([plan](./plans/GUIDED_IMMERSIVE_REDESI
 ### Automated checks
 
 - `bun run typecheck` passed. `bun test` passed **234 tests, 0 failures, 35 files**. New coverage includes the rules-v4 attitude/forecast/solar-ephemeris core, real-store pilot input (including a quick tap released before the next animation frame), timeline advance stopping exactly at its requested time, terminal CAPCOM guidance, retained-brief redesign, collapse-in-place panel geometry, component details, and route recognition.
-- `bun run build` passed; Vite still warns that the `three` and main chunks exceed 500 kB.
+- `bun run build` passed; Vite still warns that the `three` and main chunks exceed 500 kB. Gzip JavaScript totals **663,604 B** against the 571,006 B rules-v3 baseline (+16 %); 534,948 B load before the lazy Simulator chunk and workers, and the forecast worker is 33,583 B.
 
 ### Performance and texture residency (1440×900, device scale 1.25, same stage)
 
@@ -29,6 +29,7 @@ Frame intervals are 120 wall-clock `requestAnimationFrame` samples on a headless
 - The full 14-day flight completed through the UI: 0.85 MB delivered of 1,500 MB, *Mission failed*, unassisted score 19/100. The debrief tour ran; **Redesign and fly again** reopened Build with the accepted brief and hardware retained and fresh freeze/verify evidence required.
 - 390×844 (touch emulation): the seven resource badges fit within the viewport width (root scroll width 390); CAPCOM collapses to one 46 px line; the camera widget and flight deck stay reachable.
 - **Component details:** clicking the spacecraft in Build opened the Component panel for the clicked slot (Deployable solar panels, *Not installed*, specifications with teaching-assumption markers). **Find in Workshop** focused that part's card, and **Close details** returned focus to the opener. The keyboard path through **Spacecraft slots → Components** opened the same panel. In flight, clicking an installed part opened its live readings from core telemetry (battery 100 %, 20 Wh, spacecraft load 2.3 W). At 390 px the panel reflows in document order without horizontal overflow. Picking needs a press and release on an equipment mesh; clicks on bare bus structure do nothing.
+- **Anchored component panel:** opened from the Build component list, the panel sat 24 px to the right of the highlighted battery (x 734, y 323 at 1440×900). During a 12-step camera drag its position changed every sample with the battery's projection (y 323 → 307). After the panel was dragged by its header it stayed put through a further camera drag and offered **Follow component**, which put it back beside the battery. In flight, opening the Earth camera from **As flown** placed the panel beside the lit camera, above the flight deck. Headless software rendering ran camera drags at roughly 3 frames per second with the panel open *and* closed, so that rate is the test machine rather than the tracker; idle frames stayed at the display rate (122 frames in 2 s) with the panel open.
 
 ### Defects found in the browser and fixed
 
@@ -39,9 +40,11 @@ Frame intervals are 120 wall-clock `requestAnimationFrame` samples on a headless
 - The transfer map drew a second, misplaced Sun.
 - After a terminal flight, CAPCOM still pointed at operating cues, and **Redesign** returned to Need & goals.
 
+- **320 CSS px, Portuguese, Expert, reduced motion, keyboard only (Red Relay):** setup, level, mission, brief acceptance and stage advances all worked from the keyboard; root scroll width stayed 320. **Show me** moved focus to the Mars mapper card. Reduced motion disabled the turntable. The Component sheet opened from the keyboard list with focus on its heading, and Close returned focus to the opener. This pass found and fixed three defects: the top-bar primary label was clipped on both sides (it now wraps to two lines); scene widgets sat behind the resource badges (on narrow screens they now stack in one column under the measured HUD chrome); and collapsed pill titles wrapped over their badges (titles now truncate and the badge stays whole).
+
 ### Not verified in this pass
 
-Storm Watch, Red Relay and Crew Pathfinder were covered by core reference flights and unit tests, not by end-to-end browser flights. Portuguese, the 320 px reflow and reduced motion were covered by parity and unit tests and earlier passes, not re-walked in the browser after the final fixes. Sky orientation against the NASA star map was checked in source and documentation, not against an independent sky chart.
+Storm Watch, Red Relay and Crew Pathfinder were covered by core reference flights and unit tests, not by end-to-end browser flights. The 200 % zoom reading layout, the in-flight 390×844 path after the final fixes, and a Crew Pathfinder onboard steering flight were not walked in the browser. Sky orientation against the NASA star map was checked in source and documentation, not against an independent sky chart.
 
 ## Mission Studio delivery — rules v3
 
