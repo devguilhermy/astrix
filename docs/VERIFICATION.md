@@ -324,3 +324,13 @@ The error fallback wording was also corrected: a render exception must not be de
 An active production Mars flight on the browser's Intel UHD Graphics 620 / ANGLE WebGL2 environment measured **89 frame intervals**, median **16.7 ms**, mean **22.85 ms**, approximately **43.77 fps** with the automatic LOW tier. This is a short observed sample, not a universal Chromebook performance guarantee or long-duration benchmark.
 
 No novice participant study has been performed. Brazilian Portuguese content is authored and parity-checked but has not received independent human language/science review. There is no online multiplayer, real hardware qualification, atmospheric drag, J2/three-body model or real radiation-transport simulation. Registration, organizer interpretation of data-source eligibility and final submission assets remain separate from this software verification.
+
+## 2026-11-15: turn feedback, report, Sun missions, Explore ship
+
+Full record with the density table, the browser checks and the list of what was not checked: [major improvements recap](./recaps/MAJOR_IMPROVEMENTS.md) §7.
+
+- **Tests:** 580 in 69 files; 579 pass. The one failure, and the one typecheck error, are in `apps/web/src/ui/advanced/playback.test.ts`, part of separate GMAT-viewer work in progress in the working tree.
+- **Build:** `bun run build` passes.
+- **Production host:** icons, manifest and the new Earth map answer HTTP 200; Sun Sentinel's first turn, Portuguese on the turn card and fact panel, and 320 px width without horizontal overflow were seen; twelve view changes produced no page error or console warning.
+- **Density at 1920×940:** mission board 862 / 862 px (was 2132 in 926), preparation choices 908 in 862, report result panel 480 in 476.
+- **`removeChild` exception:** cause found in drei `Html` root re-creation; fixed with a stable label host; not reproduced afterwards.

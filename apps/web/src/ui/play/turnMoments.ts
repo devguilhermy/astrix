@@ -30,6 +30,12 @@ export interface TurnMoment {
   /** Ground station at the end of the turn, in the same frame as positionKm. */
   stationKm: Km3 | null;
   inContact: boolean;
+  /**
+   * Where the spacecraft was, relative to the ground, during the last station contact of the
+   * turn: its recorded position rotated with the body to the end of the turn, so it lines up
+   * with stationKm. Equals positionKm when the turn ends in contact; null without a contact.
+   */
+  passKm: Km3 | null;
   /** Recorded dose-rate samples inside the turn. */
   doseUGyH: readonly { t: number; value: number }[];
   /** Battery state of charge at the end of the turn. */
@@ -84,6 +90,14 @@ function positionOf(sample: HistorySample, body: BodyId): Km3 | null {
   return Math.hypot(position[0], position[1], position[2]) >= 1 ? position : null;
 }
 
+/** A contact sample's spacecraft position, turned about the spin axis until its station meets `stationNow`. */
+function passOver(contact: HistorySample, stationNow: Km3): Km3 | null {
+  const position = positionOf(contact, 'EARTH'), station = contact.stationPosKm;
+  if (!position || !station) return null;
+  const turn = Math.atan2(stationNow[1], stationNow[0]) - Math.atan2(station[1], station[0]), c = Math.cos(turn), s = Math.sin(turn);
+  return [position[0] * c - position[1] * s, position[0] * s + position[1] * c, position[2]];
+}
+
 function progressOf(receipt: TurnReceipt): number {
   const required = receipt.evidence.filter(item => item.required), items = required.length ? required : receipt.evidence;
   return items.length ? clamp01(items.reduce((sum, item) => sum + clamp01(item.progress), 0) / items.length) : 0;
@@ -102,13 +116,18 @@ export function turnMoments(game: TurnGameState): readonly TurnMoment[] {
     const positionKm = end ? positionOf(end, body) : null;
     const frameBody = middle ? bodyOf(middle, fallback) : body, framePosition = middle ? positionOf(middle, frameBody) : null;
     const dose: { t: number; value: number }[] = [];
-    for (const sample of samples) if (sample.t >= startSec && sample.t <= endSec) dose.push({ t: sample.t, value: sample.doseUGyH });
+    let contact: HistorySample | null = null;
+    for (const sample of samples) if (sample.t >= startSec && sample.t <= endSec) {
+      dose.push({ t: sample.t, value: sample.doseUGyH });
+      if (sample.inContact === 1 && sample.stationPosKm && bodyOf(sample, fallback) === 'EARTH') contact = sample;
+    }
+    const stationKm = end?.stationPosKm && (body === 'EARTH' || body === 'MOON') ? relative(end, body, end.stationPosKm) : null;
     return {
       index: receipt.revision, receiptId: receipt.id, kind, startSec, endSec, interrupted: receipt.interrupted, delta: receipt.delta,
       capturedMB: Math.max(0, receipt.delta.storedMB + receipt.delta.deliveredMB), deliveredMB: Math.max(0, receipt.delta.deliveredMB),
       progress: progressOf(receipt), body, positionKm,
       frame: middle && framePosition ? subpoint(frameBody, framePosition, middle.sunDir, middle.t, epoch) : null,
-      stationKm: end?.stationPosKm && (body === 'EARTH' || body === 'MOON') ? relative(end, body, end.stationPosKm) : null,
+      stationKm, passKm: end?.inContact === 1 ? positionKm : body === 'EARTH' && stationKm && contact ? passOver(contact, stationKm) : null,
       inContact: end?.inContact === 1, doseUGyH: dose, socPct: end ? end.socPct : null,
     };
   });

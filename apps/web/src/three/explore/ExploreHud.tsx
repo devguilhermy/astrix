@@ -118,7 +118,7 @@ function BoardedHud({ heading, pt, onLeave, telemetry, bodies, target, onTarget,
         <HelpRow keys="− / +">{pt ? 'limite de velocidade' : 'speed limit'}</HelpRow>
         <HelpRow keys="P">{pt ? 'piloto automático até o alvo; Esc desliga' : 'autopilot to the target; Esc turns it off'}</HelpRow>
         <HelpRow keys="C">{pt ? 'câmera de perseguição / cabine' : 'chase / cockpit camera'}</HelpRow>
-        <HelpRow keys={pt ? 'Arrastar' : 'Drag'}>{pt ? 'olhar ao redor; L faz o arraste pilotar' : 'look around; L makes dragging steer'}</HelpRow>
+        <HelpRow keys={pt ? 'Arrastar' : 'Drag'}>{pt ? 'pilota a nave: para a direita vira à direita, para baixo baixa o nariz; L alterna para olhar ao redor; com o piloto automático, o arraste só olha' : 'steers the ship: right turns right, down lowers the nose; L switches to looking around; on autopilot a drag only looks'}</HelpRow>
         <HelpRow keys="R">{pt ? 'centralizar a vista' : 'recenter the view'}</HelpRow>
         <HelpRow keys="H">{pt ? 'esta ajuda' : 'this help'}</HelpRow>
       </dl>

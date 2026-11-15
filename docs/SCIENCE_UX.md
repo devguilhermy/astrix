@@ -93,3 +93,13 @@ Debrief distinguishes success, failure, incomplete objectives and assistance. De
 Use native labelled controls, visible focus, keyboard alternatives, bounded scrolling panels, textual result/error states and reduced-motion support. The immersive 3D scene remains visible behind or beside the panels, including on compact screens. Styled confirmation dialogs retain focus/inert behavior and return to a connected opener. The preflight design lesson is skippable; the lighter simulator spotlights are dismissible and replayable, not a mandatory full-screen tour chain.
 
 Functional verification covers design constraints, stale checks, preview purity, commit/retry/save behavior, both languages, compact layouts and multiplayer. Human sessions must separately measure assistance, comprehension, enjoyment and replay intent. The proposed first-choice/first-outcome/mission-duration targets in the [revision plan](./plans/TURN_BASED_EXPLORATION_REVISION.md) remain hypotheses until measured with participants.
+
+## 2026-11-15: simulated frames, score presentation, fact panel
+
+Details: [major improvements recap](./recaps/MAJOR_IMPROVEMENTS.md) §4.3, §4.4 and §4.7.
+
+- **Simulated frame.** The picture shown after an observation is a crop of a bundled NASA map at the spacecraft's ground point at the middle of the turn, shaded by the Sun's elevation there. It is always captioned "Simulated frame built from the NASA … archive at your ground track. Not a new observation." A night frame adds that the model counts instrument data regardless of ground lighting. Radiation missions show a chart of the recorded dose-rate samples instead. Frames are derived from saved history and never stored.
+- **Score.** The report shows the engine's `scoreMission` result unchanged: total, stars and five weighted components. Two notes are always present where they apply: solo play gives the team component full credit, and a failed or incomplete run is capped at 19.
+- **Replay.** It replays recorded history and says that it interpolates between samples and time-lapses long turns.
+- **Fact panel.** Values come from the NSSDCA Planetary Fact Sheet and Sun Fact Sheet, retrieved 2026-11-15 and bundled; the panel shows the source and date. Explore states that sizes are to scale with the Sun and distances are compressed.
+- **Explore ship.** Flying is schematic and never advances mission time; the HUD says so.

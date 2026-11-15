@@ -242,9 +242,8 @@ function BoardedFlight({ bodies, target, reducedMotion, onTelemetry }: { bodies:
     // Free look.
     const dt = Math.min(delta, .1);
     const lookDelta = exploreControls.takeLook(s.lookDelta);
-    const fov = camera instanceof PerspectiveCamera ? camera.fov : 55;
     if (lookDelta.dx || lookDelta.dy) {
-      const turn = dragToLook(lookDelta.dx, lookDelta.dy, fov, frame.size.height);
+      const turn = dragToLook(lookDelta.dx, lookDelta.dy);
       applyLook(s.look, turn.yaw, turn.pitch);
     } else if (s.dragging) s.look.idle = 0;
     else recenterLook(s.look, dt, reduced);
@@ -326,6 +325,8 @@ function BoardedFlight({ bodies, target, reducedMotion, onTelemetry }: { bodies:
       <group rotation={[0, Math.PI / 2, 0]} scale={SHIP_SCALE}>
         <SpacecraftModel design={design} reducedMotion/>
       </group>
+      {/* Short-range fill so the hull facing the chase camera is readable when the Sun is ahead. */}
+      <pointLight position={[0, .005, ENGINE_OFFSET * 3]} intensity={2.4} distance={.06} decay={0} color="#dcecff"/>
       <mesh ref={glow} position={[0, 0, ENGINE_OFFSET]} visible={false} raycast={() => null}>
         <sphereGeometry args={[.00045, 12, 8]}/>
         <meshBasicMaterial color="#ffb36b" transparent opacity={.85} depthWrite={false} toneMapped={false}/>

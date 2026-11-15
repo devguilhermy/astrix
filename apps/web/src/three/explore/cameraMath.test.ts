@@ -1,29 +1,43 @@
 import { describe, expect, it } from 'bun:test';
 import {
-  BASE_FOV, CAMERA_CLEARANCE, CHASE_OFFSET, LOOK_PITCH_LIMIT, LOOK_RECENTER_DELAY, SHAKE_AMPLITUDE, applyLook, createLook, desiredCamera, dragToLook,
+  BASE_FOV, CAMERA_CLEARANCE, CHASE_OFFSET, LOOK_PITCH_LIMIT, LOOK_RECENTER_DELAY, SHAKE_AMPLITUDE, LOOK_SENSITIVITY, STEER_SENSITIVITY, applyLook, createLook, desiredCamera, dragToLook,
   dragToSteer, easeCamera, fovFor, keepCameraClear, recenterLook, shakeOffset, type LookState,
 } from './cameraMath';
 import { distance3, length3, quatFromAxisAngle, quatIdentity, rotate3, vec3, type Vec3 } from './vecMath';
 
 describe('drag mapping', () => {
-  it('turns the view by the field of view for a drag across the full viewport height', () => {
-    const turn = dragToLook(0, 800, 55, 800);
-    expect(turn.pitch).toBeCloseTo(55 * Math.PI / 180, 12);
-    expect(dragToLook(400, 0, 55, 800).yaw).toBeCloseTo(27.5 * Math.PI / 180, 12);
+  it('uses Void Protocol sensitivities: 0.005 rad per pixel to look, 0.003 to steer', () => {
+    expect(LOOK_SENSITIVITY).toBe(.005);
+    expect(STEER_SENSITIVITY).toBe(.003);
+    expect(Math.abs(dragToLook(100, 0).yaw)).toBeCloseTo(.5, 12);
+    expect(Math.abs(dragToLook(0, 100).pitch)).toBeCloseTo(.5, 12);
+    expect(Math.abs(dragToSteer(100, 0).yaw)).toBeCloseTo(.3, 12);
+    expect(Math.abs(dragToSteer(0, 100).pitch)).toBeCloseTo(.3, 12);
   });
 
-  it('look drags grab the sky: dragging right turns the view left, dragging down looks up', () => {
-    const look = applyLook(createLook(), dragToLook(100, 0, 55, 800).yaw, dragToLook(0, 100, 55, 800).pitch);
+  it('look drags turn the view with the pointer: dragging right looks right, dragging down looks down', () => {
+    const look = applyLook(createLook(), dragToLook(100, 0).yaw, dragToLook(0, 100).pitch);
     const q = desiredOrientation(look);
     const view = rotate3(vec3(), q, [0, 0, -1]);
-    expect(view[0]).toBeLessThan(0);
-    expect(view[1]).toBeGreaterThan(0);
+    expect(view[0]).toBeGreaterThan(0);
+    expect(view[1]).toBeLessThan(0);
   });
 
-  it('steer drags move the nose with the pointer', () => {
-    const steer = dragToSteer(10, -10);
-    expect(steer.yaw).toBeGreaterThan(0);
-    expect(steer.pitch).toBeGreaterThan(0);
+  it('steer drags turn the nose with the pointer: right turns right, down lowers the nose, up raises it', () => {
+    const right = dragToSteer(10, 0), down = dragToSteer(0, 10), up = dragToSteer(0, -10);
+    expect(right.yaw).toBeGreaterThan(0);
+    expect(down.pitch).toBeLessThan(0);
+    expect(up.pitch).toBeGreaterThan(0);
+  });
+
+  it('look and steer drags agree on direction, so the scene always slides against the pointer', () => {
+    // FlightInput: positive yaw turns right, positive pitch raises the nose.
+    // LookState: positive yaw turns the view left, positive pitch looks up.
+    for (const [dx, dy] of [[25, 0], [-25, 0], [0, 25], [0, -25]] as const) {
+      const look = dragToLook(dx, dy), steer = dragToSteer(dx, dy);
+      expect(Math.sign(-look.yaw)).toBe(Math.sign(steer.yaw));
+      expect(Math.sign(look.pitch)).toBe(Math.sign(steer.pitch));
+    }
   });
 
   it('clamps pitch and wraps yaw', () => {

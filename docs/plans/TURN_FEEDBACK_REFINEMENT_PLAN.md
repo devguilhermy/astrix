@@ -1,6 +1,6 @@
 # ASTRIX11: turn feedback, mission report and density refinement plan
 
-**Status:** approved by the owner and executing since 2026-11-15. Step 0 (§6) is done; the four work packages (§7) are delegated.
+**Status:** implemented 2026-11-15. Results, deviations and the checks that remain are in the [major improvements recap](../recaps/MAJOR_IMPROVEMENTS.md).
 
 **Scope:** nine owner requests on top of the implemented [turn-based revision](./TURN_BASED_EXPLORATION_REVISION.md):
 

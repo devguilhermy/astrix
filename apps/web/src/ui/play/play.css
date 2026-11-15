@@ -126,6 +126,8 @@
 .play-main[data-panels-open=false] .turn-workspace { background:transparent; border:0; pointer-events:none; }
 .play-main[data-panels-open=false] .turn-action-dock { margin-top:auto; }
 .play-view-solar .play-main { flex:0 1 auto; max-height:calc(100% - 52px); margin-top:auto; }
+/* Aboard the Explore ship the welcome card yields the scene to the flight HUD. */
+.play-app:has(.immersive-scene[data-flying=true]) .play-view-solar .play-main { display:none; }
 .solar-welcome>p { color:#bfd2dc; margin:.8rem 0; }
 .solar-welcome>.muted { font-size:.9rem; }
 .solar-welcome>.button { margin-top:.35rem; }
@@ -239,6 +241,11 @@
 .gmat-tools>p { margin-top:1rem; }
 .play-section { border-top:1px solid var(--play-line); margin-top:2rem; padding-top:1.5rem; }
 .play-section>p { margin:.7rem 0; }
+.trajectory-view { margin-top:1.5rem; }
+.trajectory-view>p { margin:.7rem 0; }
+.trajectory-view svg { display:block; width:100%; max-height:450px; background:#07111a; border-radius:12px; margin-top:1rem; }
+.trajectory-view>label { display:flex; gap:1rem; align-items:center; margin:.9rem 0; }
+.trajectory-view .number { white-space:normal; overflow-wrap:anywhere; }
 .flight-context { display:flex; flex-direction:column; gap:1rem; align-items:stretch; margin:1.2rem 0; border-top:1px solid var(--play-line); padding-top:1rem; }
 .flight-context svg { width:100%; background:#07111a; border-radius:12px; }
 .flight-context figcaption { color:#b8d1db; }
@@ -358,3 +365,6 @@
 }
 @media (prefers-reduced-motion:reduce) { .play-app *, .play-app *::before, .play-app *::after { animation:none!important; transition:none!important; scroll-behavior:auto!important; } }
 html[data-reduced-motion=true] .play-app * { animation:none!important; transition:none!important; scroll-behavior:auto!important; }
+
+/* Phones: the fact sheet replaces the Explore welcome strip instead of sharing the bottom of the screen. */
+@media (max-width:900px) { .play-app:has(.solar-dossier-slot) .play-view-solar .play-main { display:none; } }

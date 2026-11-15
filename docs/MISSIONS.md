@@ -362,3 +362,14 @@ W marks implemented features used by the three playable missions. N/L marks prop
 Sources: <https://nssdc.gsfc.nasa.gov/planetary/factsheet/{moon,venus,mercury,jupiter}fact.html>.
 
 Crew return opportunities are authored ten-minute windows repeating every 90 minutes from 12 hours elapsed. A 10-second onboard deorbit action uses a two-body burn to an 80 km entry perigee; recovery is a separate six-hour abstraction. An early window can support a successful return when actual product and support requirements are met, but cannot satisfy the separate 72-hour orbital-duration requirement.
+
+## 2026-11-15: Sun Sentinel
+
+`SUN_SENTINEL`, "Sun Sentinel: Watch the Side of the Sun That Earth Cannot See", is the first mission at the Sun, offered at Aspiring and Expert.
+
+- SmallSat in a near-circular solar orbit at 0.96 AU, 120° ahead of Earth, as NASA's STEREO-A (orbit preset `SUN_AHEAD`, ride `RIDE_SOLAR_ORBIT`).
+- Return 6,000 MB of solar maps through the Deep Space Network within 30 days.
+- The craft is never in shadow, solar input follows 1/r², contact is a line of sight to Earth, and commands take light time. The radiation dose is an assumed value and is labelled as such.
+- A second mission through a 0.3 AU perihelion was designed but not shipped: no existing part can reject the heat, so it cannot be certified honestly.
+
+Engine details: [major improvements recap](./recaps/MAJOR_IMPROVEMENTS.md) §4.6.

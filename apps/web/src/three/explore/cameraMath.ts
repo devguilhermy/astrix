@@ -25,8 +25,10 @@ export const CHASE_TURN_RESPONSE = 10;
 export const LOOK_PITCH_LIMIT = 1.45;
 export const LOOK_RECENTER_DELAY = 2.5;
 export const LOOK_RECENTER_RESPONSE = 2;
-/** Radians of ship rotation per dragged CSS pixel in steer mode. */
-export const STEER_SENSITIVITY = .004;
+/** Radians of ship rotation per dragged CSS pixel when the drag steers: Void Protocol's mouse-steer sensitivity. */
+export const STEER_SENSITIVITY = .003;
+/** Radians of view rotation per dragged CSS pixel when the drag looks around: Void Protocol's camera-orbit sensitivity. */
+export const LOOK_SENSITIVITY = .005;
 export const BASE_FOV = 55;
 export const SPEED_FOV_GAIN = 8;
 /** Camera keeps this far outside every body surface; with the 0.0002 near plane the planet is never clipped open. */
@@ -39,15 +41,19 @@ export const SHAKE_AMPLITUDE = .00012;
 export const createLook = (): LookState => ({ yaw: 0, pitch: 0, idle: Number.POSITIVE_INFINITY });
 
 /**
- * Look drag, "grab the sky": the scene follows the pointer, as with the orbit camera outside the ship.
- * Dragging the full viewport height turns the view by the vertical field of view.
+ * Look drag, with the axes of Void Protocol's camera orbit: the view turns the way the pointer moves.
+ * Dragging right looks right and dragging down looks down (its "natural" vertical axis), so the
+ * scene slides the opposite way, exactly as when the same drag steers the ship.
+ * `LookState` is right-handed about ship up and ship right, so both signs are negative.
  */
-export function dragToLook(dx: number, dy: number, fovDeg: number, viewportHeight: number): { yaw: number; pitch: number } {
-  const perPixel = fovDeg * Math.PI / 180 / Math.max(1, viewportHeight);
-  return { yaw: dx * perPixel, pitch: dy * perPixel };
+export function dragToLook(dx: number, dy: number, sensitivity = LOOK_SENSITIVITY): { yaw: number; pitch: number } {
+  return { yaw: -dx * sensitivity, pitch: -dy * sensitivity };
 }
 
-/** Steer drag: the nose follows the pointer, right turns right, up raises the nose. Radians, pilot convention of `FlightInput`. */
+/**
+ * Steer drag, with the axes of Void Protocol's ship steering: dragging right turns the nose right,
+ * dragging down lowers it and dragging up raises it. Radians, pilot convention of `FlightInput`.
+ */
 export function dragToSteer(dx: number, dy: number, sensitivity = STEER_SENSITIVITY): { yaw: number; pitch: number } {
   return { yaw: dx * sensitivity, pitch: -dy * sensitivity };
 }

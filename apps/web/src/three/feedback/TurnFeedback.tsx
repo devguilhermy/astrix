@@ -1,5 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Html } from '@react-three/drei';
+import { SceneHtml } from '../SceneHtml';
 import { useFrame, useThree } from '@react-three/fiber';
 import { DoubleSide, Quaternion, Vector3, type Group, type Mesh, type MeshBasicMaterial } from 'three';
 import type { TurnMoment } from '../../ui/play/turnMoments';
@@ -82,7 +82,7 @@ function SignalWaves({ source, target, stationCentre, animateKey, animate, reduc
       </mesh>)}
     </>}
     {target.kind === 'station' && <group position={end} quaternion={dish} scale={.5}><GroundDish/></group>}
-    {target.kind === 'boresight' && <Html position={end} center zIndexRange={[2, 2]} style={{ pointerEvents: 'none' }}><span className="scene-fb-label">{pt ? 'para a Terra' : 'to Earth'}</span></Html>}
+    {target.kind === 'boresight' && <SceneHtml position={end} center zIndexRange={[2, 2]} style={{ pointerEvents: 'none' }}><span className="scene-fb-label">{pt ? 'para a Terra' : 'to Earth'}</span></SceneHtml>}
   </group>;
 }
 
@@ -116,8 +116,18 @@ export function TurnFeedback({ scene, geometry, animateKey, animate, reducedMoti
   const target = useMemo(() => moment.deliveredMB > 0 ? signalTarget({ momentBody: moment.body, sceneBody: scene.body, stationKm: moment.stationKm, radiusKm: scene.radiusKm, source, attitude, earth: scene.body === 'SUN' ? scene.earth : null }) : null,
     [moment, scene.body, scene.radiusKm, scene.earth, source, attitude]);
   const stationCentre = useMemo<ScenePoint>(() => scene.body === 'MOON' && scene.earth ? scene.earth : [0, 0, 0], [scene.body, scene.earth]);
+  // Data comes down during a station pass, which often ends before the turn does. The signal is
+  // then drawn from where the spacecraft was over the station, not through the planet.
+  const pass = useMemo<ScenePoint | null>(() => {
+    if (target?.kind !== 'station' || moment.inContact || !moment.passKm) return null;
+    return clearedCraft(renderPoint(moment.passKm, scene.radiusKm), Math.hypot(...moment.passKm) - scene.radiusKm, scene.hullRadius, scene.shell);
+  }, [target, moment, scene.radiusKm, scene.hullRadius, scene.shell]);
   return <group name={`turn-feedback-${moment.index}`}>
     {moment.capturedMB > 0 && <ObservationFootprint source={source} marker={marker} animateKey={animateKey} animate={animate} reducedMotion={reducedMotion}/>}
-    {target && <SignalWaves source={source} target={target} stationCentre={stationCentre} animateKey={animateKey} animate={animate} reducedMotion={reducedMotion} pt={pt}/>}
+    {target && <SignalWaves source={pass ?? source} target={target} stationCentre={stationCentre} animateKey={animateKey} animate={animate} reducedMotion={reducedMotion} pt={pt}/>}
+    {pass && <group position={pass}>
+      <mesh raycast={() => null}><sphereGeometry args={[.022, 16, 10]}/><meshBasicMaterial color={WAVE} transparent opacity={.9} depthWrite={false}/></mesh>
+      <SceneHtml center zIndexRange={[2, 2]} style={{ pointerEvents: 'none', transform: 'translateY(-18px)' }}><span className="scene-fb-label">{pt ? 'Passagem sobre a estação' : 'Pass over the station'}</span></SceneHtml>
+    </group>}
   </group>;
 }

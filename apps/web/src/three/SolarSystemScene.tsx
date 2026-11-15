@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { Html } from '@react-three/drei';
+import { SceneHtml } from './SceneHtml';
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { DoubleSide, PerspectiveCamera, type Intersection, type Material, type Object3D } from 'three';
 import { useTranslation } from 'react-i18next';
@@ -97,9 +97,9 @@ function SolarBody({ body, selected, hovered, pt }: { body: SolarBodyDefinition;
     {body.radius < PICK_RADIUS && <mesh visible={false} userData={{ solarPick: true }}><sphereGeometry args={[PICK_RADIUS, ...PICK_SEGMENTS]}/></mesh>}
     {body.id === 'SATURN' && <mesh rotation={[-1.1, 0, .3]}><ringGeometry args={[body.radius * 1.3, body.radius * 2.05, 128]}/><meshStandardMaterial color="#c7baa2" transparent opacity={.6} side={DoubleSide}/></mesh>}
     {selected && <mesh raycast={() => null}><sphereGeometry args={[body.radius * 1.07, 24, 12]}/><meshBasicMaterial color="#c6edf2" wireframe transparent opacity={.12} depthWrite={false}/></mesh>}
-    {located && <Html center zIndexRange={[1, 1]} style={{ pointerEvents: 'none' }}><span ref={dot} className="solar-scale-dot" data-selected={selected} data-hovered={hovered} style={{ '--solar-scale-dot': mixTowardWhite(body.color, .35) } as CSSProperties}/></Html>}
+    {located && <SceneHtml center zIndexRange={[1, 1]} style={{ pointerEvents: 'none' }}><span ref={dot} className="solar-scale-dot" data-selected={selected} data-hovered={hovered} style={{ '--solar-scale-dot': mixTowardWhite(body.color, .35) } as CSSProperties}/></SceneHtml>}
     {/* The Moon's label sits below it so it never covers Earth's. */}
-    <Html position={[0, (body.id === 'MOON' ? -1 : 1) * labelOffset(body.radius), 0]} center zIndexRange={[1, 1]} style={{ pointerEvents: 'none', whiteSpace: 'nowrap' }}><span className="solar-body-label solar-scale-label" data-selected={selected} data-hovered={hovered}>{body.name[pt ? 'pt' : 'en']}</span></Html>
+    <SceneHtml position={[0, (body.id === 'MOON' ? -1 : 1) * labelOffset(body.radius), 0]} center zIndexRange={[1, 1]} style={{ pointerEvents: 'none', whiteSpace: 'nowrap' }}><span className="solar-body-label solar-scale-label" data-selected={selected} data-hovered={hovered}>{body.name[pt ? 'pt' : 'en']}</span></SceneHtml>
   </group>;
 }
 

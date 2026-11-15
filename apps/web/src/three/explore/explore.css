@@ -14,7 +14,7 @@
 
 .explore-board {
   position: absolute;
-  right: 24px;
+  right: calc(var(--scene-right, 0px) + 24px);
   bottom: var(--explore-board-bottom, 128px);
   display: inline-flex;
   align-items: center;
@@ -175,6 +175,8 @@
 
 @media (max-width: 900px) {
   .explore-board { right: 12px; bottom: var(--explore-board-bottom, 188px); }
+  /* A selected body's dossier is a 55 % bottom sheet and the solar camera controls sit just above it. */
+  .immersive-scene[data-solar-body='true'] .explore-board { bottom: calc(55svh + 84px); }
   .explore-panel {
     top: var(--explore-top, 108px);
     left: 8px;

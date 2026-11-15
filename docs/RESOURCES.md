@@ -110,3 +110,11 @@ Local play uses versioned decision-boundary saves, separate from settings, disco
 | [sim/playable.test.ts](../packages/core/src/sim/playable.test.ts), [sim/golden.test.ts](../packages/core/src/sim/golden.test.ts) | Explicit pilot/reference-trace entry points; test fixtures are not production autopilots or proof of unexecuted level combinations |
 | [web/ui/hud/resourceModel.test.ts](../apps/web/src/ui/hud/resourceModel.test.ts), [web/ui/inspector/partDetails.test.ts](../apps/web/src/ui/inspector/partDetails.test.ts) | Seven-badge order, forecast/live units, quote deltas and thresholds; component specifications and live readings sourced only from core telemetry |
 | [web/store/mission.test.ts](../apps/web/src/store/mission.test.ts), [core/score.test.ts](../packages/core/src/score.test.ts) | Refusal atomicity, coupled sign-offs, learning snapshot pauses, reset/redesign boundaries and separate fit/energy/progress statuses |
+
+## 2026-11-15: NSSDCA fact sheets and a larger Earth map
+
+- **NSSDCA Planetary Fact Sheet (metric)** and **Sun Fact Sheet**, retrieved 2026-11-15, transcribed into `packages/data/solar-bodies.json` for the Explore fact panel and for `CONSTANTS.SUN`. No request is made at run time.
+- **`textures/earth-blue-marble-2048.jpg`**, derived from the Blue Marble original already recorded in `textures/asset-sources.json`, for simulated observation frames.
+- **Site icons**, derived from the owner-supplied logo.
+
+Provenance rows are in `CREDITS.md`; context is in the [major improvements recap](./recaps/MAJOR_IMPROVEMENTS.md) §4.7 and §4.9.

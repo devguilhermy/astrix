@@ -57,6 +57,15 @@ describe('turn moments', () => {
       expect(moment.stationKm).not.toBeNull();
       expect(Math.hypot(...moment.stationKm!)).toBeCloseTo(6378.137, 0);
       expect(moment.socPct).not.toBeNull();
+      if (moment.deliveredMB > 0) {
+        // Data came down during a pass: the pass point is in orbit and above the station's horizon.
+        expect(moment.passKm).not.toBeNull();
+        const pass = moment.passKm!, station = moment.stationKm!, up = Math.hypot(...station);
+        expect(Math.hypot(...pass)).toBeCloseTo(radius, -1);
+        const elevation = ((pass[0] - station[0]) * station[0] + (pass[1] - station[1]) * station[1] + (pass[2] - station[2]) * station[2]) / up;
+        expect(elevation).toBeGreaterThan(0);
+        if (moment.inContact) expect(moment.passKm).toEqual(moment.positionKm);
+      }
       expect(moment.doseUGyH.every(sample => sample.t >= moment.startSec && sample.t <= moment.endSec)).toBe(true);
     }
   });

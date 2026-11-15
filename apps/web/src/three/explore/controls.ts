@@ -93,7 +93,7 @@ export interface ExploreControls {
 }
 
 export function createExploreControls(): ExploreControls {
-  let snapshot: ExploreControlsSnapshot = { speedTier: DEFAULT_SPEED_TIER, camera: 'chase', dragMode: 'look', autopilot: 'off', help: false, pad: false };
+  let snapshot: ExploreControlsSnapshot = { speedTier: DEFAULT_SPEED_TIER, camera: 'chase', dragMode: 'steer', autopilot: 'off', help: false, pad: false };
   const listeners = new Set<() => void>();
   const held = new Map<string, HoldControl>();
   const stick = [0, 0];
@@ -126,7 +126,7 @@ export function createExploreControls(): ExploreControls {
     reset({ pad }) {
       clearMotion();
       recenter = false;
-      snapshot = { speedTier: DEFAULT_SPEED_TIER, camera: 'chase', dragMode: 'look', autopilot: 'off', help: false, pad };
+      snapshot = { speedTier: DEFAULT_SPEED_TIER, camera: 'chase', dragMode: 'steer', autopilot: 'off', help: false, pad };
       emit();
     },
     command(command) {
@@ -167,7 +167,9 @@ export function createExploreControls(): ExploreControls {
     },
     drag(dx, dy) {
       if (!dx && !dy) return;
-      const pending = snapshot.dragMode === 'steer' ? pendingSteer : pendingLook;
+      // As in Void Protocol: a drag steers the ship in manual flight; while the autopilot flies,
+      // or in free look, it only turns the view and never touches the heading.
+      const pending = snapshot.dragMode === 'steer' && snapshot.autopilot !== 'engaged' ? pendingSteer : pendingLook;
       pending[0] += dx;
       pending[1] += dy;
       emit();

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Html } from '@react-three/drei';
+import { SceneHtml } from '../SceneHtml';
 import type { TurnMoment } from '../../ui/play/turnMoments';
 import { renderPoint, type CommittedScene } from '../committedScene';
 import { turnName } from './turnLabels';
@@ -17,10 +17,10 @@ export function TurnMarkers({ scene, moments, selected, onSelect, pt }: { scene:
       const active = moment.index === selected;
       return <group key={moment.index} position={position}>
         <mesh scale={active ? .034 : .02} raycast={() => null}><sphereGeometry args={[1, 16, 10]}/><meshBasicMaterial color={active ? SELECTED : '#d5eef2'} depthTest={false} transparent opacity={.95}/></mesh>
-        <Html center zIndexRange={[3, 3]} style={{ pointerEvents: 'none' }}>
+        <SceneHtml center zIndexRange={[3, 3]} style={{ pointerEvents: 'none' }}>
           <button type="button" className="scene-fb-marker" data-selected={active} aria-pressed={active} aria-label={turnName(moment, pt)} title={turnName(moment, pt)} disabled={!onSelect}
             onClick={() => onSelect?.(moment.index)}><span aria-hidden="true">{moment.index}</span></button>
-        </Html>
+        </SceneHtml>
       </group>;
     })}
   </group>;

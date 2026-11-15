@@ -69,3 +69,16 @@ Disconnected/stale clients cannot submit actions or start an independent local g
 ## Verification boundary
 
 Typecheck, engine/session tests and production-browser workflows establish software behavior. Screenshots at desktop and compact sizes establish observed layout, not screen-reader certification. Formative human sessions are still needed to evaluate the proposed time-to-first-choice, comprehension, enjoyment and replay-intent targets in the [revision plan](./plans/TURN_BASED_EXPLORATION_REVISION.md).
+
+## 2026-11-15: denser shell, board, turn card and mission report
+
+Details and measurements: [major improvements recap](./recaps/MAJOR_IMPROVEMENTS.md) §4.4, §4.9 and §7.2.
+
+- **Shell (desktop):** header 56 px; resource grid at top 64 px, 60 px tall, one row per cell; mission panels start at 64 px, or 132 px when the resource grid shows. There is no toolbar row and no footer row: "Hide panels", "Quick tour" and the save chip (Export, Import, GMAT tools) are in the header.
+- **Board:** `min(1040px, 62vw)`; resume strip; destination tabs (Sun, Earth, Moon, Mars) and the level toggle in one row; three offer cards; "More missions" as compact cards.
+- **Level toggle:** a labelled group of two `aria-pressed` buttons, Aspiring and Expert.
+- **Preparation:** ambition, kit and approach as three-column option cards.
+- **Turn workspace:** the right panel leads with the "Last turn" card in a polite live region; it collapses to one line while a plan is selected.
+- **Mission report:** left result panel (score, objectives, actions), right detail panel (Turn, Science, Compare), bottom timeline dock of 176 px. At 901-1279 px the two panels sit side by side with the timeline below; at 900 px and below a Result / Turns / Science switch shows one sheet.
+- **Explore:** the fact panel occupies the right panel slot (a bottom sheet on phones); the ship HUD is top left while aboard.
+- **Class prefixes:** `scene-fb-`, `fb-`, `report-`, `jr-`, `dossier-`, `solar-scale-`, `explore-` each belong to one style sheet.

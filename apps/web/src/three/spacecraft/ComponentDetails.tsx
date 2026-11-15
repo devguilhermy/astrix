@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Html } from '@react-three/drei';
+import { SceneHtml } from '../SceneHtml';
 import { Activity, Check, ListChecks, Ruler, X } from 'lucide-react';
 import { Vector3 } from 'three';
 import { useTranslation } from 'react-i18next';
@@ -34,7 +34,7 @@ export function ComponentDetails({ part, design, current, onClose }: ComponentDe
 /** Follows the selected part's world transform; constrained to the unobscured scene. */
 export function AnchoredComponentDetails({ view, ...props }: ComponentDetailsProps & { view: SceneView }) {
   const projected = useRef(new Vector3());
-  return <Html zIndexRange={[5, 5]} style={{ pointerEvents: 'auto' }} calculatePosition={(object, camera, size) => {
+  return <SceneHtml zIndexRange={[5, 5]} style={{ pointerEvents: 'auto' }} calculatePosition={(object, camera, size) => {
     projected.current.setFromMatrixPosition(object.matrixWorld).project(camera);
     const x = (projected.current.x + 1) * size.width / 2;
     const y = (1 - projected.current.y) * size.height / 2;
@@ -48,5 +48,5 @@ export function AnchoredComponentDetails({ view, ...props }: ComponentDetailsPro
     const height = mobile ? Math.max(90, bottom - top) : Math.min(420, size.height * .52);
     const preferredX = x + 18 + width <= right ? x + 18 : x - width - 18;
     return [Math.max(left, Math.min(right - width, preferredX)), Math.max(top, Math.min(bottom - height, y - 24))];
-  }}><ComponentDetails {...props}/></Html>;
+  }}><ComponentDetails {...props}/></SceneHtml>;
 }

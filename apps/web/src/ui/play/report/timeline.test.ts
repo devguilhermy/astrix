@@ -4,7 +4,7 @@ import { chipBadges, defaultTurn, effectiveTurn, rovingIndex } from './timeline'
 
 function moment(index:number,change:Partial<TurnMoment['delta']>={}):TurnMoment {
   const delta={fuelKg:0,energyWh:0,storedMB:0,deliveredMB:0,...change};
-  return {index,receiptId:`r${index}`,kind:'COAST',startSec:index*100,endSec:index*100+100,interrupted:false,delta,capturedMB:Math.max(0,delta.storedMB+delta.deliveredMB),deliveredMB:Math.max(0,delta.deliveredMB),progress:0,body:'EARTH',positionKm:null,frame:null,stationKm:null,inContact:false,doseUGyH:[],socPct:null};
+  return {index,receiptId:`r${index}`,kind:'COAST',startSec:index*100,endSec:index*100+100,interrupted:false,delta,capturedMB:Math.max(0,delta.storedMB+delta.deliveredMB),deliveredMB:Math.max(0,delta.deliveredMB),progress:0,body:'EARTH',positionKm:null,frame:null,stationKm:null,passKm:null,inContact:false,doseUGyH:[],socPct:null};
 }
 
 describe('report timeline',()=>{

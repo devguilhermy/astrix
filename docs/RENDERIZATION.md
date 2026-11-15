@@ -42,3 +42,17 @@ Uploaded text is parsed in a cancellable worker and never executed. Importing a 
 Procedural spacecraft geometry and plotted paths are application-generated illustrations. NASA/USGS imagery, references and mission comparisons retain their separate credits and limitations in [Resources](./RESOURCES.md) and [Credits](../CREDITS.md). None is NASA endorsement.
 
 Functional checks exercise core-to-view data boundaries; browser inspection verifies persistent scene visibility, contextual turn panels, compact layouts, keyboard access and error behavior. It cannot establish scientific fidelity beyond the underlying model or human enjoyment. Record only observed results in [Verification](./VERIFICATION.md).
+
+## 2026-11-15: clearance, turn feedback, replay, true-scale Explore and the ship
+
+Details: [major improvements recap](./recaps/MAJOR_IMPROVEMENTS.md) §4.2, §4.5, §4.7, §4.8 and §6.
+
+- **Hardware size:** `craftScale = 0.2 / hardwareRadiusM(design)`, where the radius includes deployed wings, whips and dishes, so every craft has a displayed hull radius of 0.2 planet radii.
+- **Clearance:** displayed radius = `max(true, ground + (floor − ground) × smoothstep(0, 100 km, altitude))` with `ground = 1 + hull + 0.004` and `floor = shell + hull + 0.06`. The true-position marker and tether stay at telemetry. The camera is kept outside every body.
+- **Lines:** `SceneLine` is drei's `Line` (screen-space width, optional dashes); transparent lines do not write depth.
+- **Labels:** every in-scene `Html` goes through `SceneHtml`, which renders into a host that exists before the Canvas mounts. This removed the `removeChild` exception.
+- **Turn feedback:** waves, link, dish, footprint and numbered turn markers are drawn only from committed receipts. When a turn does not end in contact, the link starts at the marked "Pass over the station" point.
+- **Replay:** imperative updates inside the frame callback while playing; the Canvas stays `frameloop="demand"`. Reduced motion shows the end state only.
+- **Night side:** a dim, cool fill (0.055) keeps terrain legible; it is display lighting, not data.
+- **Sun:** drawn unlit from the STEREO + SDO 304 Å map, with no atmosphere shell. In a Sun-centred mission scene Earth is an enlarged, labelled marker.
+- **Explore:** Sun radius 6; other radii to scale; compressed orbit radii; pick spheres and locator dots for small bodies. The ship takes over the camera while aboard and renders only while something moves.

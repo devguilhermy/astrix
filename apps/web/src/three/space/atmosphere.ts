@@ -38,7 +38,8 @@ export const PLANET_FRAGMENT_SHADER = /* glsl */ `
   // Packed alpha is the historical Black Marble grayscale observation, not opacity.
   // Its warm display tint is illustrative; no city illumination is invented.
   float lights = uPackedNight ? pow(surface.a, 2.2) : 0.0;
-  vec3 colour = surface.rgb * (0.003 + day)
+  // A dim, cool fill keeps night-side terrain legible (launch pads, markers); it is display lighting, not data.
+  vec3 colour = surface.rgb * day + surface.rgb * vec3(0.55, 0.72, 1.0) * 0.055
               + vec3(1.0, 0.66, 0.30) * lights * night * 1.5;
   gl_FragColor = vec4(colour, 1.0);
   #include <tonemapping_fragment>

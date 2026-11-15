@@ -1,5 +1,5 @@
 import { useMemo, useRef } from 'react';
-import { Html } from '@react-three/drei';
+import { SceneHtml } from '../SceneHtml';
 import { useFrame } from '@react-three/fiber';
 import { useTranslation } from 'react-i18next';
 import { Vector3, type Group } from 'three';
@@ -33,6 +33,6 @@ export function PilotAnchors({ busId, epochUTC, mars }: { busId: BusId; epochUTC
  if (!enabled) return null;
  return <group ref={root}>{(['sun', 'target', 'earth'] as const).map((anchor, index) => <group key={anchor}>
   <mesh><sphereGeometry args={[radius * .035, 12, 8]}/><meshBasicMaterial color={['#ffd17b', '#65e3d5', '#74bfff'][index]} transparent opacity={.85} depthTest={false}/></mesh>
-  <Html center style={{ pointerEvents: 'none', fontSize: '11px', color: '#e5f5fa', whiteSpace: 'nowrap', transform: 'translateY(-18px)', textShadow: '0 1px 4px #000' }}>{t(`flight.${anchor}`)}</Html>
+  <SceneHtml center style={{ pointerEvents: 'none', fontSize: '11px', color: '#e5f5fa', whiteSpace: 'nowrap', transform: 'translateY(-18px)', textShadow: '0 1px 4px #000' }}>{t(`flight.${anchor}`)}</SceneHtml>
  </group>)}</group>;
 }

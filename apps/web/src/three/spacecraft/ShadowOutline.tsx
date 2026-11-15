@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { Html } from '@react-three/drei';
+import { SceneHtml } from '../SceneHtml';
 import { useFrame } from '@react-three/fiber';
 import { useTranslation } from 'react-i18next';
 import type { Group } from 'three';
@@ -21,6 +21,6 @@ export function ShadowOutline({ busId }: { busId: BusId }) {
    {busId === 'CREW_CAPSULE' ? <cylinderGeometry args={[x / 2, x / 2, y, 12, 1, true]}/> : <boxGeometry args={[x, y, z]}/>}
    <meshBasicMaterial color="#a9e0eb" wireframe transparent opacity={.65} depthWrite={false}/>
   </mesh>
-  <Html position={[0, y * .7, 0]} center style={{ pointerEvents: 'none', color: '#b7dbe4', fontSize: '11px', whiteSpace: 'nowrap', textShadow: '0 1px 4px #000' }}>{t('flight.shadowOutline')}</Html>
+  <SceneHtml position={[0, y * .7, 0]} center style={{ pointerEvents: 'none', color: '#b7dbe4', fontSize: '11px', whiteSpace: 'nowrap', textShadow: '0 1px 4px #000' }}>{t('flight.shadowOutline')}</SceneHtml>
  </group>;
 }

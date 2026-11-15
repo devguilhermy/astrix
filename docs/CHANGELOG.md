@@ -2,6 +2,20 @@
 
 Shipped changes, newest first. Evidence for each entry is in [VERIFICATION.md](./VERIFICATION.md); scope and decisions are in the linked plans.
 
+## Unreleased — Turn feedback, mission report, Sun missions and the Explore ship (2026-11-15)
+
+Full record: [major improvements recap](./recaps/MAJOR_IMPROVEMENTS.md). Plans: [refinement](./plans/TURN_FEEDBACK_REFINEMENT_PLAN.md), [Explore ship](./plans/EXPLORE_SHIP_PLAN.md).
+
+- Turn feedback: transmission waves to the ground station, an observation footprint, and a "Last turn" card with a simulated frame (always captioned as simulated), a reading chart on radiation missions or a signal strip.
+- Replay of each committed turn at 1×, 2×, 4× or 8× with pause and skip; launches start with a stack on the pad and rise through ascent.
+- Mission report in place of the debrief: the engine's score with stars and five components, objectives, a turn timeline, per-turn detail and numbered turn markers in the scene.
+- The Sun as a fourth destination with one mission, Sun Sentinel, at both levels. Existing missions, digests and version numbers are unchanged.
+- Explore: planet sizes to scale with the Sun, compressed distances, clearer orbit rings, a NASA fact panel for ten bodies from bundled NSSDCA data, and a boardable ship with chase and cockpit cameras, drag steering on Void Protocol's axes and an autopilot.
+- Density: board, turn panels and report need no scrolling at 1920×940; header and resource bar are slimmer; the level is chosen with two toggle buttons.
+- Spacecraft display size follows the real hull including deployables, and clearance follows altitude, so hardware never intersects a planet.
+- Favicon set and web manifest.
+- Fixed the `removeChild` exception from in-scene labels by giving them a stable host (`three/SceneHtml.tsx`).
+
 ## Unreleased — Design & Play and decision-based exploration
 
 **Integrated verification in progress; see the newest verification record before claiming release acceptance.**
@@ -12,7 +26,7 @@ Shipped changes, newest first. Evidence for each entry is in [VERIFICATION.md](.
 - Added local decision-boundary saves, explicit invalid-save/write-failure handling and a discovery/debrief loop.
 - Protocol 3: controllers propose, the host commits; removed the production host flight clock. Stale/duplicate commitments, reconnect and idle-time behavior have dedicated regression coverage.
 - Retained optional GMAT initial-state interchange and sampled-trajectory inspection outside the normal play loop.
-- Added `/gmat` (inside the app shell, linked from Home) for GMAT import/export, with ASTRIX and unmodified NASA GMAT example inputs. Script import now reads the selected spacecraft's Keplerian initial state from full GMAT scripts (UTC/TAI Gregorian or ModJulian epochs) and reports everything else as ignored; OEM import accepts version 1.0 and useable-time metadata. Imported trajectories, imported initial states and the export draft are drawn in the shared 3D view (central body lit for the epoch, conic or sampled path, apsides, timed playback with orbit details) instead of the inline 2D plot.
+- Added a standalone `/gmat` page for GMAT import (OEM, ReportFile, initial-state script) and initial-condition export with a same-parser round-trip check.
 - Restored the separate landing, followed by free solar-system exploration before mission selection; retained persistent 3D with bounded contextual panels and always-visible plan toggles/commit.
 - Updated the visible brand to ASTRIX11 with the supplied logo and blue/orange palette, preserving package names and saved-state identifiers.
 - Expanded attributed planetary textures and explicit schematic-scale/source disclosures; exploration-only planets do not imply unsupported missions.

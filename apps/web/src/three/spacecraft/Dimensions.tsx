@@ -1,4 +1,5 @@
-import { Html, Line } from '@react-three/drei';
+import { Line } from '@react-three/drei';
+import { SceneHtml } from '../SceneHtml';
 import type { BusId } from '@astrix/core';
 import { BUS_GEOMETRY } from './slots';
 
@@ -17,8 +18,8 @@ export function Dimensions({ busId }: { busId: BusId }) {
       <Line points={[[side * x / 2, -y / 2 - offset * .8, z / 2 + offset], [side * x / 2, -y / 2 - offset * 1.2, z / 2 + offset]]} color={colour} lineWidth={1}/>
       <Line points={[[x / 2 + offset * .8, -y / 2 - offset, side * z / 2], [x / 2 + offset * 1.2, -y / 2 - offset, side * z / 2]]} color={colour} lineWidth={1}/>
     </group>)}
-    <Html position={[x / 2 + offset * 1.2, 0, z / 2 + offset]} center style={style}>{label(y)}</Html>
-    <Html position={[0, -y / 2 - offset * 1.3, z / 2 + offset]} center style={style}>{label(x)}</Html>
-    <Html position={[x / 2 + offset * 1.4, -y / 2 - offset, 0]} center style={style}>{label(z)}</Html>
+    <SceneHtml position={[x / 2 + offset * 1.2, 0, z / 2 + offset]} center style={style}>{label(y)}</SceneHtml>
+    <SceneHtml position={[0, -y / 2 - offset * 1.3, z / 2 + offset]} center style={style}>{label(x)}</SceneHtml>
+    <SceneHtml position={[x / 2 + offset * 1.4, -y / 2 - offset, 0]} center style={style}>{label(z)}</SceneHtml>
   </group>;
 }

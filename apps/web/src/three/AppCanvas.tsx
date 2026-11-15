@@ -1,6 +1,7 @@
 import { Component, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentRef, type KeyboardEvent, type ReactNode } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
-import { Html, OrbitControls } from '@react-three/drei';
+import { OrbitControls } from '@react-three/drei';
+import { ScenePortalContext, SceneHtml } from './SceneHtml';
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Minus, Plus, RotateCcw } from 'lucide-react';
 import { PerspectiveCamera, Spherical, Vector3, type DirectionalLight, type Group } from 'three';
 import { useTranslation } from 'react-i18next';
@@ -22,8 +23,7 @@ import { LaunchStack } from './playback/LaunchStack';
 import { usePlayback, usePlaybackFrame, type PlaybackControl, type PlaybackTargets } from './playback/PlaybackController';
 import { PlaybackTransport } from './playback/Transport';
 import { detectQuality } from './quality';
-import { GmatCaption, GmatScene, GmatTransport } from './gmat/GmatScene';
-import { trajectoryViewer } from '../ui/advanced/trajectoryStore';
+import { ExploreFlight, ExploreHud, type ExploreTelemetry } from './explore';
 import './immersive.css';
 
 export interface AppCanvasProps {
@@ -192,7 +192,7 @@ function PhysicalWorld({ scene, orbitVisible, selectedKey, view, onInspect, onCl
       {solar && <>
         <Planet body="EARTH" radiusKm={EARTH_MARKER_RADIUS} sunDirection={earthSun} lowResolution/>
         <sprite scale={[.014, .014, 1]} raycast={() => null}><spriteMaterial color="#66b8ec" sizeAttenuation={false} depthTest={false} depthWrite={false}/></sprite>
-        <Html center zIndexRange={[2, 2]} style={{ pointerEvents: 'none', transform: 'translateY(-18px)' }}><span className="scene-fb-label">{pt ? 'Terra (ampliada)' : 'Earth (enlarged)'}</span></Html>
+        <SceneHtml center zIndexRange={[2, 2]} style={{ pointerEvents: 'none', transform: 'translateY(-18px)' }}><span className="scene-fb-label">{pt ? 'Terra (ampliada)' : 'Earth (enlarged)'}</span></SceneHtml>
       </>}
     </group>}
     {solar && scene.earthOrbit.length > 1 && <SceneLine points={scene.earthOrbit} color="#8fc0e2" opacity={.55} width={1.2} closed/>}
@@ -214,13 +214,18 @@ function PhysicalWorld({ scene, orbitVisible, selectedKey, view, onInspect, onCl
 export function AppCanvas({ design, game, body, view, reducedMotion, onSelectDestination, moments: givenMoments, selectedTurn = null, onSelectTurn, solarBody: solarSelection, onSolarBody }: AppCanvasProps) {
   const { i18n } = useTranslation();
   const pt = !!i18n.resolvedLanguage?.startsWith('pt');
-  // The GMAT tools page replaces the mission world with imported or exported external data; display only.
-  const gmatSubject = trajectoryViewer(state => state.subject), gmat = view === 'gmat' ? gmatSubject : null;
   const scene = useMemo(() => committedScene(design, game, body, view), [design, game, body, view]);
   const moments = useMemo(() => givenMoments ?? (game ? turnMoments(game) : NO_MOMENTS), [givenMoments, game]);
   const [failed, setFailed] = useState(false), [retry, setRetry] = useState(0), [mode, setMode] = useState<CameraMode>('craft');
   const [command, setCommand] = useState<{ action: CameraAction; id: number }>({ action: 'reset', id: 0 });
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  // Labels render into a host that exists before the Canvas mounts (see SceneHtml).
+  const [labelHost, setLabelHost] = useState<HTMLDivElement | null>(null);
+  const labelPortal = useMemo(() => labelHost ? { current: labelHost as HTMLElement } : undefined, [labelHost]);
+  // Explore flight: presentation only; it never advances mission time.
+  const [boarded, setBoarded] = useState(false);
+  const [flightTarget, setFlightTarget] = useState<string | null>(null);
+  const [flightTelemetry, setFlightTelemetry] = useState<ExploreTelemetry | null>(null);
   const solarBody = SOLAR_BODIES.find(item => item.id === solarSelection);
   const solarFocus = useMemo<SolarFocus | undefined>(() => view === 'solar' ? solarBody ? { position: solarBody.position, radius: solarBody.radius, overview: false } : { ...SOLAR_OVERVIEW, overview: true } : undefined, [view, solarBody]);
   const componentSelect = useRef<HTMLButtonElement>(null);
@@ -230,6 +235,10 @@ export function AppCanvas({ design, game, body, view, reducedMotion, onSelectDes
   const closeDetails = useCallback(() => { setSelectedKey(null); componentSelect.current?.focus({ preventScroll: true }); }, []);
   const act = useCallback((action: CameraAction) => setCommand(previous => ({ action, id: previous.id + 1 })), []);
   const ended = view === 'play' && !!scene.current?.ended;
+  const flying = boarded && view === 'solar' && !failed;
+  useEffect(() => { if (view !== 'solar' || failed) setBoarded(false); }, [view, failed]);
+  const board = useCallback(() => { setFlightTarget(solarBody?.id ?? null); setFlightTelemetry(null); setBoarded(true); onSolarBody('SYSTEM'); }, [solarBody, onSolarBody]);
+  const leave = useCallback(() => setBoarded(false), []);
   // At mission end the camera opens on the whole flight, once per mission identity.
   const orbitDefaulted = useRef<string | null>(null);
   useEffect(() => {
@@ -243,6 +252,7 @@ export function AppCanvas({ design, game, body, view, reducedMotion, onSelectDes
   const geometry = useMemo(() => feedbackGeometry(scene, shown, shown === latest), [scene, shown, latest]);
   const animateFeedback = playback.feedback.animate && playback.feedback.index === shown?.index;
   const keyboard = (event: KeyboardEvent<HTMLElement>) => {
+    if (flying) return;
     if (event.target instanceof Element && event.target.closest('select, input, textarea, [contenteditable="true"]')) return;
     const action = CAMERA_KEYS[event.key];
     if (!action || failed) return;
@@ -263,37 +273,40 @@ export function AppCanvas({ design, game, body, view, reducedMotion, onSelectDes
     { action: 'out', Icon: Minus, label: pt ? 'Afastar câmera' : 'Zoom camera out' },
     { action: 'reset', Icon: RotateCcw, label: pt ? 'Redefinir câmera' : 'Reset camera' },
   ] as const;
-  return <section className="immersive-scene" data-view={view} data-hardware={!!scene.design} data-debrief={ended} data-transport={transport} data-solar-body={view === 'solar' && !!solarBody} tabIndex={0} onKeyDown={keyboard} aria-label={pt ? 'Vista espacial 3D. Setas giram a câmera; mais e menos aproximam; zero redefine.' : '3D space view. Arrow keys orbit; plus and minus zoom; zero resets.'} aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown + - 0">
+  return <section className="immersive-scene" data-view={view} data-hardware={!!scene.design} data-debrief={ended} data-transport={transport} data-solar-body={view === 'solar' && !!solarBody} data-flying={flying} tabIndex={0} onKeyDown={keyboard} aria-label={flying ? pt ? 'Vista espacial 3D. Você está a bordo da nave de exploração; os controles de voo estão no painel de voo.' : '3D space view. You are aboard the exploration ship; flight controls are in the flight panel.' : pt ? 'Vista espacial 3D. Setas giram a câmera; mais e menos aproximam; zero redefine.' : '3D space view. Arrow keys orbit; plus and minus zoom; zero resets.'} aria-keyshortcuts={flying ? undefined : 'ArrowLeft ArrowRight ArrowUp ArrowDown + - 0'}>
     <div className="immersive-scene-render">
-      {failed ? fallback : <SceneBoundary key={retry} fallback={fallback} onFailure={() => setFailed(true)}><Canvas frameloop="demand" dpr={[1, 1.5]} camera={INITIAL_CAMERA} gl={{ antialias: true, powerPreference: 'low-power', logarithmicDepthBuffer: true }} fallback={null} onCreated={({ gl }) => {
+      <div className="immersive-scene-labels" ref={setLabelHost}/>
+      {failed ? fallback : labelPortal && <ScenePortalContext.Provider value={labelPortal}><SceneBoundary key={retry} fallback={fallback} onFailure={() => setFailed(true)}><Canvas frameloop="demand" dpr={[1, 1.5]} camera={INITIAL_CAMERA} gl={{ antialias: true, powerPreference: 'low-power', logarithmicDepthBuffer: true }} fallback={null} onCreated={({ gl }) => {
         detectQuality(gl.getContext());
         gl.domElement.addEventListener('webglcontextlost', event => { event.preventDefault(); setFailed(true); }, { once: true });
       }}>
-        {view === 'solar' ? <SolarSystemScene selected={solarSelection} onFocus={onSolarBody}/> : <>
+        {view === 'solar' ? <>
+          <SolarSystemScene selected={flying ? 'SYSTEM' : solarSelection} onFocus={flying ? setFlightTarget : onSolarBody}/>
+          <ExploreFlight boarded={flying} bodies={SOLAR_BODIES} target={flightTarget} reducedMotion={reducedMotion} onTelemetry={setFlightTelemetry}/>
+        </> : <>
           <PhysicalWorld scene={scene} orbitVisible={mode === 'orbit'} selectedKey={selected?.key ?? null} view={view} onInspect={inspect} onClose={closeDetails} playback={playback.control} followCraft={mode === 'craft' && !!scene.design} pt={pt}/>
           {geometry && !playback.active && <TurnFeedback scene={scene} geometry={geometry} animateKey={playback.feedback.key} animate={animateFeedback} reducedMotion={reducedMotion} pt={pt}/>}
           {ended && !playback.active && <TurnMarkers scene={scene} moments={moments} selected={shown?.index ?? null} onSelect={onSelectTurn} pt={pt}/>}
         </>}
-        <SceneCamera scene={scene} mode={mode} view={view} command={command} reducedMotion={reducedMotion} solarFocus={solarFocus}/>
-      </Canvas></SceneBoundary>}
+        {!flying && <SceneCamera scene={scene} mode={mode} view={view} command={command} reducedMotion={reducedMotion} solarFocus={solarFocus}/>}
+      </Canvas></SceneBoundary></ScenePortalContext.Provider>}
     </div>
     {failed && selected && scene.design && <div className="immersive-component-fallback"><ComponentDetails part={selected.part} design={scene.design} current={scene.current} onClose={closeDetails}/></div>}
-    {view === 'solar' && <SolarSystemCaption body={solarBody}/>}
-    {gmat && <GmatCaption subject={gmat} pt={pt}/>}
-    {view !== 'solar' && !gmat && <div className="immersive-scene-caption">
+    {view === 'solar' && !flying && <SolarSystemCaption body={solarBody}/>}
+    {view === 'solar' && !failed && <ExploreHud boarded={flying} onBoard={board} onLeave={leave} telemetry={flightTelemetry} bodies={SOLAR_BODIES} target={flightTarget} onTarget={setFlightTarget} reducedMotion={reducedMotion}/>}
+    {view !== 'solar' && <div className="immersive-scene-caption">
       <strong>{name}{scene.physical ? ` · T+${number.format(scene.current!.t)} s` : scene.design ? pt ? ' · Prévia do equipamento' : ' · Equipment preview' : pt ? ' · Destino' : ' · Destination'}</strong>
-      <span>{scene.physical && scene.current?.flight ? `${number.format(scene.current.flight.view.altitudeKm)} km · ${number.format(scene.current.flight.view.speedKms)} km/s` : scene.cruise ? pt ? 'Transferência analítica; trajetória espacial não representada.' : 'Analytic transfer; no spatial transfer path is modelled.' : pt ? 'Contexto do destino; não é uma trajetória de voo.' : 'Destination context, not a flight trajectory.'}</span>
+      <span>{scene.physical && scene.current?.flight ? `${number.format(scene.current.flight.view.altitudeKm)} km · ${number.format(scene.current.flight.view.speedKms)} km/s` : scene.physical && scene.current ? scene.body === 'SUN' ? `${megabytes.format(Math.hypot(...scene.current.positionKm) / 149597870.7)} AU ${pt ? 'do Sol' : 'from the Sun'}` : `${number.format(scene.altitudeKm)} km` : scene.cruise ? pt ? 'Transferência analítica; trajetória espacial não representada.' : 'Analytic transfer; no spatial transfer path is modelled.' : pt ? 'Contexto do destino; não é uma trajetória de voo.' : 'Destination context, not a flight trajectory.'}</span>
       {view === 'play' && <p className="scene-fb-event" role="status">{eventLine}</p>}
       <details><summary>{pt ? 'Escala e fontes' : 'Scale & sources'}</summary><p>{scene.physical ? pt ? `Estado fixo na decisão confirmada. Ciano: histórico amostrado e posição real. Dourado na vista orbital: cônica osculante, não previsão. Equipamento ampliado; afastamento da superfície esquemático. Distâncias planetárias em escala comum. A reprodução interpola entre amostras registradas; turnos longos são acelerados.${scene.body === 'SUN' ? ' Vista centrada no Sol: unidades de raio solar; o marcador da Terra está ampliado cerca de 55 vezes e sua órbita é esquemática.' : ''}` : `Fixed at the committed decision. Cyan: sampled history and actual position. Gold in orbit view: osculating conic, not a forecast. Hardware enlarged; surface clearance schematic. Planetary distances share one scale. Replay interpolates between recorded samples; long turns are time-lapsed.${scene.body === 'SUN' ? ' Sun-centred view in solar radii; the Earth marker is enlarged about 55 times and its orbit is schematic.' : ''}` : pt ? 'Composição e separação do equipamento ilustrativas. Apenas componentes do projeto; nenhum voo é simulado nesta vista.' : 'Equipment composition and separation are illustrative. Only design components are shown; this view does not simulate flight.'}</p><p>{pt ? 'Mapas históricos locais: NASA Blue / Black Marble, Viking, LRO Moon Kit e STEREO + SDO 304 Å. Estrelas: NASA SVS, ESA / Gaia / DPAC. Não são observações atuais.' : 'Local historical maps: NASA Blue / Black Marble, Viking, LRO Moon Kit and STEREO + SDO 304 Å. Stars: NASA SVS, ESA / Gaia / DPAC. Not current observations.'} <a href={`${import.meta.env.BASE_URL}textures/asset-sources.json`} target="_blank" rel="noreferrer">{pt ? 'Proveniência dos arquivos' : 'Asset provenance'}</a></p></details>
     </div>}
-    <div className="immersive-scene-controls">
+    {!flying && <div className="immersive-scene-controls">
       {transport && <PlaybackTransport playback={playback} ended={ended} pt={pt}/>}
-      {gmat && <GmatTransport subject={gmat} pt={pt}/>}
       <div className="scene-fb-camera" role="group" aria-label={pt ? 'Controles da câmera, sem avançar o tempo da missão' : 'Camera controls; never advance mission time'}>
         {view === 'solar' && <div className="immersive-camera-modes"><select className="immersive-component-select" aria-label={pt ? 'Explorar um astro' : 'Explore a celestial body'} value={solarSelection} onChange={event => onSolarBody(event.target.value as SolarBodyId | 'SYSTEM')}><option value="SYSTEM">{pt ? 'Sistema solar' : 'Solar system'}</option>{SOLAR_BODIES.map(item => <option key={item.id} value={item.id}>{item.name[pt ? 'pt' : 'en']}</option>)}</select><button type="button" onClick={() => onSolarBody('SYSTEM')}>{pt ? 'Visão geral' : 'Overview'}</button>{solarBody?.destination && onSelectDestination && <button type="button" onClick={() => onSelectDestination(solarBody.destination!)}>{pt ? 'Missões neste destino' : 'Missions here'}</button>}</div>}
-        {scene.design && !gmat && <div className="immersive-camera-modes"><button type="button" aria-pressed={mode === 'craft'} onClick={() => setMode('craft')}>{pt ? 'Equipamento' : 'Spacecraft'}</button><button type="button" aria-pressed={mode === 'orbit'} onClick={() => setMode('orbit')}>{pt ? 'Órbita' : 'Orbit'}</button><ComponentPicker instances={installed} selectedKey={selected?.key ?? null} onSelect={inspect} triggerRef={componentSelect}/></div>}
+        {scene.design && <div className="immersive-camera-modes"><button type="button" aria-pressed={mode === 'craft'} onClick={() => setMode('craft')}>{pt ? 'Equipamento' : 'Spacecraft'}</button><button type="button" aria-pressed={mode === 'orbit'} onClick={() => setMode('orbit')}>{pt ? 'Órbita' : 'Orbit'}</button><ComponentPicker instances={installed} selectedKey={selected?.key ?? null} onSelect={inspect} triggerRef={componentSelect}/></div>}
         <div className="immersive-camera-buttons">{actions.map(({ action, Icon, label }) => <button type="button" key={action} title={label} aria-label={label} disabled={failed} onClick={() => act(action)}><Icon size={17} strokeWidth={1.6}/></button>)}</div>
       </div>
-    </div>
+    </div>}
   </section>;
 }

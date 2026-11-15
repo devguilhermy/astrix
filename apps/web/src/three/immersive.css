@@ -18,6 +18,8 @@
 .immersive-scene:focus-visible { outline: 2px solid #a8e8ef; outline-offset: -4px; }
 .immersive-scene-render { position: absolute; inset: 0; pointer-events: auto; }
 .immersive-scene-render canvas { touch-action: none; }
+/* Stable host for drei Html labels; see SceneHtml.tsx. */
+.immersive-scene-labels { position: absolute; inset: 0; z-index: 1; overflow: hidden; pointer-events: none; }
 .immersive-scene-caption, .immersive-scene-controls, .immersive-scene-fallback {
   position: absolute;
   left: calc(var(--scene-left) + var(--scene-open) / 2);
@@ -274,3 +276,9 @@
   /* Above the fact panel's bottom sheet over the lower 55 %. */
   .immersive-scene[data-view='solar'][data-solar-body='true'] .immersive-scene-controls { bottom: calc(55svh + 8px); }
 }
+
+/* Explore ship: keep the board button clear of the body selector and camera buttons on wide screens. */
+@media (min-width: 901px) { .immersive-scene { --explore-board-bottom: 152px; --explore-top: 72px; } }
+
+/* When WebGL fails, the fallback notice replaces the scene caption instead of sharing its place. */
+.immersive-scene-render:has(.immersive-scene-fallback) ~ .immersive-scene-caption { display: none; }

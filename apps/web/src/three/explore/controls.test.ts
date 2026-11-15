@@ -57,8 +57,18 @@ describe('control store', () => {
     expect(controls.active()).toBe(false);
   });
 
-  it('routes drags by mode: look pixels to the camera, steer pixels to the next flight step only', () => {
+  it('routes drags as Void Protocol does: steering by default, looking in free look and on autopilot', () => {
     const controls = createExploreControls();
+    expect(controls.getSnapshot().dragMode).toBe('steer');
+    // Autopilot: the drag only turns the view and never reaches the heading.
+    controls.setAutopilot('engaged');
+    controls.drag(7, 3);
+    expect(controls.readInput(idleInput(), dragToSteer, true).steerYaw).toBe(0);
+    expect(controls.takeLook({ dx: 0, dy: 0 })).toEqual({ dx: 7, dy: 3 });
+    controls.setAutopilot('off');
+    // Free look (L): the drag looks around.
+    controls.command('dragMode');
+    expect(controls.getSnapshot().dragMode).toBe('look');
     controls.drag(12, -4);
     expect(controls.takeLook({ dx: 0, dy: 0 })).toEqual({ dx: 12, dy: -4 });
     expect(controls.readInput(idleInput(), dragToSteer, true).steerYaw).toBe(0);
@@ -109,7 +119,7 @@ describe('control store', () => {
     controls.command('camera');
     controls.press('key:KeyW', 'thrust');
     controls.reset({ pad: true });
-    expect(controls.getSnapshot()).toEqual({ speedTier: DEFAULT_SPEED_TIER, camera: 'chase', dragMode: 'look', autopilot: 'off', help: false, pad: true });
+    expect(controls.getSnapshot()).toEqual({ speedTier: DEFAULT_SPEED_TIER, camera: 'chase', dragMode: 'steer', autopilot: 'off', help: false, pad: true });
     expect(controls.active()).toBe(false);
   });
 });

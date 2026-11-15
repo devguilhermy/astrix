@@ -191,6 +191,6 @@ Root dev/build preparation copies Markdown and notices into the static site's pu
 
 The approved [turn-based exploration revision](./plans/TURN_BASED_EXPLORATION_REVISION.md) is the current execution plan: first-class **Design & Play**, real constraints and feasibility checks, decision-based play for both levels, discoveries/replay, local saves and optional GMAT tools. Final verification includes the production build and actual HTTP/WebSocket multiplayer.
 
-**In execution:** the [turn feedback, mission report and density refinement plan](./plans/TURN_FEEDBACK_REFINEMENT_PLAN.md) covers transmission waves, simulated observation frames, a scored end-of-mission report with a turn timeline, less scrolling at 1080p, a favicon, spacecraft/planet clearance, clearer orbit lines, a NASA fact panel for each explored body and a level toggle. Its addendum adds replay of the movement between turns with speed control, missions to the Sun, and an Explore view with planets to scale with the Sun.
+**Implemented 2026-11-15:** the [turn feedback, mission report and density refinement plan](./plans/TURN_FEEDBACK_REFINEMENT_PLAN.md) and the [Explore ship plan](./plans/EXPLORE_SHIP_PLAN.md). What was built, what was checked and what was not are in the [major improvements recap](./recaps/MAJOR_IMPROVEMENTS.md).
 
 The [previous mission-design completion plan](./plans/MISSION_DESIGN_COMPLETION_PLAN.md) preserves historical integration defects only; its studio-first workflow is superseded.
