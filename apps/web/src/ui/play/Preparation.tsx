@@ -5,13 +5,19 @@ import { labelText } from '../missions/definitionView';
 import { Duration, Evidence } from './Evidence';
 import { usePlayCopy } from './copy';
 import { MissionIllustration } from '../missions/MissionIllustration';
-import { ArrowRight, Compass, Rocket, Satellite, Scale, Target } from 'lucide-react';
+import { ArrowRight, BatteryFull, Check, Compass, Feather, Microscope, Rocket, Satellite, Scale, ShieldCheck, SignalHigh, SignalLow, SignalMedium, Target, Zap } from 'lucide-react';
+
+const AMBITIONS=['SHORT','STANDARD','AMBITIOUS'] as const,KITS=['LIGHT','ENDURANCE','SCIENCE'] as const,APPROACHES=['CAUTIOUS','BALANCED','FAST'] as const;
+/** One icon per preparation choice, so an option is recognisable before its text is read. */
+const OPTION_ICONS={SHORT:SignalLow,STANDARD:SignalMedium,AMBITIOUS:SignalHigh,LIGHT:Feather,ENDURANCE:BatteryFull,SCIENCE:Microscope,CAUTIOUS:ShieldCheck,BALANCED:Scale,FAST:Zap} as const;
 
 export function Preparation({config,onChange,onPlay,disabled=false,busy=false}:{config:QuickDesignConfig;onChange:(config:QuickDesignConfig)=>void;onPlay:()=>void;disabled?:boolean;busy?:boolean}) {
   const c=usePlayCopy(),{t,i18n}=useTranslation(),number=new Intl.NumberFormat(i18n.resolvedLanguage,{maximumFractionDigits:2});
   const offers=missionOffers(undefined,config.levelId),offer=offers.find(item=>item.missionId===config.missionId);
   const computed=useMemo(()=>{try{return {brief:quickDesignBrief(config),error:null};}catch(error){return {brief:null,error:error instanceof Error?error.message:String(error)};}},[config]);
-  const kits=useMemo(()=>quickKitOptions(config),[config]);
+  // The engine lists the current kit first; the panel keeps one fixed order so a row never moves when it is chosen.
+  const kits=useMemo(()=>{const available=quickKitOptions(config);return KITS.filter(kit=>available.includes(kit));},[config]);
+  const optionRow=(name:'kit'|'approach',value:keyof typeof OPTION_ICONS,checked:boolean,choose:()=>void)=>{const Icon=OPTION_ICONS[value];return <label key={value}><input type="radio" name={name} checked={checked} onChange={choose}/><span className="preparation-option-icon" aria-hidden="true"><Icon size={20}/></span><span className="preparation-option-text"><strong>{c(value)}</strong><small>{c(`${value}_${name.toUpperCase()}`)}</small></span><Check className="preparation-option-check" size={18} aria-hidden="true"/></label>;};
   const [certificate,setCertificate]=useState<ReadinessCertificate|null>(null),[checkError,setCheckError]=useState<string|null>(null),[checking,setChecking]=useState(true),[check,setCheck]=useState(0);
   const [panel,setPanel]=useState<'choices'|'preview'>('choices');
   const generation=useRef(0);
@@ -47,9 +53,9 @@ export function Preparation({config,onChange,onPlay,disabled=false,busy=false}:{
     <label className="play-goal-label"><span><Target size={18} aria-hidden="true"/>{c('mission')}</span><select value={config.missionId} onChange={event=>chooseGoal(event.target.value)}>{(['SUN','EARTH','MOON','MARS'] as const).map(body=><optgroup key={body} label={c(body)}>{offers.filter(item=>item.destination===body).map(item=><option key={item.missionId} value={item.missionId}>{t(item.titleKey)}</option>)}</optgroup>)}</select></label>
     {offer&&<h2 className="preparation-selected-title">{t(offer.titleKey)}</h2>}
     {offer&&<p className="preparation-goal">{t(offer.descriptionKey)}</p>}
-    <fieldset><legend>{c('ambition')}</legend><div className="preparation-options">{(['SHORT','STANDARD','AMBITIOUS'] as const).map(value=><label key={value}><input type="radio" name="ambition" checked={config.ambition===value} onChange={()=>onChange({...config,ambition:value})}/><span>{c(value)}</span></label>)}</div></fieldset>
-    <fieldset><legend>{c('kit')}</legend>{kits.length===1?<p>{c('fixedKit')}</p>:<div className="preparation-options described">{kits.map(value=><label key={value}><input type="radio" name="kit" checked={config.kit===value} onChange={()=>onChange({...config,kit:value})}/><span><strong>{c(value)}</strong><small>{c(`${value}_KIT`)}</small></span></label>)}</div>}</fieldset>
-    <fieldset><legend>{c('approach')}</legend><div className="preparation-options described">{(['CAUTIOUS','BALANCED','FAST'] as const).map(value=><label key={value}><input type="radio" name="approach" checked={config.approach===value} onChange={()=>onChange({...config,approach:value})}/><span><strong>{c(value)}</strong><small>{c(`${value}_APPROACH`)}</small></span></label>)}</div></fieldset>
+    <fieldset><legend>{c('ambition')}</legend><div className="preparation-options segmented">{AMBITIONS.map(value=>{const Icon=OPTION_ICONS[value];return <label key={value}><input type="radio" name="ambition" checked={config.ambition===value} onChange={()=>onChange({...config,ambition:value})}/><Icon size={18} aria-hidden="true"/><span>{c(value)}</span></label>;})}</div><p className="preparation-option-note">{c(`${config.ambition}_AMBITION`)}</p></fieldset>
+    <fieldset><legend>{c('kit')}</legend>{kits.length===1?<p>{c('fixedKit')}</p>:<div className="preparation-options listed">{kits.map(value=>optionRow('kit',value,config.kit===value,()=>onChange({...config,kit:value})))}</div>}</fieldset>
+    <fieldset><legend>{c('approach')}</legend><div className="preparation-options listed">{APPROACHES.map(value=>optionRow('approach',value,config.approach===value,()=>onChange({...config,approach:value})))}</div></fieldset>
     <p className="muted">{c('constraintNote')}</p>
   </div></div><aside id="preparation-brief-panel" data-tour="preparation-brief" className="context-panel preview-panel" aria-label={c('constraints')}><div className="panel-scroll preparation-brief"><h2><Scale size={22} aria-hidden="true"/>{c('constraints')}</h2>
     {brief&&<><h3>{labelText(t,brief.design.definition.name)}</h3><Evidence items={brief.target} definition={brief.design.definition}/><dl className="brief-limits"><dt>{c('cost')}</dt><dd className={brief.budgets.cost.used>brief.budgets.cost.limit?'danger-text':''}>{number.format(brief.budgets.cost.used)} / {number.format(brief.budgets.cost.limit)}</dd><dt>{c('fit')}</dt><dd>{number.format(brief.budgets.massKg.used)} / {number.format(brief.budgets.massKg.limit)} kg</dd><dt>{c('volume')}</dt><dd>{number.format(brief.budgets.volume.used)} / {number.format(brief.budgets.volume.limit)} {brief.budgets.volume.unit}</dd><dt>{c('deadline')}</dt><dd><Duration seconds={brief.deadlineSec}/></dd></dl></>}

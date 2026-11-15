@@ -1,5 +1,7 @@
 # ASTRIX11: project explainer for the team
 
+[Versão em português](./PROJECT_EXPLAINER.pt-BR.md)
+
 This is the document to read before you pitch, demo or answer questions about ASTRIX11. It says what the project is, how to show it, how it works, what comes from NASA, and what we must not claim. Everything here is taken from the code and the docs in this repository; links to the detailed sources are at the end.
 
 ## 1. The pitch

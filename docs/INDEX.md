@@ -6,7 +6,7 @@ ASTRIX11 is an educational mission-design and operations game built for NASA Spa
 
 **Current status:** the [turn-based learning-game revision](./plans/TURN_BASED_EXPLORATION_REVISION.md) is implemented, with final immersive-scene/branding integration underway. Earlier engine, browser, GMAT and multiplayer results are recorded in [Verification](./VERIFICATION.md); they do not automatically verify later presentation changes. The game has a clear **Design & Play** path, not a full design studio; GMAT support stays.
 
-**Pitching or explaining the project?** Start with the [project explainer for the team](./PROJECT_EXPLAINER.md).
+**Pitching or explaining the project?** Start with the [project explainer for the team](./PROJECT_EXPLAINER.md) ([em português](./PROJECT_EXPLAINER.pt-BR.md)).
 
 ### What the player does
 

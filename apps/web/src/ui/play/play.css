@@ -150,11 +150,26 @@
 .play-goal-label { display:flex; flex-direction:column; gap:.6rem; font-weight:700; }
 .preparation-goal { margin-top:-.45rem; color:#c1d1d9; }
 .preparation-options { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.5rem; }
-.preparation-options label { display:flex; align-items:center; gap:.55rem; padding:.7rem; border:1px solid #425865; border-radius:8px; cursor:pointer; min-width:0; }
+.preparation-options label { position:relative; display:flex; align-items:center; gap:.55rem; padding:.7rem; border:1px solid #425865; border-radius:8px; cursor:pointer; min-width:0; }
+/* The radio stays in the tab order and drives the state; the card itself shows selection and focus. */
+.play-app .preparation-options input[type=radio] { position:absolute; width:1px; height:1px; margin:0; opacity:0; }
+.preparation-options label:has(input:focus-visible) { outline:2px solid #ffb767; outline-offset:2px; }
+.preparation-options label>svg { flex:none; color:#85b9ed; }
+.preparation-options label:has(input:checked)>svg { color:#ffb767; }
 .preparation-options label:has(input:checked) { border-color:#f6a047; background:#152b45; }
 .preparation-options label:hover { background:#142936; }
-.preparation-options.described label { align-items:flex-start; padding:.7rem .65rem; }
-.preparation-options small { display:block; color:#b9d0da; margin-top:.2rem; font-size:.84rem; line-height:1.35; overflow-wrap:anywhere; }
+.preparation-options.segmented label { justify-content:center; min-height:46px; padding:.45rem .5rem; font-weight:600; }
+.preparation-option-note { margin:.45rem 0 0; color:#b9d0da; font-size:.86rem; line-height:1.35; }
+/* Kit and approach: one option per row, so the name and its description read on a line each. */
+.preparation-options.listed { grid-template-columns:minmax(0,1fr); gap:.4rem; }
+.preparation-options.listed label { display:grid; grid-template-columns:40px minmax(0,1fr) 18px; gap:.75rem; min-height:56px; padding:.45rem .75rem .45rem .5rem; }
+.preparation-option-icon { display:grid; place-items:center; width:40px; height:40px; border-radius:8px; background:#12303f; color:#85b9ed; }
+.preparation-options label:has(input:checked) .preparation-option-icon { background:#f6a04726; color:#ffb767; }
+.preparation-option-text { min-width:0; }
+.preparation-option-text strong { display:block; line-height:1.25; }
+.preparation-options .preparation-option-check { opacity:0; color:#ffb767; }
+.preparation-options label:has(input:checked) .preparation-option-check { opacity:1; }
+.preparation-options small { display:block; color:#b9d0da; margin-top:.1rem; font-size:.84rem; line-height:1.3; overflow-wrap:anywhere; }
 .preparation-options strong { font-size:1rem; }
 .preparation-brief { align-self:stretch; }
 .preparation-brief>h2 { margin-bottom:.6rem; }
@@ -194,11 +209,18 @@
 .solar-welcome>.button,.play-confirmation-actions>.button { display:inline-flex; align-items:center; justify-content:center; gap:.5rem; }
 .turn-choices>p { color:#bed0da; margin-top:.4rem; }
 .turn-choices .inline-guidance { color:#b2e7df; padding:.8rem 0; font-size:.95rem; }
-.turn-plans { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.4rem; }
-.turn-plans>label { display:flex; gap:.4rem; align-items:center; min-height:44px; padding:.45rem .5rem; border:1px solid #405b68; border-radius:6px; cursor:pointer; font-size:.87rem; line-height:1.2; overflow-wrap:anywhere; }
+.turn-plans { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.5rem; }
+.turn-plans>label { position:relative; display:grid; grid-template-columns:36px minmax(0,1fr); gap:.6rem; align-items:center; min-height:60px; padding:.5rem .6rem; border:1px solid #405b68; border-radius:8px; cursor:pointer; line-height:1.2; overflow-wrap:anywhere; }
+.turn-plans>label:has(input:focus-visible) { outline:2px solid #ffb767; outline-offset:2px; }
+.turn-plans>label:has(input:disabled) { cursor:default; opacity:.65; }
+.turn-plan-icon { display:grid; place-items:center; width:36px; height:36px; border-radius:8px; background:#12303f; }
+.turn-plans>label.selected .turn-plan-icon { background:#f6a04726; }
+.turn-plan-text { min-width:0; }
+.turn-plan-text strong { display:block; font-size:1rem; }
+.turn-plan-text small { display:block; margin-top:.15rem; color:#b9d0da; font-size:.8rem; line-height:1.25; }
 .turn-plans>label:hover { background:#122936; }
 .turn-plans>label.selected { background:#193553; border-color:#f6a047; }
-.play-app .turn-plans input[type=radio] { margin:0; width:16px; height:16px; }
+.play-app .turn-plans input[type=radio] { position:absolute; width:1px; height:1px; margin:0; opacity:0; }
 .plan-detail { margin-top:1rem; }
 .plan-detail>p { margin:.5rem 0; color:#c2d4dd; }
 .plan-recommendation { display:inline-block; margin-left:.6rem; color:#95e3c5!important; }
@@ -336,11 +358,9 @@
   .play-app h1 { font-size:1.7rem; }
   .turn-workspace .play-page-heading h1 { font-size:1.2rem; }
   .turn-workspace .turn-objective { padding:.5rem 0; }
-  .turn-plans>label { padding:.4rem .5rem; }
+  .turn-plans>label { padding:.4rem .5rem; min-height:52px; }
   .plan-recommendation { display:block; margin-left:0; }
-  .preparation-options:not(.described) label { padding:.65rem .4rem; gap:.3rem; font-size:.9rem; }
-  .preparation-options.described { grid-template-columns:minmax(0,1fr); gap:.6rem; }
-  .preparation-options.described label { padding:.9rem 1rem; }
+  .preparation-options.segmented label { padding:.5rem .3rem; gap:.3rem; font-size:.9rem; }
   .board-filters { flex-direction:column; align-items:stretch; gap:1rem; }
   .level-toggle { align-items:stretch; }
   .level-toggle-options>button { flex:1; min-width:0; justify-content:center; }
@@ -363,3 +383,6 @@ html[data-reduced-motion=true] .play-app * { animation:none!important; transitio
 
 /* Phones: the fact sheet replaces the Explore welcome strip instead of sharing the bottom of the screen. */
 @media (max-width:900px) { .play-app:has(.solar-dossier-slot) .play-view-solar .play-main { display:none; } }
+
+/* Narrow phones: two action columns leave no room for a second line, so the hint is kept for assistive technology and the tooltip only. */
+@media (max-width:520px) { .turn-plan-text small { display:none; } .turn-plans>label { grid-template-columns:28px minmax(0,1fr); gap:.45rem; min-height:48px; } .turn-plan-icon { width:28px; height:28px; } }
