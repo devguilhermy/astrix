@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { listMissions } from '@astrix/core';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, BookOpen, Compass, FileText, Wrench } from 'lucide-react';
+import { usePlayCopy } from '../play/copy';
 import { labelText } from '../missions/definitionView';
 import { MissionIllustration } from '../missions/MissionIllustration';
 import './home.css';
@@ -11,12 +12,20 @@ const copy = {
  pt: {title:'Projete uma missão. Voe. Aprenda com o resultado.', intro:'Explore o espaço, construa uma nave dentro de limites reais e descubra o que suas decisões mudam.', enter:'Entrar no simulador', language:'Idioma', first:'Comece explorando o Sistema Solar. Escolha uma missão quando quiser.', how:'Sua próxima descoberta começa com uma escolha.', story:'Uma câmera melhor precisa de mais energia. Uma bateria maior acrescenta massa. Projete sua missão, compare as consequências e confirme sua próxima ação. Nada avança enquanto você pensa.', steps:['Explore um destino','Prepare sua nave','Escolha a próxima ação','Descubra e tente de novo'], missions:'Missões com um propósito', levels:'Escolha seu desafio', aspiring:'Aspirante', aspiringNote:'Escolhas guiadas e pontos de decisão com assistência. Aprenda tentando, comparando e tentando novamente.', expert:'Especialista', expertNote:'O mesmo caminho claro, com escolhas mais exigentes e restrições adicionais de engenharia.', team:'Explore sozinho ou conecte até três controles a um computador anfitrião em uma rede local confiável.', limits:'Modelos e fontes', limitsNote:'Uma simulação educativa, não um software certificado para voo ou simulador de segurança humana. A NASA não endossa este jogo.', sources:'Referências da NASA e do USGS conectam suas descobertas simuladas à ciência espacial real.', science:'Explore a ciência', footer:'Jogo de projeto de missões espaciais'},
 };
 
-/** Public landing stays separate from the persistent simulator canvas. */
-export function Home({onEnter,onLearn,onGmat}:{onEnter:()=>void;onLearn:()=>void;onGmat:()=>void}) {
- const {t,i18n}=useTranslation(), c=copy[i18n.resolvedLanguage?.startsWith('pt')?'pt':'en'];
+/** Plain left clicks route in-app; modified clicks keep the real href (new tab, copy link). */
+const inApp=(action:()=>void)=>(event:MouseEvent<HTMLAnchorElement>)=>{if(event.metaKey||event.ctrlKey||event.shiftKey||event.altKey||event.button!==0)return;event.preventDefault();action();};
+
+/** Public landing stays separate from the persistent simulator canvas; its nav mirrors the simulator tabs. */
+export function Home({onEnter,onLearn,onGmat,onOpen}:{onEnter:()=>void;onLearn:()=>void;onGmat:()=>void;onOpen:(view:'solar'|'journal')=>void}) {
+ const {t,i18n}=useTranslation(), c=copy[i18n.resolvedLanguage?.startsWith('pt')?'pt':'en'], p=usePlayCopy(), base=import.meta.env.BASE_URL;
  useEffect(()=>{document.title='ASTRIX11';document.documentElement.lang=i18n.resolvedLanguage??'en';},[i18n.resolvedLanguage]);
  return <main className="home-screen">
-  <header className="home-top"><img className="home-brand" src={`${import.meta.env.BASE_URL}assets/logo.png`} width="512" height="426" alt="ASTRIX11"/><div className="home-top-actions"><a className="home-tools-link" href={`${import.meta.env.BASE_URL}gmat`} onClick={event=>{if(event.metaKey||event.ctrlKey||event.shiftKey||event.button!==0)return;event.preventDefault();onGmat();}}>{i18n.resolvedLanguage?.startsWith('pt')?'Ferramentas GMAT':'GMAT tools'}</a><label>{c.language}<select value={i18n.resolvedLanguage?.startsWith('pt')?'pt-BR':'en'} onChange={event=>void i18n.changeLanguage(event.target.value)}><option value="en">English</option><option value="pt-BR">Português</option></select></label></div></header>
+  <header className="home-top"><img className="home-brand" src={`${base}assets/logo.png`} width="512" height="426" alt="ASTRIX11"/><nav className="home-nav" aria-label={p('menu')}>
+   <a href={`${base}#solar`} onClick={inApp(()=>onOpen('solar'))}><Compass size={17} aria-hidden="true"/>{p('explore')}</a>
+   <a href={`${base}#journal`} onClick={inApp(()=>onOpen('journal'))}><BookOpen size={17} aria-hidden="true"/>{p('journal')}</a>
+   <a href={`${base}gmat`} onClick={inApp(onGmat)}><Wrench size={17} aria-hidden="true"/>{p('tools')}</a>
+   <a href={`${base}docs/INDEX.md`}><FileText size={17} aria-hidden="true"/>{p('science')}</a>
+  </nav><label>{c.language}<select value={i18n.resolvedLanguage?.startsWith('pt')?'pt-BR':'en'} onChange={event=>void i18n.changeLanguage(event.target.value)}><option value="en">English</option><option value="pt-BR">Português</option></select></label></header>
   <section className="home-hero"><div className="home-hero-copy"><h1 id="home-heading" tabIndex={-1}>{c.title}</h1><p>{c.intro}</p><button className="button primary" onClick={onEnter}>{c.enter}<ArrowUpRight size={22} aria-hidden="true"/></button><p className="home-recommendation">{c.first}</p></div><img className="home-hero-logo" src={`${import.meta.env.BASE_URL}assets/logo.png`} width="512" height="426" alt=""/></section>
   <section className="home-explainer"><h2>{c.how}</h2><ol className="home-journey">{c.steps.map((step,index)=><li key={step}><span aria-hidden="true">{index+1}</span><strong>{step}</strong></li>)}</ol><p>{c.story}</p></section>
   <section className="home-missions"><h2>{c.missions}</h2><div className="home-mission-grid">{listMissions({origin:'BUILTIN'}).map(mission=><article key={mission.id}><MissionIllustration mission={mission.id}/><h3>{labelText(t,mission.name)}</h3><p>{labelText(t,mission.description)}</p><p className="home-mission-objective">{labelText(t,mission.objectiveSummary)}</p></article>)}</div></section>

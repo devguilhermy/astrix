@@ -30,5 +30,5 @@ export function App({basePath='/'}:{basePath?:string}) {
   if(location.pathname==='/join')return <JoinRoom onHome={()=>{roomClient().exit();location.assign('/');}} mission={<PlayApp remote guest onLobby={()=>roomClient().exit()}/>}/>;
   if(location.pathname==='/host')return lobby?<HostLobby onHome={()=>{roomClient().exit();location.assign('/');}} onMission={()=>setLobby(false)}/>:<PlayApp remote onLobby={()=>setLobby(true)}/>;
   if(location.pathname!==base&&location.pathname!==`${base}index.html`&&!isGmatPath(location.pathname,base))return <main className="recovery-screen"><img src={`${base}assets/logo.png`} width="180" alt="ASTRIX11"/><h1>404 · ASTRIX11</h1><a href={base}>ASTRIX11</a></main>;
-  return <>{entry==='home'&&<Home onEnter={enter} onLearn={learn} onGmat={gmat}/>} {entry==='learn'&&<MissionDesignLesson onFinish={()=>launchSimulator(lessonReturn)} onHome={home}/>}<div hidden={entry!=='simulator'}>{entered&&<PlayApp basePath={basePath} onLanding={home} onLearn={learn}/>}</div></>;
+  return <>{entry==='home'&&<Home onEnter={enter} onLearn={learn} onGmat={gmat} onOpen={view=>launchSimulator(`#${view}`)}/>} {entry==='learn'&&<MissionDesignLesson onFinish={()=>launchSimulator(lessonReturn)} onHome={home}/>}<div hidden={entry!=='simulator'}>{entered&&<PlayApp basePath={basePath} onLanding={home} onLearn={learn}/>}</div></>;
 }
