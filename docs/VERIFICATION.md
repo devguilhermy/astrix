@@ -2,7 +2,7 @@
 
 This records observed checks, not inferred product claims. Challenge alignment is tracked in [CHALLENGE_ACCEPTANCE.md](./CHALLENGE_ACCEPTANCE.md). The application is served as a production static build for browser verification; no app state was injected to manufacture mission outcomes.
 
-## Explore maneuvering gas bursts (2026-11-15)
+## Explore maneuvering gas bursts and visible flight controls (2026-11-15)
 
 - Focused check: `bun test apps/web/src/three/explore/thrusterMath.test.ts apps/web/src/three/explore/flightMath.test.ts apps/web/src/three/explore/cameraMath.test.ts apps/web/src/three/explore/controls.test.ts` — **38 passed, 0 failed**, 20,390 assertions. New coverage checks balanced force/torque for both signs of all three axes, drag-release counter-jets in a rotated ship frame, passive coasting versus braking, and complete puff expiry in normal and reduced motion.
 - Inspected Void Protocol through its graphify graph, then read `RcsThrusters.tsx`, `rcsBurstMath.ts` and `rcsShader.ts`: adapted its overlapping three-puff white-cloud treatment, not its ECS or ship coordinate conventions.
@@ -10,6 +10,8 @@ This records observed checks, not inferred product claims. Challenge alignment i
 - At 390×844, drag steering still showed the gas clouds. With Chromium `prefers-reduced-motion: reduce` confirmed true, inspected the smaller, slower correction puffs. Existing compact HUD text clips at the left edge; no HUD layout changes were made.
 - Impeccable detector on `ExploreFlight.tsx` and `ThrusterJets.ts`: no findings.
 - `bun run typecheck` reached the new files without diagnostics but failed on three unrelated translation-key errors in `apps/web/src/ui/multiplayer/HostLobby.tsx:34` (`mode`, `team`, `solo`). No production-build claim.
+- Default-visible controls follow-up: `bun test apps/web/src/three/explore/controls.test.ts` — **9 passed, 0 failed**, 45 assertions. The existing reset contract now exercises hiding the pad and restoring it on reset; input holds are still cleared.
+- Live Chromium at `localhost:5179/#solar`, 1440×1000: boarding immediately displayed the steering pad and thrust/reverse/brake/roll buttons without using the visibility toggle. The toggle hid the pad, and leaving then boarding restored it. At 390×844 the pad and all five hold buttons remained visible. The flight plan and changelog now specify default-visible controls on every device.
 
 ## Turn-based exploration revision — integration evidence
 
