@@ -50,6 +50,8 @@ export type SessionIntent =
  | {kind:'SAVE_CHECKPOINT';name:PracticeCheckpoint['name']}|{kind:'RETRY_CHECKPOINT';checkpointId:number}
  | {kind:'END_MISSION';confirmationId:string}
  | {kind:'SET_TEAM';count:number}|{kind:'ADD_PLAYER';playerId:string;name:string}
+ // Host admin: party size including the host person (1 = host-only solo). Admin route only, deliberately absent from the wire parser.
+ | {kind:'SET_SEATS';count:1|2|3|4}
  | {kind:'ASSIGN_ROLE';role:RoleId;playerId:string;rosterRevision:number}
  | {kind:'SET_READY';ready:boolean;rosterRevision:number}|{kind:'SET_PRESENCE';playerId:string;connected:boolean}
  | {kind:'ROTATE_FACILITATOR';rosterRevision:number};
@@ -60,7 +62,7 @@ export interface IntentEnvelope { readonly id:string; readonly epoch:string; rea
 export interface SessionState {
  readonly game:TurnGameState|null;
  readonly turnProposals:readonly {playerId:string;decisionId:string;turnRevision:number;planId:string}[];
- readonly epoch:string;readonly seq:number;readonly rosterRevision:number;readonly mode:'LOCAL'|'LAN';readonly participantMode:'SOLO'|'TEAM';readonly roster:readonly SessionPlayer[];readonly approvals:readonly Approval[];
+ readonly epoch:string;readonly seq:number;readonly rosterRevision:number;readonly mode:'LOCAL'|'LAN';readonly participantMode:'SOLO'|'TEAM';readonly seats:1|2|3|4;readonly roster:readonly SessionPlayer[];readonly approvals:readonly Approval[];
  readonly missionId:MissionId;readonly definition:ResolvedMissionDefinition;readonly authorPlayerId:string|null;readonly levelId:LevelId;readonly attemptId:number;readonly artifacts:MissionArtifacts|null;readonly activeStage:JourneyStage;readonly furthestStage:number;readonly activeSubstep:string;readonly activeView:Phase;
  readonly players:readonly (readonly RoleId[])[];readonly facilitator:number;readonly signoffs:Record<RoleId,boolean>;readonly team:TeamStats;readonly design:Design|null;readonly budgets:Budgets|null;readonly cues:CueEngineState;
  readonly designNotes:readonly DesignNote[];readonly rosterHistory:readonly RosterChange[];readonly acceptedTrades:readonly AcceptedTrade[];readonly sim:SimState|null;readonly telemetry:Telemetry|null;readonly running:boolean;readonly warp:number;readonly historyVersion:number;readonly events:readonly SimEvent[];readonly pendingDecisions:readonly SimEvent[];readonly decisions:readonly Decision[];readonly pauseReasons:readonly PauseReason[];readonly pauseOwners:Readonly<Record<string,string>>;readonly advancing:boolean;readonly advanceMessage:'event'|'limit'|null;readonly advanceTarget:number|null;readonly advanceWork:number;readonly practiceCheckpoints:readonly PracticeCheckpoint[];readonly nextCheckpointId:number;readonly assisted:boolean;
@@ -71,5 +73,5 @@ export type SessionReplaySnapshot = Omit<SessionState,'replay'|'results'>;
 export type ReplayEntry = {kind:'INTENT';seq:number;actor:SessionActor;intent:SessionIntent}|{kind:'TICK';seq:number;dtSec:number;simulated?:true}|{kind:'CHECKPOINT';seq:number;snapshot:SessionReplaySnapshot};
 export interface SessionOptions {epoch?:string;mode?:SessionState['mode'];participantMode?:SessionState['participantMode'];hostPlayerId?:string;hostName?:string}
 export interface SnapshotViewer {readonly playerId?:string;readonly isHost?:boolean}
-export type SessionSnapshot = Omit<SessionState,'results'|'quotes'|'replay'|'practiceCheckpoints'|'nextCheckpointId'|'advanceTarget'|'advanceWork'> & {readonly protocol:3;readonly practiceCheckpoints:readonly Pick<PracticeCheckpoint,'id'|'name'|'time'>[];readonly review:ScoreBreakdown|null};
+export type SessionSnapshot = Omit<SessionState,'results'|'quotes'|'replay'|'practiceCheckpoints'|'nextCheckpointId'|'advanceTarget'|'advanceWork'> & {readonly protocol:4;readonly practiceCheckpoints:readonly Pick<PracticeCheckpoint,'id'|'name'|'time'>[];readonly review:ScoreBreakdown|null};
 export interface HistoryPage {readonly entries:readonly HistorySample[];readonly cursor:string|null;readonly attemptId:number;readonly epoch:string}

@@ -13,7 +13,7 @@ const refusal=(code:SessionRefusal['code'],values:Readonly<Record<string,string|
 const success=(state:SessionState):IntentResult=>({ok:true,seq:state.seq,receiptIds:[]});
 export function createSession(options:SessionOptions={}):SessionState {
  const id=options.hostPlayerId??'player-1';
- return {game:null,turnProposals:[],epoch:options.epoch??'local',seq:0,rosterRevision:0,mode:options.mode??'LOCAL',participantMode:options.participantMode??'SOLO',roster:[{id,name:options.hostName??'Host',roles:ROLES,ready:true,acknowledged:true,connected:true}],approvals:[],missionId:'FIRST_LIGHT',definition:core.missionById('FIRST_LIGHT'),authorPlayerId:null,levelId:'ASPIRING',attemptId:0,artifacts:null,activeStage:'NEED_GOALS',furthestStage:0,activeSubstep:'brief',activeView:'GOAL',players:[ROLES],facilitator:0,signoffs:blankSigns(),team:emptyTeam(),design:null,budgets:null,cues:emptyCues(),designNotes:[],rosterHistory:[],acceptedTrades:[],sim:null,telemetry:null,running:false,warp:100,historyVersion:0,events:[],pendingDecisions:[],decisions:[],pauseReasons:[],pauseOwners:{},pauseRoles:{},advancing:false,advanceMessage:null,advanceTarget:null,advanceWork:0,practiceCheckpoints:[],nextCheckpointId:0,assisted:false,results:{},quotes:{},replay:[]};
+ return {game:null,turnProposals:[],epoch:options.epoch??'local',seq:0,rosterRevision:0,mode:options.mode??'LOCAL',participantMode:options.participantMode??'SOLO',seats:4,roster:[{id,name:options.hostName??'Host',roles:ROLES,ready:true,acknowledged:true,connected:true}],approvals:[],missionId:'FIRST_LIGHT',definition:core.missionById('FIRST_LIGHT'),authorPlayerId:null,levelId:'ASPIRING',attemptId:0,artifacts:null,activeStage:'NEED_GOALS',furthestStage:0,activeSubstep:'brief',activeView:'GOAL',players:[ROLES],facilitator:0,signoffs:blankSigns(),team:emptyTeam(),design:null,budgets:null,cues:emptyCues(),designNotes:[],rosterHistory:[],acceptedTrades:[],sim:null,telemetry:null,running:false,warp:100,historyVersion:0,events:[],pendingDecisions:[],decisions:[],pauseReasons:[],pauseOwners:{},pauseRoles:{},advancing:false,advanceMessage:null,advanceTarget:null,advanceWork:0,practiceCheckpoints:[],nextCheckpointId:0,assisted:false,results:{},quotes:{},replay:[]};
 }
 export function quoteDesign(design:Design,edit:DesignEdit,actor:SessionActor['role']):Quote<{next:Design}> {
  switch(edit.kind){case 'ADD_PART':return core.quoteAddPart(design,edit.partId,actor);case 'REMOVE_PART':return core.quoteRemovePart(design,edit.partId,actor);case 'SET_RIDE':return core.quoteSetRide(design,edit.rideId,actor);case 'SET_ORBIT':return core.quoteSetOrbit(design,edit.orbit,actor);case 'SET_PROPELLANT':return core.quoteSetPropellant(design,edit.kg,actor);case 'SET_LAUNCHER':return core.quoteSetLauncher(design,edit.launcherId,actor);case 'SET_ASCENT':return core.quoteSetAscent(design,edit.program,actor);case 'SET_BURNS':return core.quoteSetBurns(design,edit.burns,actor);}
@@ -58,7 +58,7 @@ function transact(s:SessionState,intent:SessionIntent,actor:SessionActor):Transi
  // Definitions are the only large replayed payloads; bound how many a replay suffix may hold.
  if((intent.kind==='SUBMIT_DEFINITION'||intent.kind==='START_DEFINITION')&&s.replay.reduce((n,e)=>n+(e.kind==='INTENT'&&(e.intent.kind==='SUBMIT_DEFINITION'||e.intent.kind==='START_DEFINITION')?1:0),0)>=64)return fail('RATE_LIMITED');
  // Host capability permits administration, never a physical-role bypass.
- const admin=['START_GAME','COMMIT_TURN','RETRY_GAME','LOCAL_RESTORE_GAME','START_MISSION','START_DEFINITION','GRANT_AUTHORING','RESET_MISSION','SET_TEAM','ADD_PLAYER','ASSIGN_ROLE','SET_PRESENCE','ROTATE_FACILITATOR','END_MISSION','RETRY_CHECKPOINT'];
+ const admin=['START_GAME','COMMIT_TURN','RETRY_GAME','LOCAL_RESTORE_GAME','START_MISSION','START_DEFINITION','GRANT_AUTHORING','RESET_MISSION','SET_TEAM','ADD_PLAYER','SET_SEATS','ASSIGN_ROLE','SET_PRESENCE','ROTATE_FACILITATOR','END_MISSION','RETRY_CHECKPOINT'];
  if(admin.includes(intent.kind)&&!host())return fail('HOST_ONLY');
  if(!admin.includes(intent.kind)&&!['PAUSE','CLEAR_PAUSE','RESUME','SET_READY','ACK_LEARNING','SET_STAGE','SET_SUBSTEP','SET_VIEW','SUBMIT_DEFINITION'].includes(intent.kind)&&!canAct(s,actor))return fail('ROLE_NOT_ASSIGNED');
  if('designRevision'in intent&&intent.designRevision!==d?.revision)return fail('STALE_DESIGN');
@@ -116,7 +116,7 @@ function transact(s:SessionState,intent:SessionIntent,actor:SessionActor):Transi
   else if(intent.kind==='START_DEFINITION'){const checked=core.validateMissionDefinition(intent.definition);if(!checked.ok)return fail('DEFINITION_INVALID',{path:checked.issues[0]?.path??'$',issues:checked.issues.length});definition=checked.definition;}
   const levelId=reset?s.levelId:intent.levelId;
   const fresh=createSession({epoch:s.epoch,mode:s.mode,participantMode:s.participantMode,hostPlayerId:s.roster[0].id});
-  const common={...fresh,seq:s.seq,rosterRevision:s.rosterRevision,roster:s.roster,players:s.players,participantMode:s.participantMode,missionId:definition.id,definition,authorPlayerId:s.authorPlayerId,levelId,attemptId:s.attemptId+1,nextCheckpointId:s.nextCheckpointId,warp:reset&&!keep?100:s.warp,results:s.results,replay:s.replay};
+  const common={...fresh,seq:s.seq,rosterRevision:s.rosterRevision,roster:s.roster,players:s.players,participantMode:s.participantMode,seats:s.seats,missionId:definition.id,definition,authorPlayerId:s.authorPlayerId,levelId,attemptId:s.attemptId+1,nextCheckpointId:s.nextCheckpointId,warp:reset&&!keep?100:s.warp,results:s.results,replay:s.replay};
   if(reset&&!keep)return done(common);
   const starter=core.createStarterDesign(definition,levelId),same=keep&&d?.definitionDigest===definition.digest,design=same?{...d!,levelId:starter.levelId,rulesVersion:starter.rulesVersion,revision:d!.revision+1}:starter;
   const revisit=same&&s.furthestStage>=3&&!!s.artifacts?.objectiveConfirmed&&Object.values(s.artifacts.segments).every(Boolean);
@@ -255,10 +255,21 @@ function transact(s:SessionState,intent:SessionIntent,actor:SessionActor):Transi
   return done(rosterCommit({...s,participantMode:count===1?'SOLO':'TEAM'},roster,actor));
  }
  case 'ADD_PLAYER':{
-  const retained=s.roster.filter(p=>p.connected||p.roles.length>0);
-  if(retained.length>=4||s.roster.some(p=>p.id===intent.playerId))return fail('ROOM_FULL');
+  if(s.roster.filter(p=>p.connected).length>=s.seats||s.roster.some(p=>p.id===intent.playerId))return fail('ROOM_FULL');
   const name=normalizeText(intent.name,40);if(!name)return fail('INVALID_PARAMETER',{parameter:'name'});
-  return done(rosterCommit(s,[...retained,{id:intent.playerId,name,roles:[],ready:false,acknowledged:false,connected:true}],actor));
+  // Seat k owns the SET_TEAM share (ROLES[i] with i%seats===k). The newcomer takes the first guest seat no connected guest holds; the host keeps every unclaimed role.
+  const guests=new Set(s.roster.filter(p=>p.connected&&p.id!==actor.playerId).flatMap(p=>p.roles));
+  const share=Array.from({length:s.seats-1},(_,seat)=>ROLES.filter((_,i)=>i%s.seats===seat+1)).find(roles=>!roles.some(r=>guests.has(r)))??[];
+  const retained=s.roster.map(p=>({...p,roles:p.roles.filter(r=>!share.includes(r))})).filter(p=>p.connected||p.roles.length>0);
+  if(retained.length>=4)return fail('ROOM_FULL');
+  return done(rosterCommit(s,[...retained,{id:intent.playerId,name,roles:share,ready:false,acknowledged:false,connected:true}],actor));
+ }
+ case 'SET_SEATS':{
+  if(!Number.isInteger(intent.count)||intent.count<1||intent.count>4)return fail('INVALID_PARAMETER',{parameter:'count'});
+  if(intent.count<s.roster.filter(p=>p.connected).length)return fail('ROOM_FULL');
+  if(intent.count===s.seats)return done(s);
+  const participantMode=intent.count===1?'SOLO':'TEAM';
+  return done({...s,seats:intent.count,participantMode,team:{...s.team,roles:participantMode==='SOLO'?1:4}});
  }
  case 'ASSIGN_ROLE':{
   if(s.running||s.advancing||!s.roster.some(p=>p.id===intent.playerId))return fail();

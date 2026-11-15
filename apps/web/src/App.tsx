@@ -6,6 +6,7 @@ import { roomClient } from './multiplayer/client';
 import { Home } from './ui/landing/Home';
 import { hasSeenMissionLesson, MissionDesignLesson } from './ui/landing/MissionDesignLesson';
 import { isGmatPath, isQuizPath, isSciencePath, scienceUrl } from './ui/recovery/routes';
+import { resetLocalSession } from './ui/play/authority';
 
 // Markdown rendering stays out of the landing/simulator bundle.
 const DocsPage=lazy(()=>import('./ui/docs/DocsPage').then(module=>({default:module.DocsPage})));
@@ -21,7 +22,8 @@ export function App({basePath='/'}:{basePath?:string}) {
   const [entered,setEntered]=useState(()=>readEntry()==='simulator');
   const [lessonReturn,setLessonReturn]=useState('#solar');
   useEffect(()=>{
-    const route=()=>{const next=readEntry();setEntry(next);if(next==='simulator')setEntered(true);};
+    // Landing closes the simulator: unmounting drops view, destination and settings; the local mission restarts empty.
+    const route=()=>{const next=readEntry();setEntry(next);if(next==='simulator')setEntered(true);if(next==='home'){setEntered(false);resetLocalSession();}};
     window.addEventListener('hashchange',route);window.addEventListener('popstate',route);
     return()=>{window.removeEventListener('hashchange',route);window.removeEventListener('popstate',route);};
   },[base]);

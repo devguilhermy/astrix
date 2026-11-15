@@ -146,6 +146,7 @@ Say these plainly if asked. They make the project more credible, not less.
 
 ## 11. Where to read more
 
+- **Quiz:** `/quiz` in the game has 24 questions with answers and reasons, 12 on mission design and 12 on how ASTRIX11 works. Good practice before a Q&A.
 - [README](../README.md): how to run it.
 - [Documentation index](./INDEX.md): the full system overview and the NASA resource tables.
 - [Challenge acceptance](./CHALLENGE_ACCEPTANCE.md): each objective of the challenge and how the game meets it.

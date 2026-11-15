@@ -147,7 +147,7 @@ function parseActor(value:unknown):ActorContext|null {
 function parse(raw:unknown):ClientMessage|null {
  if(!record(raw))return null;
  switch(raw.type){
- case 'HELLO':return shape(raw,['type','protocol','buildId','lastSeq'])&&raw.protocol===3&&text(raw.buildId)&&integer(raw.lastSeq)?{type:'HELLO',protocol:3,buildId:raw.buildId,lastSeq:raw.lastSeq}:null;
+ case 'HELLO':return shape(raw,['type','protocol','buildId','lastSeq'])&&raw.protocol===4&&text(raw.buildId)&&integer(raw.lastSeq)?{type:'HELLO',protocol:4,buildId:raw.buildId,lastSeq:raw.lastSeq}:null;
  case 'INTENT':{
   if(!shape(raw,['type','id','epoch','attemptId','rosterRevision','actor','intent'])||!text(raw.id)||!text(raw.epoch)||!integer(raw.attemptId)||!integer(raw.rosterRevision))return null;
   const actor=parseActor(raw.actor),intent=parseIntent(raw.intent);return actor&&intent?{type:'INTENT',id:raw.id,epoch:raw.epoch,attemptId:raw.attemptId,rosterRevision:raw.rosterRevision,actor,intent}:null;

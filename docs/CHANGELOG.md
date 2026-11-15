@@ -14,6 +14,8 @@ Full record: [major improvements recap](./recaps/MAJOR_IMPROVEMENTS.md). Plans: 
 - Density: board, turn panels and report need no scrolling at 1920×940; header and resource bar are slimmer; the level is chosen with two toggle buttons.
 - Spacecraft display size follows the real hull including deployables, and clearance follows altitude, so hardware never intersects a planet.
 - Favicon set and web manifest.
+- Quiz page at `/quiz`: 24 bilingual questions on mission design and on how the game works, each answer with its reason; answer or study mode; nothing is saved or scored.
+- Preparation: kit and approach as a vertical list with an icon, name and description per option; ambition as three icon toggles with a one-line note. Turn actions are larger, each with an icon and a short description.
 - Fixed the `removeChild` exception from in-scene labels by giving them a stable host (`three/SceneHtml.tsx`).
 
 ## Unreleased — Design & Play and decision-based exploration

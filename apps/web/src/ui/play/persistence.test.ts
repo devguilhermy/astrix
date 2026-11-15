@@ -63,10 +63,10 @@ describe('exported attempt files',()=>{
   });
   test('attempt records carry score, stars and turns; records exported without them still load',()=>{
     const game=commit(start(),'observe').game!,record=attemptRecord(game),score=missionScore(game);
-    expect(parseSave(exported(game,[record])).journal).toEqual([record]);
+    expect(record).toMatchObject({score:score.total,stars:score.stars,turns:game.receipts.length});
     const old:Record<string,unknown>={...record};delete old.score;delete old.stars;delete old.turns;
     expect(parseSave(exported(game,[old])).journal as readonly unknown[]).toEqual([old]);
-    expect(parseSave(exported(game,[record])).journal).toEqual([record] satisfies AttemptRecord[]);
+    expect(parseSave(exported(game,[record])).journal).toEqual([record]);
     for(const bad of [{...record,score:null},{...record,stars:'5'},{...record,turns:Number.NaN},{...record,score:Number.POSITIVE_INFINITY}])expect(()=>parseSave(exported(game,[bad]))).toThrow('journal');
   });
 });

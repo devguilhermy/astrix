@@ -12,7 +12,10 @@ export async function roomApi<T>(path:string,body:unknown={},credential=roomSess
   const response=await fetch(`/api/${path}`,{method:'POST',headers:{'Content-Type':'application/json',...(credential?{Authorization:`Bearer ${credential}`}:{})},body:JSON.stringify(body),cache:'no-store'});
   const value=await response.json();if(!response.ok)throw new ApiError(response.status,typeof value.code==='string'?value.code:'BAD_MESSAGE');return value;
 }
-export interface LobbyInfo {roomId:string;token:string;expires:number;locked:boolean;participantMode:'SOLO'|'TEAM';devices:{id:string;playerId:string;host:boolean;connected:boolean;reconnecting:boolean}[];pending:{id:string;name:string}[]}
+/** `locked`: the host closed admission. `admissionOpen`: phones can join now (not locked and fewer admitted devices than `seats`). */
+export interface LobbyInfo {roomId:string;token:string;expires:number;locked:boolean;admissionOpen:boolean;seats:1|2|3|4;participantMode:'SOLO'|'TEAM';devices:{id:string;playerId:string;host:boolean;connected:boolean;reconnecting:boolean}[];pending:{id:string;name:string}[]}
+/** Host-only party size including the host person; lowering it below the admitted devices rejects with ApiError code ROOM_FULL. */
+export const setPlayers=(count:1|2|3|4):Promise<{ok:true}>=>roomApi<{ok:true}>('admin',{action:'players',count});
 export class RoomClient {
   private socket:WebSocket|null=null;private reconnectTimer:number|undefined;private heartbeat:number|undefined;private attempts=0;private stopped=false;private generation=0;private lastPong=0;
   private readonly pending=new Set<string>();

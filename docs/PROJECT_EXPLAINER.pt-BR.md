@@ -148,6 +148,7 @@ Diga isto com clareza se perguntarem. Deixa o projeto mais confiável, não meno
 
 A documentação detalhada está em inglês.
 
+- **Quiz:** `/quiz` no jogo tem 24 perguntas com respostas e razões, 12 sobre projeto de missões e 12 sobre como o ASTRIX11 funciona. Bom treino antes das perguntas da banca.
 - [README](../README.md): como rodar.
 - [Índice da documentação](./INDEX.md): a visão geral do sistema e as tabelas de recursos da NASA.
 - [Atendimento ao desafio](./CHALLENGE_ACCEPTANCE.md): cada objetivo do desafio e como o jogo o cumpre.

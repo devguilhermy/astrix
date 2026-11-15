@@ -55,7 +55,8 @@ export async function startHost(args=process.argv.slice(2)) {
             if(!ticketLimits.consume(device.id))return json({code:'RATE_LIMITED'},429);
             return json({ticket:room.mintTicket(credential,body.buildId),roomId:room.id});
           }
-          if(url.pathname==='/api/admin'&&Object.keys(body).join(',')==='action'&&['lock','unlock','host-only','solo','team'].includes(String(body.action))){room.admin(credential,body.action as 'lock'|'unlock'|'host-only'|'solo'|'team');return json({ok:true});}
+          if(url.pathname==='/api/admin'&&Object.keys(body).join(',')==='action'&&['lock','unlock','host-only'].includes(String(body.action))){room.admin(credential,body.action as 'lock'|'unlock'|'host-only');return json({ok:true});}
+          if(url.pathname==='/api/admin'&&Object.keys(body).sort().join(',')==='action,count'&&body.action==='players'&&Number.isInteger(body.count)&&Number(body.count)>=1&&Number(body.count)<=4){room.players(credential,body.count as 1|2|3|4);return json({ok:true});}
           return json({code:'BAD_MESSAGE'},400);
         }catch(error){const code=error instanceof Error?error.message:'BAD_MESSAGE';const status=code==='UNAUTHORIZED'?401:code==='HOST_ONLY'?403:code==='ROOM_FULL'||code==='JOIN_LOCKED'?409:code==='VERSION_MISMATCH'?426:code==='RATE_LIMITED'?429:400;return json({code:status===400?'BAD_MESSAGE':code},status);}
       }

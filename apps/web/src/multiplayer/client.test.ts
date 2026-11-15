@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { PROTOCOL_VERSION, MAX_CLIENT_FRAME_BYTES } from '@astrix/session';
-import { RoomClient } from './client';
+import { RoomClient, setPlayers } from './client';
 import { clearRoom, readCredential, roomSession } from './session';
 
 /** Browser transport seam; each case restores every global and closes its client. */
@@ -70,4 +70,21 @@ test('UTF-8 oversized frames are refused locally without sending or losing ident
     expect(client.send({ type: 'PING', nonce: 'normal-request' })).toBe(true);
     expect(socket.sent.map(text => JSON.parse(text))).toEqual([{ type: 'PING', nonce: 'normal-request' }]);
   });
+});
+
+test('setPlayers posts the strict players admin shape and surfaces ROOM_FULL', async () => {
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'fetch');
+  const calls: { url: string; body: unknown }[] = [];
+  try {
+    Object.defineProperty(globalThis, 'fetch', { configurable: true, writable: true, value: async (input: string, init: RequestInit) => {
+      calls.push({ url: input, body: JSON.parse(String(init.body)) });
+      return calls.length === 1 ? Response.json({ ok: true }) : Response.json({ code: 'ROOM_FULL' }, { status: 409 });
+    } });
+    expect(await setPlayers(3)).toEqual({ ok: true });
+    await expect(setPlayers(1)).rejects.toMatchObject({ status: 409, code: 'ROOM_FULL' });
+    expect(calls).toEqual([{ url: '/api/admin', body: { action: 'players', count: 3 } }, { url: '/api/admin', body: { action: 'players', count: 1 } }]);
+  } finally {
+    if (descriptor) Object.defineProperty(globalThis, 'fetch', descriptor);
+    else Reflect.deleteProperty(globalThis, 'fetch');
+  }
 });

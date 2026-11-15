@@ -30,7 +30,7 @@ export class Room {
   join(token:string, roomId:string, name:string):{credential:string;pendingDeviceId:string} {
     this.maintenance();
     if(this.locked || token!==this.invitation || roomId!==this.id || this.now()>=this.invitationExpiry)this.fail('JOIN_LOCKED');
-    if(this.devices.size>=4)this.fail('ROOM_FULL'); if(this.pending.size>=12)this.fail('RATE_LIMITED');
+    if(this.devices.size>=this.state.seats)this.fail('ROOM_FULL'); if(this.pending.size>=12)this.fail('RATE_LIMITED');
     const clean=name.normalize('NFC').replace(/[\p{Cc}\p{Cf}]/gu,'').replace(/\s+/g,' ').trim();
     if(!clean || [...clean].length>24 || new TextEncoder().encode(clean).length>96)this.fail('BAD_MESSAGE');
     const p={id:secret(),name:clean,credential:secret(),created:this.now()}; this.pending.set(p.id,p);
@@ -40,7 +40,8 @@ export class Room {
     if([...this.pending.values()].some(p=>p.credential===credential))return {status:'pending'};
     const d=this.authenticate(credential); return {status:'admitted',deviceId:d.id,playerId:d.playerId};
   }
-  lobby(credential:string) { const d=this.authenticate(credential); if(!d.host)this.fail('HOST_ONLY'); return {roomId:this.id,token:this.invitation,expires:this.invitationExpiry,locked:this.locked,devices:[...this.devices.values()].map(d=>({id:d.id,playerId:d.playerId,host:d.host,connected:!!d.peer&&this.now()-d.lastSeen<=15000,reconnecting:!d.peer||this.now()-d.lastSeen>15000})),pending:[...this.pending.values()].map(p=>({id:p.id,name:p.name})),participantMode:this.state.participantMode}; }
+  /** Admission stays open through the mission while seats remain and the host has not closed it: a full room closes on its own and reopens when a device is released. */
+  lobby(credential:string) { const d=this.authenticate(credential); if(!d.host)this.fail('HOST_ONLY'); return {roomId:this.id,token:this.invitation,expires:this.invitationExpiry,locked:this.locked,seats:this.state.seats,admissionOpen:!this.locked&&this.devices.size<this.state.seats,devices:[...this.devices.values()].map(d=>({id:d.id,playerId:d.playerId,host:d.host,connected:!!d.peer&&this.now()-d.lastSeen<=15000,reconnecting:!d.peer||this.now()-d.lastSeen>15000})),pending:[...this.pending.values()].map(p=>({id:p.id,name:p.name})),participantMode:this.state.participantMode}; }
   mintTicket(credential:string, buildId:string):string { const d=this.authenticate(credential); if(buildId!==this.buildId)this.fail('VERSION_MISMATCH'); return this.tickets.mint({roomId:this.id,deviceId:d.id,buildId}); }
   consumeTicket(ticket:string, buildId:string):string|null { if(buildId!==this.buildId)return null; const scope=this.tickets.consume(ticket,{roomId:this.id,buildId}); return scope&&this.devices.has(scope.deviceId)?scope.deviceId:null; }
   private actor(d:Device):SessionActor { return {playerId:d.playerId,deviceId:d.id,isHost:d.host,role:this.state.participantMode==='SOLO'?'ALL':this.state.roster.find(p=>p.id===d.playerId)?.roles[0]??'SCIENCE'}; }
@@ -105,17 +106,15 @@ export class Room {
       const actor={...this.actor(d),role:m.actor.role};
       const next=reduceSession(this.state,m,actor);this.state=next.state;
       if(next.result.ok&&next.result.quote)this.quoteExpiry.set(next.result.quote.quoteId,this.now()+30000);
-      if(next.result.ok&&(m.intent.kind==='START_GAME'||m.intent.kind==='START_MISSION'||m.intent.kind==='START_DEFINITION'))this.locked=true;
       this.send(d,{type:'RESULT',id:m.id,...next.result});this.broadcast();return;
     }
     if(m.type==='READY'){const next=reduceSession(this.state,{kind:'SET_READY',ready:m.ready,rosterRevision:m.rosterRevision},this.actor(d));this.state=next.state;if(!next.result.ok)this.send(d,{type:'RESULT',id:'ready',...next.result});this.broadcast();return;}
     if(!d.host){this.reject(d,'id'in m?m.id:'admin','HOST_ONLY');return;}
     if(m.type==='ADMIT'){
       const p=this.pending.get(m.pendingDeviceId);if(!p){this.reject(d,m.id,'UNAUTHORIZED');return;}
-      if(this.devices.size>=4){this.reject(d,m.id,'ROOM_FULL');return;}
-      const playerId=this.state.participantMode==='SOLO'?'host':p.id;
-      if(this.state.participantMode==='TEAM'&&!this.apply({kind:'ADD_PLAYER',playerId,name:p.name})){this.reject(d,m.id,'UNAUTHORIZED');return;}
-      this.pending.delete(p.id);this.devices.set(p.id,{id:p.id,playerId,credential:p.credential,host:false,peer:null,hello:false,lastSeen:this.now(),disconnectedAt:this.now(),offline:false,pendingSnapshot:null});
+      if(this.devices.size>=this.state.seats){this.reject(d,m.id,'ROOM_FULL');return;}
+      if(!this.apply({kind:'ADD_PLAYER',playerId:p.id,name:p.name})){this.reject(d,m.id,'UNAUTHORIZED');return;}
+      this.pending.delete(p.id);this.devices.set(p.id,{id:p.id,playerId:p.id,credential:p.credential,host:false,peer:null,hello:false,lastSeen:this.now(),disconnectedAt:this.now(),offline:false,pendingSnapshot:null});
     }else if(m.type==='KICK'){
       if(m.deviceId==='host'){this.reject(d,m.id,'HOST_ONLY');return;}
       // A pending join request is denied; an admitted device is revoked; anything else is an explicit miss, never a silent success.
@@ -126,19 +125,17 @@ export class Room {
     }else if(m.type==='ROTATE_FACILITATOR'){const result=reduceSession(this.state,{kind:'ROTATE_FACILITATOR',rosterRevision:m.rosterRevision},this.actor(d));this.state=result.state;this.send(d,{type:'RESULT',id:m.id,...result.result});this.broadcast();return;}
     this.send(d,{type:'RESULT',id:m.id,ok:true,seq:this.state.seq,receiptIds:[]});this.broadcast();
   }
-  private revoke(deviceId:string):void {const d=this.devices.get(deviceId);if(!d||d.host)return;this.tickets.revoke(d.id);this.devices.delete(d.id);d.peer?.close(4403,'KICKED');if(d.playerId!=='host'){this.apply({kind:'SET_PRESENCE',playerId:d.playerId,connected:false});if(this.state.roster.some(p=>p.id===d.playerId&&p.roles.length))this.apply({kind:'PAUSE',reason:`controller-disconnected:${d.id}`});}}
-  admin(credential:string,action:'lock'|'unlock'|'host-only'|'solo'|'team'):void {const d=this.authenticate(credential);if(!d.host)this.fail('HOST_ONLY');
-    // Mode changes are only meaningful for a lone host before any mission exists; anything else is refused, not acknowledged and ignored.
-    if((action==='solo'||action==='team')&&(this.devices.size!==1||this.state.design||this.state.sim))this.fail('JOIN_LOCKED');
+  private revoke(deviceId:string):void {const d=this.devices.get(deviceId);if(!d||d.host)return;this.tickets.revoke(d.id);this.devices.delete(d.id);d.peer?.close(4403,'KICKED');this.apply({kind:'SET_PRESENCE',playerId:d.playerId,connected:false});if(this.state.roster.some(p=>p.id===d.playerId&&p.roles.length))this.apply({kind:'PAUSE',reason:`controller-disconnected:${d.id}`});}
+  admin(credential:string,action:'lock'|'unlock'|'host-only'):void {const d=this.authenticate(credential);if(!d.host)this.fail('HOST_ONLY');
     if(!this.queue.enqueue(()=>{
     if(action==='lock'||action==='unlock'){this.locked=action==='lock';this.state={...this.state,seq:this.state.seq+1};}
-    if(action==='solo'||action==='team'){
-      if(this.devices.size!==1||this.state.design||this.state.sim)return;
-      this.state={...createSession({epoch:this.epoch,mode:'LAN',participantMode:action==='solo'?'SOLO':'TEAM',hostPlayerId:'host',hostName:'Host'}),seq:this.state.seq+1,rosterRevision:this.state.rosterRevision+1,results:this.state.results};
-    }
     if(action==='host-only'){this.apply({kind:'PAUSE',reason:'manual'});for(const device of [...this.devices.values()])if(!device.host)this.revoke(device.id);for(const role of ROLES)if(!this.state.roster.find(p=>p.id==='host')?.roles.includes(role))this.apply({kind:'ASSIGN_ROLE',role,playerId:'host',rosterRevision:this.state.rosterRevision});for(const reason of this.state.pauseReasons)if(reason.startsWith('controller-disconnected:'))this.apply({kind:'CLEAR_PAUSE',reason});this.locked=true;}
     this.broadcast();
   }))this.fail('RATE_LIMITED'); }
+  /** Party size including the host person. Lowering it below the admitted devices is refused: the host releases a device first. */
+  players(credential:string,count:1|2|3|4):void {const d=this.authenticate(credential);if(!d.host)this.fail('HOST_ONLY');
+    if(count<this.devices.size)this.fail('ROOM_FULL');
+    if(!this.queue.enqueue(()=>{if(count>=this.devices.size&&this.apply({kind:'SET_SEATS',count}))this.broadcast();}))this.fail('RATE_LIMITED'); }
   broadcast():void {for(const d of this.devices.values()){if(!d.peer||!d.hello)continue;const encoded=JSON.stringify({type:'SNAPSHOT',snapshot:toPublicSnapshot(this.state,{playerId:d.playerId,isHost:d.host})} satisfies ServerMessage);if(d.peer.getBufferedAmount()>MAX_BUFFER_BYTES){d.peer.close(1013,'SLOW_CLIENT');continue;}if(d.peer.getBufferedAmount()>0)d.pendingSnapshot=encoded;else{d.pendingSnapshot=null;if(d.peer.send(encoded)===0)d.peer.close(1013,'SLOW_CLIENT');}}}
   drain(deviceId:string,peer:Peer):void {const d=this.devices.get(deviceId);if(d?.peer===peer&&d.pendingSnapshot){const data=d.pendingSnapshot;d.pendingSnapshot=null;if(peer.send(data)===0)peer.close(1013,'SLOW_CLIENT');}}
   maintenance():void {

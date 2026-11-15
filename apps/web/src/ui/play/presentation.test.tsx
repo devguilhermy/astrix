@@ -106,11 +106,12 @@ describe('one bilingual Design & Play surface',()=>{
     expect(english['play.solarMissionNote']).toContain('the Sun, Earth, the Moon and Mars');
     expect(portuguese['play.solarMissionNote']).toContain('no Sol, na Terra, na Lua e em Marte');
   });
-  test('preparation starts from actual catalogue constraints and cannot start before certification',async()=>{
+  test('preparation starts from actual catalogue constraints, cannot start before certification and only goes back to the board',async()=>{
     for(const language of ['en','pt-BR'] as const){
-      const html=await render(language,<Preparation config={defaultQuickDesign()} onChange={ignore} onPlay={ignore}/>);
+      const html=await render(language,<Preparation config={defaultQuickDesign()} onChange={ignore} onPlay={ignore} onBack={ignore}/>);
       expect(html).toContain('disabled=""');expect(html).toContain('name="ambition"');expect(html).toContain('name="kit"');expect(html).toContain('name="approach"');
       expect(html).not.toContain('ui.volume');expect(html).not.toContain('NEED_GOALS');expect(html).not.toContain('Sign off');
+      expect(html).not.toContain('<select');expect(html).toMatch(new RegExp(`class="text-button preparation-back"[^>]*>.*?${language==='en'?'Mission board':'Quadro de missões'}</button>`));
     }
   });
   test('after a committed turn the preview panel leads with a live "Last turn" result card',async()=>{
@@ -140,7 +141,7 @@ describe('one bilingual Design & Play surface',()=>{
     const game=createTurnGame(defaultQuickDesign());
     for(const language of ['en','pt-BR'] as const){
       for(const surface of [
-        <Preparation config={defaultQuickDesign()} onChange={ignore} onPlay={ignore}/>,
+        <Preparation config={defaultQuickDesign()} onChange={ignore} onPlay={ignore} onBack={ignore}/>,
         <TurnWorkspace game={game} onCommit={ignore} onCheckpoint={ignore} onRetry={ignore} onRedesign={ignore} onTools={ignore} busy={false} disabled={false} host journal={[]} hints moments={[]} selectedTurn={null} onSelectTurn={ignore}/>,
       ]){
         const html=await render(language,surface);

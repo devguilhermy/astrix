@@ -7,6 +7,8 @@ let local=createSession();
 const listeners=new Set<()=>void>();
 const localSnapshot=()=>local;
 const subscribe=(listener:()=>void)=>{listeners.add(listener);return()=>{listeners.delete(listener);};};
+/** Closing the simulator discards the local mission: the next visit starts from a fresh session. */
+export function resetLocalSession():void { local=createSession();for(const listener of listeners)listener(); }
 /** Local and LAN intents share the session reducer. No browser clock advances gameplay. */
 export function useTurnAuthority(remote:boolean) {
   const state=useSyncExternalStore(subscribe,localSnapshot,localSnapshot),room=useRoomSession();
