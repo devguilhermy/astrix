@@ -8,7 +8,6 @@ import { RULES_VERSION, FLIGHT_MODEL_VERSION } from '../../packages/core/src/ind
 
 // Crawlers need absolute preview URLs; the deploy origin is only known at build time.
 const siteUrl = process.env.ASTRIX_SITE_URL?.replace(/\/?$/, '/');
-// Vite rewrites root paths for `base: './'` first, so match either form.
 const linkPreviews = (html: string) => siteUrl
   ? html.replace(/content="\.?\/assets\/og-banner\.png"/g, `content="${siteUrl}assets/og-banner.png"`).replace('<meta property="og:type"', `<meta property="og:url" content="${siteUrl}"/>\n  <meta property="og:type"`)
   : html;
@@ -35,7 +34,8 @@ export default defineConfig({
       },
     },
   ],
-  base: './',
+  // Deep links must load assets from the deployment root, not from the current route.
+  base: '/',
   build: {
     outDir: 'dist',
     rollupOptions: {

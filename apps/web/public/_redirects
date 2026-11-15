@@ -1,0 +1,6 @@
+/gmat /index.html 200
+/quiz /index.html 200
+/science /index.html 200
+/science/* /index.html 200
+/host /index.html 200
+/join /index.html 200

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "bun run build",
+  "outputDirectory": "apps/web/dist",
+  "rewrites": [
+    { "source": "/gmat", "destination": "/index.html" },
+    { "source": "/quiz", "destination": "/index.html" },
+    { "source": "/science", "destination": "/index.html" },
+    { "source": "/science/:path*", "destination": "/index.html" },
+    { "source": "/host", "destination": "/index.html" },
+    { "source": "/join", "destination": "/index.html" }
+  ]
+}

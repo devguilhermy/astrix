@@ -2,6 +2,11 @@
 
 Shipped changes, newest first. Evidence for each entry is in [VERIFICATION.md](./VERIFICATION.md); scope and decisions are in the linked plans.
 
+## Unreleased — Direct-route loading on static hosts (2026-11-15)
+
+- Added Vercel build/output settings and app-route rewrites, plus Netlify/Cloudflare Pages `_redirects`, so direct loads and reloads of `/gmat`, `/quiz` and `/science/*` reach the app. Unknown paths and missing assets retain HTTP 404.
+- Vite now defaults to root-relative assets so nested documentation routes load the application bundles instead of requesting assets beneath `/science/`.
+
 ## Unreleased — Shared header, rendered docs, link previews and no stored attempts (2026-11-15)
 
 - One header for the simulator and the public pages (`ui/header/header.css`): same 56 px bar, logo, tabs and language toggle. The landing, the mission-design lesson, `/science` and `/quiz` use `SiteHeader`, whose tabs open Explore, Discovery journal, GMAT tools, Science & sources and Quiz. The header stays fixed at the top while public pages scroll. The lesson's *Skip lesson* is a header tool.

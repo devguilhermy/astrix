@@ -2,6 +2,13 @@
 
 This records observed checks, not inferred product claims. Challenge alignment is tracked in [CHALLENGE_ACCEPTANCE.md](./CHALLENGE_ACCEPTANCE.md). The application is served as a production static build for browser verification; no app state was injected to manufacture mission outcomes.
 
+## Direct-route loading on static hosts (2026-11-15)
+
+- `bun run build` passed; the existing >500 kB chunk warning remains. Focused routing checks (`apps/host/src/static.test.ts`, `apps/web/src/ui/recovery/routes.test.ts`, `apps/web/src/ui/quiz/route.test.ts`): **5 passed, 0 failed**, 80 assertions.
+- Production Vite preview returned the built app with HTTP 200 for `/gmat`, `/quiz`, `/science`, `/science/INDEX.md`, `/science/plans/EXPLORE_SHIP_PLAN.md`, `/host` and `/join`. All nine entry-document resource/link URLs resolved to existing build files from each route. This caught and fixed relative startup documentation links as well as nested-route asset resolution.
+- Headless WebKit: direct `/quiz` rendered the quiz; direct loading and reloading `/science/plans/EXPLORE_SHIP_PLAN.md` rendered the document heading with no browser errors.
+- Checked that Vercel rewrites match the emitted `_redirects` rules. Hosted Vercel/Netlify/Cloudflare deployment behavior was not exercised; Vite preview supplies its own SPA fallback.
+
 ## Shared header, rendered docs, no stored attempts and LAN player count (2026-11-15)
 
 - `bun run typecheck`: no diagnostics. Full `bun test`: **596 passed, 0 failed**. New coverage: `routes.test.ts` (science paths, unsafe paths refused), `static.test.ts` (`/science/*` served as the app), `persistence.test.ts` (exported-file round trips; retired save slots purged while settings and legacy work stay), `presentation.test.tsx` (Design & Play has no `<select>` and a *Mission board* back button; Players toggle presses exactly one count; Invite renders only for the host), plus the session/host seat tests listed in the plan.

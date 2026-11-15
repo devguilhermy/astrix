@@ -53,7 +53,7 @@ The original First Light, Storm Watch, Red Relay and Crew Pathfinder challenges 
 
 The pre-JavaScript startup screen provides bilingual status and a reload path for module failures. Local save errors and disconnected LAN state must remain visible; neither error recovery nor reconnect commits a turn.
 
-Use the URL printed by Vite, not a `/@fs/...` filesystem URL. Production includes `404.html`; configure a static host to serve it with HTTP 404 for missing paths.
+Use the URL printed by Vite, not a `/@fs/...` filesystem URL. Deploy `apps/web/dist` at the origin root. `vercel.json` configures the build and app-route rewrites on Vercel; the built `_redirects` supplies equivalent HTTP 200 rewrites on Netlify/Cloudflare Pages. Other static hosts must rewrite `/gmat`, `/quiz`, `/science`, `/science/*`, `/host` and `/join` to `/index.html` without changing the URL. Serve `404.html` with HTTP 404 for unknown paths and missing assets, not as the app-route fallback. The Bun LAN host already supplies these app routes; static hosting does not provide the multiplayer backend.
 
 ## Scientific scope
 
