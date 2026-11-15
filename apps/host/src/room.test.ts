@@ -1,8 +1,9 @@
 import { expect, test } from 'bun:test';
 import type { ClientMessage, ServerMessage, SessionIntent } from '@astrix/session';
 import { PROTOCOL_VERSION } from '@astrix/session';
+import { defaultQuickDesign, turnDecision } from '@astrix/core';
 import { Room, type Peer } from './room';
-import { MAX_BUFFER_BYTES } from './security/rateLimit';
+import { MAX_BUFFER_BYTES, MAX_WS_FRAME_BYTES } from './security/rateLimit';
 class TestPeer implements Peer {
  messages:ServerMessage[]=[];closes:{code:number;reason:string}[]=[];buffered=0;
  send(raw:string){this.messages.push(JSON.parse(raw));return raw.length;}
@@ -37,12 +38,11 @@ test('intent IDs survive lost ACK and reconnect without a second mission start',
  room.detach('host',host);settle(room);expect(room.state.pauseReasons).toContain('host-display-disconnected');const replacement=new TestPeer();room.attach('host',replacement);await send(room,replacement,{ type: 'HELLO', protocol: PROTOCOL_VERSION, buildId: 'build', lastSeq: 0 });expect(room.state.attemptId).toBe(attempt);expect(room.state.running).toBe(false);
 });
 test('frame, rate, queue and slow-socket caps refuse work before unbounded growth',async()=>{
- const{room,host}=await fixture();room.receive('host',host,'x'.repeat(8193));expect(host.closes.at(-1)?.code).toBe(1009);
+ const{room,host}=await fixture();room.receive('host',host,'x'.repeat(MAX_WS_FRAME_BYTES+1));expect(host.closes.at(-1)?.code).toBe(1009);
  for(let i=0;i<81;i++)room.receive('host',host,JSON.stringify({type:'PING',nonce:String(i)}));expect(host.closes.some(close=>close.reason==='RATE_LIMITED')).toBe(true);settle(room);
  const{room:slowRoom}=await fixture(),slow=new TestPeer();slowRoom.attach('host',slow);slow.buffered=MAX_BUFFER_BYTES+1;await send(slowRoom,slow,{ type: 'HELLO', protocol: PROTOCOL_VERSION, buildId: 'build', lastSeq: 0 });expect(slow.closes.some(close=>close.reason==='SLOW_CLIENT')).toBe(true);
  let accepted=0;for(let i=0;i<300;i++)if(room.queue.enqueue(()=>{}))accepted++;expect(accepted).toBeLessThanOrEqual(255);settle(room);
 });
-test('host scheduling stall is a shared pause and never advances missed wall time',async()=>{const{room}=await fixture();room.stall();settle(room);expect(room.state.pauseReasons).toContain('host-stall');expect(room.state.running).toBe(false);});
 test('roles and Ready belong to authenticated players; forged actors and guest admin are refused',async()=>{
  const{room,credential,host}=await fixture(),pair=await admit(room,credential,host,'Ana'),phone=new TestPeer();
  room.attach(pair.pendingDeviceId,phone);await send(room,phone,{ type: 'HELLO', protocol: PROTOCOL_VERSION, buildId: 'build', lastSeq: 0 },pair.pendingDeviceId);
@@ -76,4 +76,55 @@ test('host-only continuation revokes phones, transfers ownership and preserves t
  room.admin(credential,'unlock');settle(room);const pair=await admit(room,credential,host,'Controller');await send(room,host,{type:'ASSIGN_ROLE',id:'phone-science',role:'SCIENCE',playerId:pair.pendingDeviceId,rosterRevision:room.state.rosterRevision});
  const design=room.state.design,attempt=room.state.attemptId;room.admin(credential,'host-only');settle(room);
  expect(room.state.design).toBe(design);expect(room.state.attemptId).toBe(attempt);expect(room.state.running).toBe(false);expect(room.state.roster.find(p=>p.id==='host')?.roles).toHaveLength(4);expect(room.lobby(credential).devices).toHaveLength(1);expect(()=>room.mintTicket(pair.credential,'build')).toThrow('UNAUTHORIZED');expect(room.lobby(credential).locked).toBe(true);
+});
+test('malformed definitions preserve the room and credentials for a subsequent valid start',async()=>{
+ const{room,host,credential}=await fixture();
+ await send(room,host,intent(room,'initial-mission',{kind:'START_MISSION',missionId:'FIRST_LIGHT',levelId:'EXPERT'}));
+ const design=room.state.design,attempt=room.state.attemptId;
+ for(const [id,definition] of [['nonfinite','{"mass":1e999}'],['deep','['.repeat(15000)+'0'+']'.repeat(15000)]]){
+  const envelope=intent(room,id,{kind:'PAUSE'});
+  const raw=JSON.stringify(envelope).replace('"intent":{"kind":"PAUSE"}',`"intent":{"kind":"START_DEFINITION","definition":${definition},"levelId":"EXPERT"}`);
+  room.receive('host',host,raw);settle(room);
+  expect(host.messages.some(m=>m.type==='RESULT'&&m.id===id&&!m.ok&&m.refusal.code==='BAD_MESSAGE')).toBe(true);
+  expect(room.state.design).toBe(design);
+  expect(room.state.attemptId).toBe(attempt);
+ }
+ expect(host.closes).toEqual([]);
+ expect(room.authenticate(credential).host).toBe(true);
+ await send(room,host,intent(room,'valid-after-malformed',{kind:'START_MISSION',missionId:'FIRST_SIGNAL',levelId:'EXPERT'}));
+ expect(host.messages.some(m=>m.type==='RESULT'&&m.id==='valid-after-malformed'&&m.ok)).toBe(true);
+ expect(room.state.design?.definition.id).toBe('FIRST_SIGNAL');
+});
+
+test('turn multiplayer preserves host authority, duplicate receipts and reconnect state',async()=>{
+ const {room,credential,host}=await fixture(),pair=await admit(room,credential,host,'Explorer'),phone=new TestPeer();
+ room.attach(pair.pendingDeviceId,phone);
+ await send(room,phone,{type:'HELLO',protocol:PROTOCOL_VERSION,buildId:'build',lastSeq:0},pair.pendingDeviceId);
+ await send(room,host,{type:'ASSIGN_ROLE',id:'science-seat',role:'SCIENCE',playerId:pair.pendingDeviceId,rosterRevision:room.state.rosterRevision});
+ // Starting and committing are not gated on unanimous readiness.
+ await send(room,host,intent(room,'quick-design',{kind:'START_GAME',config:defaultQuickDesign('FIRST_SIGNAL','ASPIRING')}));
+ expect(room.state.game).not.toBeNull();
+ const opening=room.state.game!,decision=turnDecision(opening),plan=decision.plans.find(p=>p.recommended)??decision.plans[0];
+ const choice={decisionId:decision.id,turnRevision:decision.revision,planId:plan.id};
+ const request=(id:string,kind:'COMMIT_TURN'|'PROPOSE_TURN'):ClientMessage=>({type:'INTENT',id,epoch:room.epoch,attemptId:room.state.attemptId,rosterRevision:room.state.rosterRevision,actor:{role:'SCIENCE',playerId:pair.pendingDeviceId},intent:{kind,...choice}});
+ await send(room,phone,request('phone-commit','COMMIT_TURN'),pair.pendingDeviceId);
+ expect(phone.messages.some(m=>m.type==='RESULT'&&m.id==='phone-commit'&&!m.ok&&m.refusal.code==='HOST_ONLY')).toBe(true);
+ await send(room,phone,request('phone-proposal','PROPOSE_TURN'),pair.pendingDeviceId);
+ expect(room.state.turnProposals[0]?.planId).toBe(plan.id);
+ expect(room.state.game).toBe(opening);
+ room.maintenance();settle(room);expect(room.state.game).toBe(opening);
+ const commit=intent(room,'host-commit',{kind:'COMMIT_TURN',...choice});
+ await send(room,host,commit);const resolved=room.state.game!;
+ expect(resolved.revision).toBe(opening.revision+1);
+ await send(room,host,commit);expect(room.state.game).toBe(resolved);
+ const receipts=host.messages.filter(m=>m.type==='RESULT'&&m.id==='host-commit');
+ expect(receipts).toHaveLength(2);expect(receipts[0]).toEqual(receipts[1]);
+ await send(room,host,intent(room,'stale-turn',{kind:'COMMIT_TURN',...choice}));expect(room.state.game).toBe(resolved);
+ room.detach(pair.pendingDeviceId,phone);settle(room);
+ const replacement=new TestPeer();room.attach(pair.pendingDeviceId,replacement);
+ await send(room,replacement,{type:'HELLO',protocol:PROTOCOL_VERSION,buildId:'build',lastSeq:0},pair.pendingDeviceId);
+ const welcome=replacement.messages.find(m=>m.type==='WELCOME');
+ expect(welcome?.type==='WELCOME'&&welcome.snapshot.game?.revision).toBe(resolved.revision);
+ expect(room.authenticate(pair.credential).id).toBe(pair.pendingDeviceId);
+ expect(room.state.game).toBe(resolved);
 });

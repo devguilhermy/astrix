@@ -19,6 +19,7 @@ const withProgram = (design: Design, program: Parameters<typeof quoteSetAscent>[
 describe('powered ascent', () => {
  test('the same program gives the same flight, and mass never increases while flying', () => {
   const design = createStarterDesign(missionById('STAY_IN_ORBIT'), 'ASPIRING'), a = previewAscent(design), b = previewAscent(design);
+  if (!a.final || !b.final) throw new Error('Orbital launcher must produce a final flight state');
   expect(a.final.central.rKm).toEqual(b.final.central.rKm);
   expect(a.samples.length).toBeGreaterThan(10);
   for (let i = 1; i < a.samples.length; i++) expect(a.samples[i].massKg).toBeLessThanOrEqual(a.samples[i - 1].massKg + 1e-9);
@@ -88,7 +89,8 @@ describe('impulsive burns and finite propellant', () => {
   expect(preview.burnId).toBe(burns[0].id);
   expect(preview.feasible).toBe(true);
   expect(preview.propellantKg).toBeGreaterThan(0);
-  expect(preview.after!.speedKms).toBeGreaterThan(preview.before.speedKms);
+  if (!preview.before || !preview.after) throw new Error('Feasible burn must have before and after states');
+  expect(preview.after.speedKms).toBeGreaterThan(preview.before.speedKms);
   expect(JSON.stringify(base)).toBe(before);
  });
  test('a duplicate burn id is refused by the preview', () => {

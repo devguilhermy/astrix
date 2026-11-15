@@ -24,7 +24,9 @@ export function editAsCopy(source: ResolvedMissionDefinition, text: CopyText, op
  const id = options.id ?? `user.${slug}-${sha256Hex(canonicalJson({ d: source.digest, t: text })).slice(0, 8)}`;
  const objectives: ObjectiveDef[] = source.objectives.map(o => ({ ...o, label: textLabel(text.objectiveLabels?.[o.id] ?? o.label.text ?? o.id) }));
  const { learning: _learning, digest: _digest, ...rest } = source;
- return { ...rest, id, revision: 1, origin: 'CUSTOM', derivedFrom: { id: source.id, digest: source.digest }, name: textLabel(text.name), description: textLabel(text.description), objectiveSummary: textLabel(text.objectiveSummary), ...(text.notes ? { notes: text.notes } : {}), objectives };
+ // Learning presets can list a shared ascent failure; a custom copy keeps only failures possible from its start.
+ const termination = {...source.termination,failOn:source.termination.failOn.filter(cause=>cause!=='ASCENT_FAILED'||source.start.kind==='SURFACE_LAUNCH')};
+ return { ...rest, id, revision: 1, origin: 'CUSTOM', derivedFrom: { id: source.id, digest: source.digest }, name: textLabel(text.name), description: textLabel(text.description), objectiveSummary: textLabel(text.objectiveSummary), ...(text.notes ? { notes: text.notes } : {}), objectives, termination };
 }
 /** A published revision of an existing custom mission: same identity, strictly the next revision. */
 export function reviseDefinition(previous: ResolvedMissionDefinition, next: unknown): DefinitionResult {

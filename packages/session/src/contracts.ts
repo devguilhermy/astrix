@@ -1,4 +1,5 @@
 import type { ActorContext, ActorRole, AscentProgram, BuiltinMissionId, BurnSpec, Budgets, Command, CueEngineState, Design, Digest, HistorySample, JourneyStage, LevelId, MissionArtifacts, MissionId, OrbitChoice, Phase, Refusal, ResolvedMissionDefinition, RoleId, ScoreBreakdown, SimEvent, SimState, TeamStats, Telemetry } from '@astrix/core';
+import type { QuickDesignConfig, TurnGameState } from '@astrix/core';
 /** Largest accepted wire frame, in UTF-8 bytes, for every intent except those that carry a mission definition. */
 export const MAX_CLIENT_FRAME_BYTES = 8192;
 /** Largest accepted frame for START_DEFINITION / SUBMIT_DEFINITION; the definition itself is bounded separately by core. */
@@ -18,6 +19,10 @@ export interface Decision { readonly id:string; readonly event:SimEvent; readonl
 export interface PracticeCheckpoint { id:number; name:'launch'|'arrival'|'decision'; time:number; snapshot:{design:Design;sim:SimState;events:readonly SimEvent[];pendingDecisions:readonly SimEvent[];decisions:readonly Decision[];team:TeamStats;signoffs:Record<RoleId,boolean>;approvals:readonly Approval[];cues:CueEngineState} }
 export type DesignEdit = {kind:'ADD_PART'|'REMOVE_PART';partId:string}|{kind:'SET_RIDE';rideId:string}|{kind:'SET_ORBIT';orbit:OrbitChoice}|{kind:'SET_PROPELLANT';kg:number}|{kind:'SET_LAUNCHER';launcherId:string}|{kind:'SET_ASCENT';program:AscentProgram}|{kind:'SET_BURNS';burns:readonly BurnSpec[]};
 export type SessionIntent =
+ | {kind:'START_GAME';config:QuickDesignConfig}
+ | {kind:'COMMIT_TURN'|'PROPOSE_TURN';decisionId:string;turnRevision:number;planId:string}
+ | {kind:'RETRY_GAME';checkpointRevision?:number}
+ | {kind:'LOCAL_RESTORE_GAME';game:unknown}
  | {kind:'START_MISSION';missionId:BuiltinMissionId;levelId:LevelId;retainHardware?:boolean}
  // A custom mission. The payload is untrusted: the reducer re-validates it with core and rebuilds it, never storing the caller's object.
  | {kind:'START_DEFINITION';definition:unknown;levelId:LevelId;retainHardware?:boolean}
@@ -53,6 +58,8 @@ export interface SessionRefusal {readonly ok:false;readonly code:Refusal['code']
 export type IntentResult = {readonly ok:true;readonly seq:number;readonly receiptIds:readonly string[];readonly quote?:{quoteId:string;baseRevision:number;before:Budgets;after:Budgets;affectedRoles:readonly RoleId[]}}|{readonly ok:false;readonly refusal:SessionRefusal};
 export interface IntentEnvelope { readonly id:string; readonly epoch:string; readonly attemptId:number; readonly rosterRevision:number; readonly intent:SessionIntent }
 export interface SessionState {
+ readonly game:TurnGameState|null;
+ readonly turnProposals:readonly {playerId:string;decisionId:string;turnRevision:number;planId:string}[];
  readonly epoch:string;readonly seq:number;readonly rosterRevision:number;readonly mode:'LOCAL'|'LAN';readonly participantMode:'SOLO'|'TEAM';readonly roster:readonly SessionPlayer[];readonly approvals:readonly Approval[];
  readonly missionId:MissionId;readonly definition:ResolvedMissionDefinition;readonly authorPlayerId:string|null;readonly levelId:LevelId;readonly attemptId:number;readonly artifacts:MissionArtifacts|null;readonly activeStage:JourneyStage;readonly furthestStage:number;readonly activeSubstep:string;readonly activeView:Phase;
  readonly players:readonly (readonly RoleId[])[];readonly facilitator:number;readonly signoffs:Record<RoleId,boolean>;readonly team:TeamStats;readonly design:Design|null;readonly budgets:Budgets|null;readonly cues:CueEngineState;
@@ -64,5 +71,5 @@ export type SessionReplaySnapshot = Omit<SessionState,'replay'|'results'>;
 export type ReplayEntry = {kind:'INTENT';seq:number;actor:SessionActor;intent:SessionIntent}|{kind:'TICK';seq:number;dtSec:number;simulated?:true}|{kind:'CHECKPOINT';seq:number;snapshot:SessionReplaySnapshot};
 export interface SessionOptions {epoch?:string;mode?:SessionState['mode'];participantMode?:SessionState['participantMode'];hostPlayerId?:string;hostName?:string}
 export interface SnapshotViewer {readonly playerId?:string;readonly isHost?:boolean}
-export type SessionSnapshot = Omit<SessionState,'results'|'quotes'|'replay'|'practiceCheckpoints'|'nextCheckpointId'|'advanceTarget'|'advanceWork'> & {readonly protocol:2;readonly practiceCheckpoints:readonly Pick<PracticeCheckpoint,'id'|'name'|'time'>[];readonly review:ScoreBreakdown|null};
+export type SessionSnapshot = Omit<SessionState,'results'|'quotes'|'replay'|'practiceCheckpoints'|'nextCheckpointId'|'advanceTarget'|'advanceWork'> & {readonly protocol:3;readonly practiceCheckpoints:readonly Pick<PracticeCheckpoint,'id'|'name'|'time'>[];readonly review:ScoreBreakdown|null};
 export interface HistoryPage {readonly entries:readonly HistorySample[];readonly cursor:string|null;readonly attemptId:number;readonly epoch:string}

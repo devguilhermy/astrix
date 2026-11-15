@@ -9,13 +9,12 @@ import './i18n/config';
 import './index.css';
 import { App } from './App';
 import { ErrorBoundary } from './ui/recovery/ErrorBoundary';
-import { useMission } from './store';
 // Resolve at runtime: Vite treats new URL('../', import.meta.url) as a filesystem asset.
 const entryUrl = new URL(import.meta.url);
 const basePath = new URL('../', entryUrl).pathname;
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <ErrorBoundary scope="application" onError={() => useMission.getState().pause('error')}>
+    <ErrorBoundary scope="application">
       <App basePath={basePath}/>
     </ErrorBoundary>
   </React.StrictMode>,

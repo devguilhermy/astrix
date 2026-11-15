@@ -12,11 +12,11 @@ const started = (): SessionState => { const t = apply(createSession(), { kind: '
 const intentFrame = (intent: unknown) => JSON.stringify({ type: 'INTENT', id: 'm1', epoch: 'e', attemptId: 0, rosterRevision: 0, actor: { role: 'ALL' }, intent });
 
 describe('starting missions', () => {
- test('PROTOCOL_VERSION is 2 and the old intent name is gone from the wire', () => {
-  expect(PROTOCOL_VERSION).toBe(2);
+ test('rejects pre-turn clients and accepts the current handshake', () => {
   expect(parseClientMessage(intentFrame({ kind: 'START_SCENARIO', scenarioId: 'FIRST_LIGHT', levelId: 'ASPIRING' })).ok).toBe(false);
   expect(parseClientMessage(JSON.stringify({ type: 'HELLO', protocol: 1, buildId: 'b', lastSeq: 0 })).ok).toBe(false);
-  expect(parseClientMessage(JSON.stringify({ type: 'HELLO', protocol: 2, buildId: 'b', lastSeq: 0 })).ok).toBe(true);
+  expect(parseClientMessage(JSON.stringify({ type: 'HELLO', protocol: 2, buildId: 'b', lastSeq: 0 })).ok).toBe(false);
+  expect(parseClientMessage(JSON.stringify({ type: 'HELLO', protocol: PROTOCOL_VERSION, buildId: 'b', lastSeq: 0 })).ok).toBe(true);
  });
  test('every built-in starts by id and the session carries its definition by reference', () => {
   for (const id of ['FIRST_LIGHT', 'UP_AND_BACK', 'EARTH_TO_MOON'] as const) {

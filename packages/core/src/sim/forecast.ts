@@ -4,7 +4,7 @@ import { DAY } from '../physics';
 import { isTechnical } from '../models';
 import { issueCommand } from './commands';
 import { environmentAt } from './environment';
-import { createSim, flight, stormBounds } from './state';
+import { cloneFlight, createSim, flight, stormBounds } from './state';
 import { allRequiredMet, evidenceOf, objectiveValue, primaryObjective } from './objectives';
 import { ascentActive, nextTrajectoryBoundary } from './trajectory';
 import { skipCruise, stepSim } from './step';
@@ -13,7 +13,7 @@ import { crewReturnWindow } from '../return';
 /** Seven-day, <=4096-cell geometry forecast; transition times resolved to 0.25 s. */
 export function forecastTimeline(state: SimState, horizonSec: number): TimelineForecast {
  if (!Number.isFinite(horizonSec) || horizonSec < 0) throw new RangeError('Timeline horizon must be finite and non-negative');
- const s = flight(state), startSec = s.t, requestedEnd = startSec + Math.min(horizonSec,7*DAY);
+ const s = cloneFlight(flight(state)), startSec = s.t, requestedEnd = startSec + Math.min(horizonSec,7*DAY);
  const missionEnd = s.crew?.phase === 'RECOVERY' ? s.t+s.crew.recoveryRemainingSec : s.arrivalT + s.design.definition.environment.durationSec + (s.crew ? 21610 : 0);
  // A state-vector coast is only valid until its next frame change, impact or burn; later geometry belongs to another segment.
  const endSec = s.ended || ascentActive(s) ? startSec : Math.max(startSec,Math.min(requestedEnd,missionEnd,s.cruise ? s.arrivalT : Infinity,nextTrajectoryBoundary(s)));
@@ -102,7 +102,7 @@ export function forecastMission(design: Design, policy: 'DEFAULT', horizonSec: n
   if (s.crew) {
    if (s.crew.scrubberKg < .1 && s.crew.spareScrubberKg > s.crew.scrubberKg) request({ kind: 'CREW_CARTRIDGE' });
    if (s.crew.leakActive && !s.crew.isolated) request({ kind: 'CREW_ISOLATE',isolated: true });
-   else if (s.crew.isolated && s.crew.cabinNitrogenKg < 6) request({ kind: 'CREW_REPRESSURIZE' });
+   else if (s.crew.isolated && (s.crew.cabinNitrogenKg < 6 || s.crew.cabinOxygenKg < 2.16)) request({ kind: 'CREW_REPRESSURIZE' });
    if (s.elapsed >= def.environment.durationSec && s.crew.phase === 'ON_ORBIT' && crewReturnWindow(s.elapsed).open) request({ kind: 'CREW_DEORBIT' });
   }
   if (s.computerState === 'REBOOTING') { if (s.t >= s.cooldownUntil) request({ kind: 'RECOVER_COMPUTER' }); }

@@ -2,23 +2,25 @@
 
 ## Status and completion rule
 
-Both implementation workstreams have handed off source. The combined rules-v5 application has **not yet been typechecked, tested, built or walked through in a browser**. This plan is the remaining execution sequence, not a completion report. Canonical documentation now describes the new contracts with integration-pending labels; earlier verification records remain build-specific.
+**Superseded by the approved [turn-based exploration revision](./TURN_BASED_EXPLORATION_REVISION.md).** That revision makes a fun learning game for both levels, replaces the full-studio product direction and retains GMAT support. The backlog below is historical input, not the current implementation sequence.
 
-Scope remains the approved mission-design expansion: genuine Expert authoring, short learning missions, physical Earth-to-Moon flight, 15 total automatic concept-tour cards, and a working reviewed LAN setup. Dedicated role-specific phone gameplay consoles are not part of this expansion; pairing/session functionality must not be described as complete phone gameplay.
+At suspension, the latest completed typecheck passed and the integrated suite reported 381 passed / 24 failed; subsequent edits remain unverified. Production-build and browser/LAN acceptance are pending. The sections below preserve the earlier integration backlog, not the current execution order or a completion report. See the revision proposal for current scope and gates.
+
+Historical scope was genuine Expert authoring, short learning missions, physical Earth-to-Moon flight, 15 total automatic concept-tour cards, and a working reviewed LAN setup. The user has since replaced the full-studio direction with a fun turn-based learning game while retaining GMAT support. Dedicated role-specific phone gameplay consoles were not delivered by the pairing/session groundwork.
 
 ## 0. Fix the newly observed blockers first
 
-The multiplayer reviewer reported these after the source handoff:
+The multiplayer reviewer reported two blockers after the source handoff. Their source fixes are now present; behavioral verification remains pending:
 
-1. **Startup parse blocker:** `packages/data/src/science.ts:75` lacks a comma. The reviewer observed `bun run host` and session imports failing to parse. Fix the syntax before integration checks; do not rerun merely to reconfirm it.
-2. **Authority crash risk:** definition payloads containing non-finite numbers (JSON `1e999`) or extreme nesting reach `digestOf`/`canonicalJson` before authorization and validation in `reduceSession`. The reviewer observed those calls throwing and independently confirmed Bun exits on an uncaught timer exception; the full network-to-crash chain has not yet been exercised because startup is blocked. Validate bounded depth and finite values before recursive canonicalization/fingerprinting, enforce authoring authority, and return a typed refusal without mutation. Do not hide the defect with a broad catch that pretends an intent succeeded.
+1. **Startup parse blocker:** the missing comma in `packages/data/src/science.ts` has been restored. Verify startup as part of the normal integration run.
+2. **Authority crash risk:** non-finite values and extreme nesting could reach recursive fingerprinting before validation. The parser now bounds structure and rejects non-finite values; reducer fingerprinting also catches invalid input. Prove typed refusal without mutation through the actual room path. A broad exception catch alone is not evidence of correct rejection or continued availability.
 
 Add regression coverage through the actual parser/reducer and room path: malformed definitions must not crash the host, consume a valid mission, discard credentials or prevent a subsequent legitimate request. Then include these cases in the final manifest-backed LAN rehearsal.
 
 ## 1. Close known integration gaps
 
-- Merge `MISSION_COPY_EN` / `MISSION_COPY_PT_BR` from core's `i18nMission.ts` and `TRAJECTORY_SCIENCE_EN` / `TRAJECTORY_SCIENCE_PT_BR` from data's `scienceTrajectory.ts` into the web translation sources using the existing convention. Include new objective, refusal, event, model-limit and science-topic copy. The data science tests read web locale JSON, so registering maps only at runtime is insufficient.
-- Connect the new science topics' `ascent`, `burns` and `trajectory` targets to actual visible controls. Show me must reveal and focus the owning surface without changing mission state or manufacturing a proposal.
+- The 114 mission-copy and 105 trajectory-science entries per locale have been merged into web translation JSON. Verify parity and visible copy, including objective, refusal, event, model-limit and science-topic messages.
+- New science routes are connected, but the burn target selector still needs correction from `#burns-heading` to the actual `#burn-heading`. Verify `ascent`, `burns` and `trajectory` targets reveal and focus visible controls without changing mission state or manufacturing a proposal.
 - Reconcile core, session, host and web API shapes, including definition submission, authoring permission, full snapshot identity, flight telemetry, objective evidence and planned/flown records.
 - Finish migrating existing contract tests without changing their original numerical expectations merely to make them pass. Preset compatibility remains a requirement; changed rules identity is intentional.
 - Integrate the host's new `NOT_FOUND` response into bilingual client feedback.
@@ -121,7 +123,7 @@ Real iOS/Android camera scanning, suspension and radio loss need actual devices.
 ## 7. Final evidence, documentation and delivery
 
 - Update `VERIFICATION.md` with exact commands, results, reference comparisons, browser workflows, LAN topology and remaining unverified cases.
-- Replace integration-pending canonical wording only for behavior actually verified. Reconcile `INDEX`, architecture, missions, simulation, resources, technical models, rendering, layouts, science UX, multiplayer and challenge acceptance.
+- Replace integration-pending canonical wording only for behavior actually verified. Reconcile `INDEX`, architecture, missions, simulation, resources, technical models, rendering, layouts, science UX, multiplayer and challenge acceptance. Correct the documented tour-storage key to `astrix.tours.v3` and the physical scene path to `three/FlightScene.tsx`.
 - Finalize the unreleased changelog entry and write the requested delivery report, distinguishing implementation, automated proof, browser proof and qualification limits.
 - Preserve source/asset attribution and NASA-versus-authored-assumption distinctions. Do not call the whole model GMAT-validated because a few conic cases agree.
 - Validate documentation links and regenerate public copies with `bun run prepare:public`.

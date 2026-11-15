@@ -23,6 +23,7 @@ export function startState(from: SimState | Design): FlightState { return cloneF
 export interface TrajectoryRun { final: FlightState; samples: TrajectorySampleView[]; events: TrajectoryEvent[]; sim: SimEvent[] }
 /** Advance a private copy of the flight state to `horizonSec` after its current time, honouring scheduled burns and predicted frame changes exactly. */
 export function runTrajectory(from: SimState | Design, horizonSec: number, extraBurn?: BurnSpec, stopWhen?: (s: FlightState) => boolean): TrajectoryRun {
+ if (!Number.isFinite(horizonSec)||horizonSec<0) throw new RangeError('Trajectory horizon must be finite and non-negative');
  const s = startState(from), end = s.t + Math.min(Math.max(0, horizonSec), MAX_FORECAST_HORIZON_SEC), events: SimEvent[] = [], samples: TrajectorySampleView[] = [];
  const dt = Math.max(30, (end - s.t) / MAX_FORECAST_SAMPLES);
  const sample = (): void => { const v = fullView(s, s.t); samples.push({ t: s.t, earth: [...v.earth!.rKm], moon: v.moon ? [...v.moon.rKm] : null, body: v.central.body }); };

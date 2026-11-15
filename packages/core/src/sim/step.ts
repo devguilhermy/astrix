@@ -73,6 +73,7 @@ function nextBoundary(s: FlightState): number {
   target = Math.min(target, allocationEnd > s.t + 1e-8 ? allocationEnd : dayStart + DAY);
  }
  if (!s.crew) target = Math.min(target, s.arrivalT + s.design.definition.environment.durationSec);
+ for(const o of s.design.definition.objectives)if(o.deadlineSec!==null&&o.deadlineSec>s.elapsed+1e-8)target=Math.min(target,s.arrivalT+o.deadlineSec);
  target = Math.min(target, nextTrajectoryBoundary(s));
  if (s.crew?.phase === 'RECOVERY') target = Math.min(target, s.t + s.crew.recoveryRemainingSec);
  if (s.pointingReadyAt !== null && s.pointingReadyAt > s.t + 1e-8) target = Math.min(target, s.pointingReadyAt);
@@ -93,9 +94,9 @@ function integrateThermal(s: FlightState, dt: number, events: SimEvent[]): void 
  const suppliedW = Math.min(s.loadW, Math.max(0, s.genW + s.socWh * 3600 / dt));
  s.heaterW = Math.min(s.heaterW, suppliedW); s.internalHeatW = Math.max(0, suppliedW - s.heaterW);
  const input = s.externalHeatW + s.internalHeatW + s.heaterW + (s.crew ? CREW_MODEL.count * CREW_MODEL.heatMJPerPersonDay * 1e6 / DAY : 0);
- const k = ENGINEERING.sigma.v * m.emissivity.v * m.radiatorM2.v;
+ const k = ENGINEERING.sigma.v * m.emissivity.v * (m.radiatorM2.v+s.extraRadiatorM2);
  const initial = s.temperatureK;
- s.temperatureK = thermalStepK(s.design.busId, initial, input, dt);
+ s.temperatureK = thermalStepK(s.design.busId, initial, input, dt,s.extraRadiatorM2);
  s.radiatedW = k * s.temperatureK ** 4; s.thermalTrend = (s.temperatureK - initial) * 3600 / dt;
  const outside = s.temperatureK < m.operatingMinK.v || s.temperatureK > m.operatingMaxK.v;
  s.thermalBadSec = outside ? s.thermalBadSec + dt : 0;
@@ -219,7 +220,10 @@ export function stepSim(state: SimState, dtSec: number): { state: SimState; even
  };
  while (s.t < target - 1e-8 && !s.ended && steps < MODEL.maxFrameSteps.v) {
   const eventCountAtStart = events.length;
-  scheduled(s, events); auditEvents(); applyDueCommands(s, events); auditEvents();
+  scheduled(s, events); auditEvents();
+  if (s.design.definition.objectives.some(o=>o.deadlineSec!==null&&s.elapsed+1e-8>=o.deadlineSec)) evaluateMission(s,0,events);
+  if (s.ended) { auditEvents();break; }
+  applyDueCommands(s, events); auditEvents();
   const trajectoryMark = events.length;
   applyTrajectory(s, events, { impact: ev => { if (!allRequiredMet(s)) fail(s, 'SURFACE_IMPACT', ev); s.ended = true; } });
   if (events.length > trajectoryMark) { auditEvents(); evaluateMission(s, 0, events); auditEvents(); }
@@ -241,7 +245,9 @@ export function stepSim(state: SimState, dtSec: number): { state: SimState; even
   updateEnvironment(s); advanceAttitude(s,dt);
   if (priorPointing === 'ACQUIRING' && s.pointing.state === 'SETTLED') emit(s,events,'POINTING_SETTLED',false,{ quality: s.pointing.quality, reacquired: 0 });
   updateLife(s, events); auditEvents();
-  scheduled(s, events); auditEvents(); applyDueCommands(s, events); auditEvents();
+  scheduled(s, events); auditEvents();
+  if (s.design.definition.objectives.some(o=>o.deadlineSec!==null&&s.elapsed+1e-8>=o.deadlineSec)) evaluateMission(s,0,events);
+  if (!s.ended) applyDueCommands(s, events); auditEvents();
   if (s.pointingReadyAt !== null) s.pointing.remainingSec = Math.max(0, s.pointingReadyAt - s.t);
   if (s.inContact !== wasContact) { if (s.inContact) { emit(s, events, 'PASS_START', !s.firstPassSeen); s.firstPassSeen = true; } else emit(s, events, 'PASS_END', false); }
   evaluateMission(s, dt, events);

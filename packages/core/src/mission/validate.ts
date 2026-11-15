@@ -13,7 +13,7 @@ const ROLES: readonly RoleId[] = ['SCIENCE', 'SPACECRAFT', 'LAUNCH_ORBIT', 'GROU
 const FAILURES: readonly FailureCause[] = ['BATTERY_DEPLETED', 'CAPTURE_FAILED', 'OBJECTIVE_MISSED', 'THERMAL_SURVIVAL', 'CREW_SUPPORT_LOST', 'SURFACE_IMPACT', 'ASCENT_FAILED', 'DEADLINE_MISSED'];
 const METRICS: readonly ProductMetric[] = ['IMAGES', 'MAPS', 'ANY_SCIENCE'];
 const MAX_DEPTH = 8, MAX_ARRAY = 64, MAX_STRING = 600, MAX_DURATION_SEC = 120 * 86400;
-const ID = /^[A-Za-z0-9._-]{1,32}$/, MISSION_ID = /^[a-z0-9][a-z0-9._-]{2,47}$/, UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
+const ID = /^[A-Za-z0-9._-]{1,32}$/, MISSION_ID = /^[a-z0-9][a-z0-9._-]{2,47}$/, UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 
 type Rec = Record<string, unknown>;
 const isRec = (v: unknown): v is Rec => typeof v === 'object' && v !== null && !Array.isArray(v) && Object.getPrototypeOf(v) === Object.prototype;
@@ -213,8 +213,8 @@ export function validateMissionDefinition(raw: unknown): DefinitionResult {
  const author = top.author === undefined ? undefined : c.text(top.author, 'author', 40), notes = top.notes === undefined ? undefined : c.text(top.notes, 'notes', 600);
 
  const env = c.shape(top.environment, 'environment', ['epochUTC', 'seed', 'durationSec', 'stationId', 'stationAllocationStartSec', 'storm', 'scheduledFaults', 'commLightTime']);
- const epoch = env ? c.str(env.epochUTC, 'environment.epochUTC', 20, UTC) : null;
- if (epoch && (!Number.isFinite(Date.parse(epoch)) || Date.parse(epoch) < Date.parse('2000-01-01T00:00:00Z') || Date.parse(epoch) > Date.parse('2100-01-01T00:00:00Z'))) c.add('environment.epochUTC', 'RANGE', 'Epoch must be a real UTC time in 2000..2100');
+ const epoch = env ? c.str(env.epochUTC, 'environment.epochUTC', 24, UTC) : null;
+ if (epoch && (!Number.isFinite(Date.parse(epoch)) || new Date(epoch).toISOString()!==(epoch.includes('.')?epoch:epoch.replace(/Z$/,'.000Z')) || Date.parse(epoch) < Date.parse('2000-01-01T00:00:00Z') || Date.parse(epoch) > Date.parse('2100-01-01T00:00:00Z'))) c.add('environment.epochUTC', 'RANGE', 'Epoch must be a real UTC time in 2000..2100');
  const duration = env ? c.num(env.durationSec, 'environment.durationSec', 60, MAX_DURATION_SEC, 's') : null, seed = env ? c.int(env.seed, 'environment.seed', 0, 4294967295) : null;
  const stationId = env ? c.member(env.stationId, 'environment.stationId', ['GS_MIDLAT', 'DSN', 'CREW_RELAY'] as const) : null, allocation = env ? c.num(env.stationAllocationStartSec, 'environment.stationAllocationStartSec', 0, 86400, 's') : null;
  const faults = env ? c.bool(env.scheduledFaults, 'environment.scheduledFaults') : null, light = env ? c.bool(env.commLightTime, 'environment.commLightTime') : null;
@@ -236,8 +236,9 @@ export function validateMissionDefinition(raw: unknown): DefinitionResult {
  const startRaw = isRec(top.start) ? top.start : null;
  if (!startRaw) c.add('start', 'TYPE', 'Expected an object');
  else if (startRaw.kind === 'PROVIDED_ORBIT') {
-  const r = c.shape(startRaw, 'start', ['kind', 'body', 'orbit', 'orbitOptions'], ['stage']), body = r ? c.member(r.body, 'start.body', ['EARTH', 'MARS'] as const) : null;
+  const r = c.shape(startRaw, 'start', ['kind', 'body', 'orbit', 'orbitOptions'], ['stage','initialPhase']), body = r ? c.member(r.body, 'start.body', ['EARTH', 'MARS'] as const) : null;
   if (r && r.orbitOptions !== 'RIDE') c.add('start.orbitOptions', 'UNSUPPORTED', 'Only ride-offered parking orbits are supported');
+  const initialPhase=r?.initialPhase===undefined?undefined:c.member(r.initialPhase,'start.initialPhase',['OPERATIONS'] as const);
   const orbit = r && body && epoch ? parseOrbit(c, r.orbit, 'start.orbit', body, epoch) : null;
   let stage: { launcherId: string; propellantKg: number } | undefined;
   if (r && r.stage !== undefined) {
@@ -251,7 +252,7 @@ export function validateMissionDefinition(raw: unknown): DefinitionResult {
    if (rideIds.length === 0) c.add('vehicle.allowedRideIds', 'EMPTY_REQUIRED', 'A provided-orbit mission needs at least one ride');
    else if (!rideIds.some(rid => rideOffersOrbit(rid, bus, body, orbit))) c.add('start.orbit', 'CONTRADICTION', 'No allowed ride offers this orbit');
   }
-  if (body && orbit && !(r && r.stage !== undefined && !stage)) start = { kind: 'PROVIDED_ORBIT', body, orbit, orbitOptions: 'RIDE', ...(stage ? { stage } : {}) };
+  if (body && orbit && initialPhase!==null && !(r && r.stage !== undefined && !stage)) start = { kind: 'PROVIDED_ORBIT', body, orbit, orbitOptions: 'RIDE', ...(initialPhase?{initialPhase}:{}), ...(stage ? { stage } : {}) };
  } else if (startRaw.kind === 'SURFACE_LAUNCH') {
   const r = c.shape(startRaw, 'start', ['kind', 'site', 'launcherIds']), site = r ? c.shape(r.site, 'start.site', ['name', 'latDeg', 'lonDeg']) : null;
   const sn = site ? c.label(site.name, 'start.site.name', true) : null, lat = site ? c.num(site.latDeg, 'start.site.latDeg', -80, 80, 'deg') : null, lon = site ? c.num(site.lonDeg, 'start.site.lonDeg', -180, 180, 'deg') : null;

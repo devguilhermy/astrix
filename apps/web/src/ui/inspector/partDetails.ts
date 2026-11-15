@@ -1,4 +1,7 @@
-import type { Design, PartDef, Q, Telemetry } from '@astrix/core';
+import type { Design, PartCategory, PartDef, Q, Telemetry } from '@astrix/core';
+import type { ScienceTopicId } from '@astrix/data';
+
+export const categoryTopic:Record<PartCategory,ScienceTopicId>={BATTERY:'battery-storage',SOLAR:'solar-distance',COMPUTER:'mission-design',STORAGE:'data-storage',ADCS:'pointing',RADIO:'radio-links',INSTRUMENT:'science-return',PROPULSION:'propulsion',THERMAL:'thermal-control'};
 
 /** One labelled reading. `textKey` values are localized by the caller; numbers keep their own unit and precision. */
 export interface DetailRow {

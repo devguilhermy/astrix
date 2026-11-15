@@ -65,7 +65,7 @@ const UP_AND_BACK = resolve({
  ...common('UP_AND_BACK', 'CUBESAT_3U', 160, 1800, EARTH_EPOCH, 11, { requiredPartIds: [], minRecordingMB: 0, minLinkKbps: 0 }, []),
  start: surface(['LV_SOUNDING']), trajectory: patched(['EARTH'], false, 0),
  objectives: [objective('UP_AND_BACK.apogee', 'LAUNCH_ORBIT', { kind: 'APOGEE_BAND', minAltKm: 80, maxAltKm: 120 }), objective('UP_AND_BACK.return', 'LAUNCH_ORBIT', { kind: 'RETURN_BOUNDARY', altitudeKm: 20, afterObjectiveId: 'UP_AND_BACK.apogee' })],
- learning: learning('UP_AND_BACK', 'ASCENT', { parts: CUBESAT_STARTER, rideId: null, orbit: null, launcherId: 'LV_SOUNDING', program: { azimuthDeg: 90, verticalSec: 100, kickDeg: 0, kickSec: 5, stage1LoadFraction: 1, stage2CoastSec: 0, insertionAltKm: 100, holdUpperStage: false }, burns: NO_BURNS }, ['ASCENT'], { recommendAscent: true, recommendBurns: false }, 'learning.surfaceLaunch'),
+ learning: learning('UP_AND_BACK', 'ASCENT', { parts: CUBESAT_STARTER, rideId: null, orbit: null, launcherId: 'LV_SOUNDING', program: { azimuthDeg: 90, verticalSec: 60, kickDeg: 0, kickSec: 5, stage1LoadFraction: 1, stage2CoastSec: 0, insertionAltKm: 150, holdUpperStage: false }, burns: NO_BURNS }, ['ASCENT'], { recommendAscent: true, recommendBurns: false }, 'learning.surfaceLaunch'),
 });
 const STAY_IN_ORBIT = resolve({
  ...common('STAY_IN_ORBIT', 'CUBESAT_3U', 400, 2 * 86400, EARTH_EPOCH, 13, { requiredPartIds: [], minRecordingMB: 0, minLinkKbps: 0 }, []),

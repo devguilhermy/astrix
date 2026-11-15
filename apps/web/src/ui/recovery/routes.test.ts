@@ -1,17 +1,14 @@
 import { expect, test } from 'bun:test';
-import { isKnownLocation } from './routes';
+import { isKnownLocation, readPlayView } from './routes';
 
-test('known screens are accepted at the deployed base without accepting missing pages', () => {
-  expect(isKnownLocation('/', '#home')).toBe(true);
-  expect(isKnownLocation('/index.html', '#setup/mission')).toBe(true);
-  expect(isKnownLocation('/studio/', '#mission/build_verify', '/studio/')).toBe(true);
-  expect(isKnownLocation('/studio/index.html', '#mission/implement', '/studio/')).toBe(true);
-  for (const hash of ['#missing', '#setup/missing', '#mission/missing', '#mission/design/extra', '#setup/toString', '#mission/__proto__']) {
-    expect(isKnownLocation('/', hash), hash).toBe(false);
+test('turn-based presentation routes respect the deployed base',()=>{
+  for(const hash of ['', '#home','#explore','#prepare','#play','#journal','#gmat','#help']) {
+    expect(isKnownLocation('/',hash)).toBe(true);
+    expect(isKnownLocation('/astrix/index.html',hash,'/astrix/')).toBe(true);
   }
-  expect(isKnownLocation('/', '#studio')).toBe(true);
-  expect(isKnownLocation('/', '#studio/extra')).toBe(false);
-  expect(isKnownLocation('/missing', '#home')).toBe(false);
-  expect(isKnownLocation('/studio/missing/', '#home', '/studio/')).toBe(false);
-  expect(isKnownLocation('/another/', '#home', '/studio/')).toBe(false);
+  for(const hash of ['#studio','#setup/mission','#mission/implement','#missing','#play/extra','#toString','#__proto__'])expect(isKnownLocation('/',hash)).toBe(false);
+  expect(isKnownLocation('/missing','#explore')).toBe(false);
+  expect(isKnownLocation('/another/','#play','/astrix/')).toBe(false);
+  expect(readPlayView('#play')).toBe('play');
+  expect(readPlayView('#home')).toBe('explore');
 });

@@ -1,8 +1,8 @@
 import type { BusId, LevelId, Q } from './contracts';
 import { clamp } from './physics';
 
-/** Rules 5: common mission definitions, physical ascent, state-vector trajectories. Rules 4 results are historical. */
-export const RULES_VERSION = 5;
+/** Rules 6: deterministic decision turns and physically certified bounded quick designs. Earlier flights remain historical. */
+export const RULES_VERSION = 6;
 export interface ModelParameter extends Q { readonly units: string; readonly range: readonly [number, number] }
 const parameter = (v: number, units: string, range: readonly [number, number], note: string): ModelParameter => ({ v, units, range, p: { kind: 'assumption', note: `${note} Rules ${RULES_VERSION}; authored educational coefficient, not calibrated hardware data.` } });
 export const LEVELS: Readonly<Record<LevelId, { budgetFactor: ModelParameter; technical: boolean }>> = {
@@ -53,15 +53,15 @@ export const THERMAL_MODELS: Readonly<Record<BusId, ThermalModel>> = {
  CREW_CAPSULE: thermal(5000000, 8, 1, 200),
 };
 export function lifeFactor(elapsed: number, durationSec: number, eol: number): number { return 1 - (1 - eol) * clamp(elapsed / durationSec, 0, 1); }
-export function thermalEquilibriumK(bus: BusId, absorbedW: number): number {
+export function thermalEquilibriumK(bus: BusId, absorbedW: number, extraRadiatorM2 = 0): number {
  const m = THERMAL_MODELS[bus];
- return Math.pow(Math.max(0, absorbedW) / (ENGINEERING.sigma.v * m.emissivity.v * m.radiatorM2.v), .25);
+ return Math.pow(Math.max(0, absorbedW) / (ENGINEERING.sigma.v * m.emissivity.v * (m.radiatorM2.v+extraRadiatorM2)), .25);
 }
 export const isTechnical = (profile: LevelId): boolean => profile === 'EXPERT';
 export function stationAllocated(t: number, offsetSec = 0): boolean { const daySec = 86400; return (((t - offsetSec) % daySec) + daySec) % daySec < ENGINEERING.allocationHours.v * 3600; }
 /** Midpoint integration of C dT/dt = absorbed W − εσAT⁴; dt is seconds. */
-export function thermalStepK(bus: BusId, temperatureK: number, absorbedW: number, dtSec: number): number {
- const m = THERMAL_MODELS[bus], k = ENGINEERING.sigma.v * m.emissivity.v * m.radiatorM2.v;
+export function thermalStepK(bus: BusId, temperatureK: number, absorbedW: number, dtSec: number, extraRadiatorM2 = 0): number {
+ const m = THERMAL_MODELS[bus], k = ENGINEERING.sigma.v * m.emissivity.v * (m.radiatorM2.v+extraRadiatorM2);
  const midpoint = temperatureK + (absorbedW - k * temperatureK ** 4) * dtSec / (2 * m.capacityJK.v);
  return temperatureK + (absorbedW - k * midpoint ** 4) * dtSec / m.capacityJK.v;
 }

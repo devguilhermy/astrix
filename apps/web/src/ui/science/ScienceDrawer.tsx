@@ -23,7 +23,7 @@ function revealTopic(target:string|undefined):{window:'mission'|'readiness'|'log
   const maneuvers=state.design.definition.trajectory.model==='PATCHED_CONICS'&&state.design.definition.trajectory.maneuvers.allowed;
   if(target==='ascent')return surface&&!state.sim?{window:'mission',selector:'#program-heading',stage:'DESIGN',substep:'trajectory'}:null;
   if(!maneuvers)return null;
-  return {window:'mission',selector:target==='trajectory'?'#trajectory-forecast-heading':'#burns-heading',stage:state.sim?'IMPLEMENT':'DESIGN',substep:state.sim?'operations':'trajectory'};
+  return {window:'mission',selector:target==='trajectory'?'#trajectory-forecast-heading':'#burn-heading',stage:state.sim?'IMPLEMENT':'DESIGN',substep:state.sim?'operations':'trajectory'};
  }
  if(['report','dose-chart'].includes(target)&&state.telemetry?.ended)return {window:'mission',selector:`#${target}`,stage:'REVIEW',substep:'results'};
  if(target==='command-queue'&&state.sim)return {window:'log',selector:'#command-queue',stage:'IMPLEMENT',substep:'operations'};

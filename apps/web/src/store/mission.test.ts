@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
-import { attemptAudit, computeBudgets, history, makeOrbit, missionById, planPropellant, quoteAddPart, rolesAffectedBy, telemetry, validateMissionDefinition } from '@astrix/core';
+import { attemptAudit, computeBudgets, editAsCopy, history, makeOrbit, missionById, planPropellant, quoteAddPart, rolesAffectedBy, telemetry, validateMissionDefinition } from '@astrix/core';
 import { applyRemoteResult, applyRemoteSnapshot, getSessionState, liveMission, ROLES, STAGES, SUBSTEPS, bestKey, readBest, setIntentSink, tickLocalSession, useMission } from './index';
 import { toPublicSnapshot } from '@astrix/session';
 import type { SessionIntent } from '@astrix/session';
@@ -324,8 +324,7 @@ describe('definition-based missions',()=>{
   expect(s.definition.id).toBe('UP_AND_BACK');expect(s.design?.definitionDigest).toBe(s.definition.digest);
  });
  test('a validated custom definition starts an attempt that keeps the definition it began with',()=>{
-  const { digest: _digest, ...source } = structuredClone(missionById('FIRST_SIGNAL'));
-  const draft={...source,id:'user.flown',origin:'CUSTOM'};
+  const draft=editAsCopy(missionById('FIRST_SIGNAL'),{name:'Flown copy',description:'A preserved mission definition.',objectiveSummary:'Return the required picture.'},{id:'user.flown'});
   const checked=validateMissionDefinition(draft);if(!checked.ok)throw new Error(JSON.stringify(checked.issues));
   useMission.getState().startDefinition(checked.definition,'EXPERT');
   const s=useMission.getState();

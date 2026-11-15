@@ -34,28 +34,36 @@ function stumpffS(z: number): number {
 
 /** Universal-variable Kepler step. F(chi) is strictly increasing, so a bracketed Newton solve cannot diverge. */
 export function universalPropagate(r0: Vec3, v0: Vec3, dt: number, mu: number): { r: Vec3; v: Vec3 } {
- if (dt === 0) return { r: [r0[0], r0[1], r0[2]], v: [v0[0], v0[1], v0[2]] };
+ if (![...r0, ...v0, dt, mu].every(Number.isFinite) || !(mu > 0) || !(len(r0) > 0)) throw new RangeError('Conic state must be finite with positive radius and gravity');
+ if (dt === 0) return { r: [...r0], v: [...v0] };
  const sq = Math.sqrt(mu), r0n = len(r0), rv = dotv(r0, v0), alpha = 2 / r0n - dotv(v0, v0) / mu;
- let chi: number;
- if (alpha > 1e-12) chi = sq * dt * alpha;
- else if (alpha < -1e-12) {
-  const a = 1 / alpha, sign = Math.sign(dt), arg = (-2 * mu * alpha * dt) / (rv + sign * Math.sqrt(-mu * a) * (1 - r0n * alpha));
-  chi = arg > 0 ? sign * Math.sqrt(-a) * Math.log(arg) : sq * dt / r0n;
- } else chi = sq * dt / r0n;
- if (!Number.isFinite(chi)) chi = sq * dt / r0n;
- let lo = -Infinity, hi = Infinity, converged = false;
- const scaleF = Math.abs(sq * dt) + r0n * Math.abs(chi) + 1;
- for (let n = 0; n < 200; n++) {
-  const z = alpha * chi * chi, C = stumpffC(z), S = stumpffS(z);
-  const F = rv / sq * chi * chi * C + (1 - alpha * r0n) * chi ** 3 * S + r0n * chi - sq * dt;
-  const dF = rv / sq * chi * (1 - z * S) + (1 - alpha * r0n) * chi * chi * C + r0n;
-  if (!Number.isFinite(F) || !Number.isFinite(dF) || !(dF > 0)) throw new RangeError('Universal Kepler residual is not finite');
-  // An exact or already-converged root is returned before the bracket update can replace it.
-  if (Math.abs(F) <= 1e-13 * scaleF) { converged = true; break; }
-  if (F > 0) hi = Math.min(hi, chi); else lo = Math.max(lo, chi);
-  let next = chi - F / dF;
-  if (!(next > lo && next < hi)) next = Number.isFinite(lo) && Number.isFinite(hi) ? (lo + hi) / 2 : chi + (F > 0 ? -1 : 1) * Math.max(1, Math.abs(chi));
-  if (Math.abs(next - chi) <= 1e-14 * Math.max(1, Math.abs(chi))) { chi = next; converged = true; break; }
+ // A finite bracket is established before Newton. In particular the near-parabolic
+ // initial estimate must not evaluate cosh at an unbounded anomaly.
+ const residual = (x: number): readonly [number, number] => {
+  const z = alpha*x*x, C = stumpffC(z), S = stumpffS(z);
+  return [rv/sq*x*x*C + (1-alpha*r0n)*x*x*x*S + r0n*x-sq*dt,
+   rv/sq*x*(1-z*S) + (1-alpha*r0n)*x*x*C+r0n];
+ };
+ let edge = Math.sign(dt)*Math.max(1, Math.min(Math.abs(sq*dt/r0n), alpha < 0 ? 1/Math.sqrt(-alpha) : Number.MAX_VALUE));
+ for (let n = 0; n < 256; n++) {
+  const [f] = residual(edge);
+  if (!Number.isFinite(f) || Math.sign(f) === Math.sign(dt)) break;
+  edge *= 2;
+  if (n === 255) throw new RangeError('Universal Kepler root could not be bracketed');
+ }
+ let lo = Math.min(0,edge), hi = Math.max(0,edge), chi = (lo+hi)/2, converged = false;
+ const scaleF = Math.abs(sq*dt)+1;
+ for (let n = 0; n < 256; n++) {
+  const [F,dF] = residual(chi);
+  if (!Number.isFinite(F)) {
+   if (chi > 0) hi = chi; else lo = chi;
+   chi = (lo+hi)/2; continue;
+  }
+  if (Math.abs(F) <= 2e-14*scaleF) { converged = true; break; }
+  if (F > 0) hi = chi; else lo = chi;
+  const candidate = chi-F/dF;
+  const next = Number.isFinite(candidate) && dF > 0 && candidate > lo && candidate < hi ? candidate : (lo+hi)/2;
+  if (Math.abs(next-chi) <= 2e-15*Math.max(1,Math.abs(chi))) { chi = next; converged = true; break; }
   chi = next;
  }
  if (!converged) throw new RangeError('Universal Kepler solve did not converge');
@@ -67,6 +75,7 @@ export function universalPropagate(r0: Vec3, v0: Vec3, dt: number, mu: number): 
 }
 
 export function orbitInfo(r: Vec3, v: Vec3, mu: number): OrbitInfo {
+ if (![...r,...v,mu].every(Number.isFinite) || !(mu>0) || !(len(r)>0)) throw new RangeError('Conic state must be finite with positive radius and gravity');
  const rn = len(r), vn2 = dotv(v, v), h = cross(r, v), hn = len(h), rv = dotv(r, v);
  const evec: Vec3 = [((vn2 - mu / rn) * r[0] - rv * v[0]) / mu, ((vn2 - mu / rn) * r[1] - rv * v[1]) / mu, ((vn2 - mu / rn) * r[2] - rv * v[2]) / mu];
  const e = len(evec), energy = vn2 / 2 - mu / rn, p = hn * hn / mu, inc = Math.acos(Math.max(-1, Math.min(1, hn > 0 ? h[2] / hn : 1)));

@@ -25,12 +25,12 @@ const G0 = CONSTANTS.g0.v;
 export function cloneTraj(t: TrajState): TrajState {
  return { ...t, burns: t.burns.map(b => ({ ...b })), receipts: t.receipts.slice(), events: t.events.slice(), stage: t.stage ? { ...t.stage } : null, ascent: t.ascent ? { ...t.ascent, r: [...t.ascent.r] as Vec3, v: [...t.ascent.v] as Vec3 } : null, encounter: t.encounter ? { ...t.encounter } : null, crossings: { ...t.crossings }, pred: t.pred ? { ...t.pred, items: t.pred.items.slice() } : null };
 }
-const blankTraj = (): TrajState => ({ conic: null, ascent: null, stage: null, burns: [], burnCount: 0, receipts: [], events: [], version: 0, pred: null, maxAltKm: 0, peakPassed: false, encounter: null, soiEntryAt: null, crossings: {}, lastAscentSampleAt: -Infinity });
+const blankTraj = (): TrajState => ({ conic: null, ascent: null, stage: null, burns: [], burnCount: 0, receipts: [], events: [], version: 0, pred: null, maxAltKm: 0, peakPassed: false, encounter: null, soiEntryAt: null, crossings: {}, lastAscentSampleAt: -Number.MAX_SAFE_INTEGER });
 
 export const patchedConics = (s: Pick<FlightState, 'design'>): boolean => s.design.definition.trajectory.model === 'PATCHED_CONICS';
 export const moonModelled = (s: Pick<FlightState, 'design'>): boolean => { const t = s.design.definition.trajectory; return t.model === 'PATCHED_CONICS' && t.bodies.includes('MOON'); };
 const watchAltitudes = (s: Pick<FlightState, 'design'>): number[] => s.design.definition.objectives.flatMap(o => o.spec.kind === 'ENTRY_INTERFACE' || o.spec.kind === 'RETURN_BOUNDARY' ? [o.spec.altitudeKm] : []);
-const needsApsis = (s: Pick<FlightState, 'design'>): boolean => s.design.definition.objectives.some(o => o.spec.kind === 'APOGEE_BAND' || o.spec.kind === 'ENCOUNTER_DISTANCE');
+const needsApsis = (s: Pick<FlightState, 'design'>): boolean => s.design.definition.objectives.some(o => o.spec.kind === 'APOGEE_BAND' || o.spec.kind === 'ENCOUNTER_DISTANCE' || o.spec.kind === 'BOUND_ORBIT' && o.spec.body === 'MOON');
 
 /** Mission launch mass handed to the launcher: the whole designed spacecraft. */
 export function initTrajectory(s: Pick<FlightState, 'design' | 'arrivalT' | 'epochUTC'>, spacecraftMassKg: number): { traj: TrajState; failure: 'NO_LAUNCH_PLAN' | null } {
@@ -256,7 +256,7 @@ export interface TrajectoryHooks { impact: (events: SimEvent[]) => void }
 export function applyTrajectory(s: FlightState, events: SimEvent[], hooks: TrajectoryHooks): void {
  const tr = s.traj;
  if (!tr.conic || ascentActive(s) || s.ended) return;
- if (tr.burns.some(b => b.fireAt === null) || tr.version === 0 && tr.burns.length) armBurns(s);
+ if (tr.burns.some(b => b.fireAt === null)) armBurns(s);
  for (let guard = 0; guard < 16 && !s.ended; guard++) {
   const due = predicted(s).find(p => p.t <= s.t + 1e-6 && p.t > (tr.pred?.fromT ?? -Infinity) - 1e-9);
   if (!due) break;

@@ -18,7 +18,7 @@ export class RoomClient {
   private readonly pending=new Set<string>();
   private journalEpoch:string|null=null;
   private readonly commits=new Map<string,{intent:Extract<SessionIntent,{kind:'QUOTE_DESIGN'|'COMMIT_DESIGN'}>;actor:SessionActor}>();
-  private readonly visible=()=>{if(document.visibilityState==='visible')this.resync();else if(roomSession().identity?.host)this.intent({kind:'PAUSE',reason:'hidden'},{playerId:roomSession().identity?.playerId??'host',role:'SCIENCE',isHost:true});};
+  private readonly visible=()=>{if(document.visibilityState==='visible')this.resync();};
   private readonly pageshow=()=>this.resync();
   constructor(){window.addEventListener('pageshow',this.pageshow);document.addEventListener('visibilitychange',this.visible);}
   private journal():void {try{sessionStorage.setItem('astrix.lan.pending.v1',JSON.stringify({epoch:this.journalEpoch,ids:[...this.pending]}));}catch{updateRoom({storageAvailable:false});}}
@@ -84,16 +84,17 @@ export class RoomClient {
     if(new TextEncoder().encode(encoded).length>limit){updateRoom({error:'MESSAGE_TOO_LARGE'});return false;}
     try{this.socket.send(encoded);return true;}catch{updateRoom({error:'OFFLINE'});return false;}
   }
-  intent(intent:SessionIntent,actor:SessionActor):void {
-    const state=roomSession();if(state.status!=='connected'||!state.snapshot||!state.identity){updateRoom({error:'OFFLINE'});return;}
-    if(this.pending.size>=64){updateRoom({error:'RATE_LIMITED'});return;}
+  intent(intent:SessionIntent,actor:SessionActor):string|null {
+    const state=roomSession();if(state.status!=='connected'||!state.snapshot||!state.identity){updateRoom({error:'OFFLINE'});return null;}
+    if(this.pending.size>=64){updateRoom({error:'RATE_LIMITED'});return null;}
     const id=requestId(),commit=intent.kind==='COMMIT_DESIGN'&&!intent.quoteId?intent:null;
     const transmitted=commit?{...commit,kind:'QUOTE_DESIGN' as const}:intent;
-    if(!this.send({type:'INTENT',id,epoch:state.snapshot.epoch,attemptId:state.snapshot.attemptId,rosterRevision:state.snapshot.rosterRevision,actor:{role:actor.role,playerId:state.identity.playerId},intent:transmitted}))return;
+    if(!this.send({type:'INTENT',id,epoch:state.snapshot.epoch,attemptId:state.snapshot.attemptId,rosterRevision:state.snapshot.rosterRevision,actor:{role:actor.role,playerId:state.identity.playerId},intent:transmitted}))return null;
     this.pending.add(id);
     if(commit)this.commits.set(id,{intent:commit,actor});
     this.journal();
     updateRoom({outcomes:{...Object.fromEntries(Object.entries(state.outcomes).slice(-127)),[id]:'pending'}});
+    return id;
   }
   private retry():void {if(this.stopped)return;this.commits.clear();updateRoom({status:'reconnecting',error:'OFFLINE'});if(this.attempts>=RECONNECT_MAX_ATTEMPTS){this.stop('reconnecting','RETRY_EXHAUSTED');return;}clearTimeout(this.reconnectTimer);this.reconnectTimer=window.setTimeout(()=>void this.connect(),backoffDelayMs(this.attempts++));}
   resync():void {if(this.stopped)return;this.commits.clear();this.attempts=0;clearTimeout(this.reconnectTimer);clearInterval(this.heartbeat);const old=this.socket;this.socket=null;old?.close();updateRoom({status:'reconnecting'});void this.connect();}

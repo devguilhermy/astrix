@@ -1,60 +1,59 @@
 # Layouts and workspace interaction
 
-The persistent Canvas is the main surface. `Simulator` composes a compact identity-only `TopBar`, seven-resource HUD, floating tools and one bottom `MissionControl`. The approved [streamlined plan](./plans/STREAMLINED_MISSION_CONTROL_PLAN.md) supersedes the earlier separate CAPCOM/top-primary/pill layout. Camera, tours, highlighting, geometry and inspection remain device-local; mission changes use public store actions and authoritative core/session checks. Executed evidence belongs in [VERIFICATION.md](./VERIFICATION.md).
+The **persistent 3D space scene is the main surface**. Mission selection, preparation, turns and debrief are panels over it, not a scrolling page that pushes the scene out of view. This is the user's explicit immersive-game requirement. `ui/play/PlayApp.tsx` owns the current contextual panels while the scene remains mounted. Functional and visual evidence belongs in [Verification](./VERIFICATION.md).
 
-## Shell and bottom mission control
+## Explore → Design & Play
 
-Setup separates Learn, Challenge and Expert Create. Learn offers short, scoped missions; Challenge retains the four original briefs; Create opens the local mission library and editor. Aspiring/Expert remain explicit level cards. Team setup starts expanded with reflowing player columns and role dropdowns that preserve one owner per discipline. Local start and `/host` remain distinct entry paths. Preparation/commit/rollback and the retained Canvas remain unchanged. TopBar contains identity, Help and Settings, not a competing Continue. These rules-v5 surfaces are awaiting integration/browser verification.
+The mission board groups destinations and offers a small initial selection with more missions available on demand. Both levels have the same first-class **Design & Play** entry. The goal comes before equipment; mission cards explain the discovery rather than requiring the player to understand spacecraft architecture first.
 
-`MissionControl` owns the sole `#mission-primary`: Show me for a real blocker, Continue, Go for launch, Launch, event advance/cancel, pause/resume, capture confirmation, pending-decision focus or terminal Review. Guidance names the task and owner once. Refusals and independent pause reasons remain visible; opening help or closing a tour never automatically resumes.
+Preparation is one workspace, not a sequence of approval screens:
 
-The controller groups:
+- Destination-compatible goal and explicit success condition.
+- Ambition with actual target, allowance and deadline.
+- A few paid hardware kits.
+- A compatible operating approach with reserve/output tradeoffs.
+- One **Play mission** action after the current configuration is certified.
 
-- **Requirements:** the actual `missionRequirements` targets/results, with complete owner/method/revision evidence and adjacent Explain. One implementation (`phases/Requirements.tsx`) remains available through Build, flight and debrief; the Requirements stage opens it instead of duplicating it inside Workshop.
-- **Spacecraft slots:** presentation toggles, every actual bus category and installed-component inspection. Selecting a category during Build reveals Workshop; there is no automatic installation. Flight/debrief hardware is view-only. Turntable is unavailable under reduced motion.
-- **Checklist:** real completion, owners and per-task Show me routes. Opening it never completes a task.
-- **Flight options:** existing commands, detailed timeline, warp, event advance/cancel, pilot and Log receipts, embedded rather than another fixed deck. With options closed, next light/shadow/contact edge and absolute T+ time, an advance action and next contact remain visible. Unknown edges remain unknown, not a fabricated forecast.
-- **Mission navigation:** five visible gated desktop chapters (Briefing, Build, Test & launch, Fly, Debrief), plus native stage/substep selection. Compact uses the select only. All seven stages remain named; unreached or disallowed destinations are disabled. Store/core guards remain final authority. Navigation never approves, freezes, launches or advances time.
-- **Panels:** Workshop, Details, Review and Log buttons with expanded state and badges replace scattered collapsed header pills. Optional LAN presence wraps inline, with no additional fixed chrome.
+Cost, fit and constraints update together. Selecting a new configuration cancels or invalidates stale worker results. A compatibility badge is not a feasibility certificate. Checking, no proof, blocked, Ready and Stretched states must be legible; there is no fabricated progress percentage. A failed check never silently substitutes an easier goal or more capable kit.
 
-This is the user's newly requested bottom navigation, not restoration of the former tab dock: no seven-tab stage row, no duplicate panel pills, no top primary and no permanently open flight timeline. One options tray opens at a time; Escape/re-toggle/Close returns focus to its trigger. Panel navigation clears the tray before revealing its destination.
+## Turn workspace
 
-## Panel state and geometry
+The stable workspace shows the mission objective, elapsed mission time and current decision. It presents no more than four relevant plans, one selected preview and one named commit action. The preview explains time, resource deltas and boundary. Commit publishes a complete receipt; a selection alone does not move the spacecraft.
 
-`MISSION_PANEL_IDS = ['mission','readiness','review','log']`; `PANEL_IDS` additionally includes transient `part`. `useWindows` retains independent desktop rectangle, compact height/full-height intent, stacking, scroll positions and focus memory. Closed tools are hidden and consume no scene area; bottom navigation is their stable focus/entry point. Expanded panels retain draggable/resizable headers, eight desktop resize handles, keyboard movement and click/numeric sizing options. Preferred and clamped effective rectangles stay separate; resize never destroys desktop intent.
+Normal resource presentation emphasizes at most three relevant indicators. Imminent crew, thermal or other failures remain visible even when not one of those indicators. Details expand exact evidence and model identity without hiding information required for a good decision.
 
-Only Workshop starts expanded on desktop, with a bounded 380×320 default above mission control; entering flight closes it to preserve the default scene area. Compact begins with a clear scene and no selected tool, while preserving desktop expansion/geometry intent. One compact sheet is selected at a time; the obsolete 88px collapsed-pill reserve is removed. Closing contained focus returns to `control-panel-<id>` or the connected simulator heading. `expandWindow`/`showWindow` still reveal before focus, open enclosing disclosures and scroll the actual target into view.
+Routine pointing, instrument switching and contact handling belong to a disclosed operational plan. The player does not manage warp, pause/resume, manual burn vectors, stages, signoffs or subsystem paperwork. The scene remains visible beside the turn panels and renders the installed spacecraft and model-derived context; its camera cannot change the physical outcome.
 
-The Component panel remains anchored beside the projected component silhouette on desktop. `PartTracker`, tracked placement, side hysteresis and detach-on-drag remain intact. The controller is an occupied `data-hud-zone="bottom"`; measured workspace bounds keep the anchored panel above it. Compact Component uses the normal transient sheet. Inspecting from bottom slots closes the tray; closing Component restores the slots tray/opener. Viewing never installs, removes or commands.
+## Consequence, debrief and discovery
 
-`useWindowViewport` is the single HUD measurement authority. It observes header, resources, controller and closed controller base. Actual controller height bounds tools; layout classification uses its closed base, excluding transient pause notices, so opening a tray or starting a tour cannot cause fixed↔reading oscillation. This classification exception does not remove the notice from occupied geometry. Safe-area and visual-viewport offsets are retained. `CameraRig` reads `[data-hud-zone]` and camera widgets clear the measured controller inset; the old CAPCOM/deck assumptions are removed.
+A receipt names what changed, what interrupted the plan and what the next choice can affect. Terminal debrief shows actual objective evidence, result, assistance and an explanation/next experiment. Same-condition retry preserves configuration and seed; a changed design is a different experiment. Aspiring checkpoint retry is marked assisted.
 
-## Responsive and accessible interaction
+The discovery journal records simulated achievements and qualified comparisons. It is not an economy, unlock grind or claim that the player acquired real NASA data. Historical images, sources and mission parallels remain labelled contextual material.
 
-- **Desktop ≥900px:** resources left, scene centre, bounded expanded tools, one bottom controller. Default unobscured scene-share target remains ≥60% at 1440×900, measured by visible HUD rectangle union, excluding deliberate expanded trays/additional tools and modal tours. This is a browser gate, not a claim inferred from CSS.
-- **Compact:** one-row 48px identity header, seven resources in 4/3 columns, bottom context/action/options/native screen selection/four panel targets. Resource detail subvalues remain in badge dialogs rather than forcing flight into document flow. At ≤360px the native screen selector shares a row with the four 44px panel targets; options retain their own row and the redundant visual controller title is omitted, not its accessible region name. All bottom controls retain 44px targets; text wraps at 320px without horizontal document scrolling.
-- **Reading:** genuinely short or zoomed viewports retain document flow and normal scroll. Same scene and controls, no smaller substitute text, no permanent scroll lock. Movement is disabled; collapse/navigation and numeric alternatives remain.
+## Persistence and recovery
 
-Pointer/touch geometry gestures start only at handles; pointer capture, Escape and cancellation remain. Inputs/panels never leak gestures to Canvas. Desktop header arrows move 10px, Shift+arrows 40px; compact Up/Down adjusts height. Camera and pilot retain labelled non-drag alternatives. New copy is bilingual en/pt-BR. App/OS reduced motion disables pulses/turntable/transitions; disabled and result states have text equivalents.
+Local save controls expose the saved committed boundary, export/import and explicit continuation. Two-slot writes commit the pointer last so a failed write preserves the prior selected save. Restore validates the format, versions, identity and deterministic history before presenting a runnable game. Corrupt/incompatible content is explained and remains exportable; an old user definition is not silently relabelled as a quick mission.
 
-## Tours, scientific help and recovery
+Navigation never executes a plan. Returning to the mission restores its current committed decision. Loading, resolution and network errors remain visible; retries must not double-commit. Local browser persistence and a live LAN room are separate recovery mechanisms.
 
-The automatic first-mission curriculum contains **15 concept cards total**, split Welcome 3, Build 5, Launch 2, Flight 3 and Debrief 2. This is not a separate allowance of 15 per stage. The optional Choice card is Help-only and never extends the automatic chain. Cards group related controls and use visible target alternatives rather than enumerating every control.
+## Optional tools
 
-`astrix.tour-concepts.v3` stores concept completion and a curriculum-wide opt-out; older history remains readable so prior skips are respected. Skip, Escape or declining the Expert offer suppresses remaining automatic interruptions. Help replay does not erase that choice. Tours reveal only device-local trays, disclosures and inspection state, restoring them on exit; they never change stage/substep, mission, hardware, approvals or commands. Static tours add/remove their own pause without auto-resume. LAN tours do not pause the shared clock and instead expose an explicit team-pause action.
+The menu and debrief retain GMAT tools outside the normal play path. Supported initial-state import explicitly opens a compatible preparation candidate, then ordinary constraints and certification run again. Export is an initial-state export, not a complete maneuver script. External ReportFile/OEM samples have a separate inspection/playback surface, labelled frames/units and explicit gaps; they do not become scored flight history.
 
-Modal retains inert/focus trapping and connected-opener return. Scientific Explain keeps one immutable opening snapshot and uses `showWindow`/controller reveal for real destinations. ErrorBoundary surrounds stage tools, not Canvas/HUD; local retry clears only its `error` reason. Help and mission control remain reachable.
+Help offers scientific explanations and model limits without a mandatory tour. Hints can be disabled. Source evidence and exact numerical details remain available without turning Expert into the removed studio workflow.
 
-## Mission Studio and trajectory planning
+## Responsive and accessible behavior
 
-`ui/create/MissionStudio.tsx` groups identity, vehicle, environment, start, trajectory/support, objectives, termination and review. Field issues use stable schema paths and focusable destinations. Save retains an editable draft; Publish creates an immutable revision; Export validates before download; Fly validates current input before preparing an attempt. Storage and import failures are explicit. Neither a deferred validation badge nor a stale preview authorizes execution.
+Semantic DOM panels are the gameplay control surface over the persistent 3D scene. Desktop panels have bounded internal scrolling and leave the central scene visible. Compact layouts keep a visible scene region above bounded turn sheets; scrolling panel content does not scroll the scene away. Text wraps and controls remain reachable at 320 px. No drag or 3D click is required to choose a mission plan.
 
-`ui/flightplan/` provides launcher/ascent and burn controls, preview outcomes, trajectory plots and flown records. Heavy recommendations/previews use cancellable workers; replacing the request or design invalidates stale results. Applying a result requires a normal authorized quote/commit. Predicted paths and planned burns remain visually distinct from flown samples and executed events.
+Native buttons, radio/select controls, labels, visible focus, skip navigation and live error/status text provide the keyboard path. Optional dialogs return focus to a connected opener; expanded details keep their native keyboard semantics. Both English and Brazilian Portuguese are maintained. Reduced motion disables decorative movement without changing outcomes; playback and context never consume a turn.
 
-## LAN surfaces and device-local presentation
+## Multiplayer surfaces
 
-The main computer opens `/host` for admission, QR/manual invitation, role allocation and readiness, then enters the shared mission with the same Canvas/controller. `/join` is a compact phone pairing, readiness, presence and team-pause surface; stale/disconnected/revoked states are explicit. Dedicated phone design and flight consoles are not implemented. Joining a room does not turn local camera, panels, tours or explanation state into shared presentation commands. Optional phone reading and visibility do not stop the authoritative clock; shared pause policy is documented in [Simulation](./SIMULATION.md) and deployment in [Multiplayer](./MULTIPLAYER.md).
+`/host` handles authenticated bootstrap, invitations, admission and role assignment, then enters the shared mission board/workspace. `/join` handles pairing and the controller's current decision. A controller proposes; the host commits. There is no unanimous Ready/signoff ceremony at each turn.
 
-## Verification ownership
+Disconnected/stale clients cannot submit actions or start an independent local game. Reconnect restores the latest state and known intent result, never automatically repeats a tap. Device-local Help, language and presentation preferences do not become shared mission commands. See [Multiplayer](./MULTIPLAYER.md).
 
-Focused tests cover primary policy and stage guards, zero-area collapse and compact bounds, unchanged Component anchoring, timeline edge selection, per-option tour coverage, copy parity and pilot fixtures using public mission actions. The UI worker may inspect the live browser at 1440×900, 390×844 and 320px; Main runs consolidated tests/typecheck/build and records observed verification. No test execution is implied by these contracts.
+## Verification boundary
+
+Typecheck, engine/session tests and production-browser workflows establish software behavior. Screenshots at desktop and compact sizes establish observed layout, not screen-reader certification. Formative human sessions are still needed to evaluate the proposed time-to-first-choice, comprehension, enjoyment and replay-intent targets in the [revision plan](./plans/TURN_BASED_EXPLORATION_REVISION.md).

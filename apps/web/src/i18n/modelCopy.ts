@@ -1,5 +1,5 @@
 import { ENGINEERING, THERMAL_MODELS, type ModelParameter } from '@astrix/core/models';
-import { listParts } from '@astrix/core';
+import { listParts, listMissions, listLaunchers, type ObjectiveSpec } from '@astrix/core';
 
 const labels:Record<keyof typeof ENGINEERING,readonly [string,string]>={
  sigma:['Rounded Stefan–Boltzmann reference constant','Constante de referência de Stefan–Boltzmann arredondada'],
@@ -43,14 +43,14 @@ export const modelPortuguese:Record<string,string>={};
 function add(key:string,parameter:ModelParameter,label:readonly [string,string]){
  const units=`${parameter.units}; [${parameter.range[0]}, ${parameter.range[1]}]`;
  modelEnglish[`assumption.${key}`]=`${label[0]} (${units}). ${parameter.p.kind==='assumption'?parameter.p.note:'Reference parameter.'}`;
- modelPortuguese[`assumption.${key}`]=`${label[1]} (${units}). Coeficiente declarado das regras 4; valores de equipamentos são premissas didáticas, não dados calibrados nem qualificação de voo.`;
+ modelPortuguese[`assumption.${key}`]=`${label[1]} (${units}). Coeficiente declarado do modelo; valores de equipamentos são premissas didáticas, não dados calibrados nem qualificação de voo.`;
 }
 for(const key of Object.keys(ENGINEERING) as (keyof typeof ENGINEERING)[])add(`engineering.${key}`,ENGINEERING[key],labels[key]);
 for(const bus of ['CUBESAT_3U','SMALLSAT','CREW_CAPSULE'] as const)for(const key of Object.keys(thermalLabels) as (keyof typeof thermalLabels)[])add(`thermal.${bus}.${key}`,THERMAL_MODELS[bus][key],thermalLabels[key]);
 for(const bus of ['CUBESAT_3U','SMALLSAT','CREW_CAPSULE'] as const)for(const part of listParts(bus).filter(item=>item.category==='THERMAL')){
- for(const [field,unit] of [['massKg','kg'],['volume',bus==='SMALLSAT'?'bay':'U'],['cost','game-budget units'],['powerW','W'],['heaterW','W']] as const){
-  modelEnglish[`assumption.part.${part.id}.${field}`]=`Authored heater hardware ${field} (${unit}); paid mass, volume, cost and electrical heat, not manufacturer-qualified data.`;
-  modelPortuguese[`assumption.part.${part.id}.${field}`]=`Parâmetro autoral ${field} do aquecedor (${unit}); massa, espaço, custo e aquecimento elétrico são contabilizados, não dados qualificados de fabricante.`;
+ for(const [field,unit] of [['massKg','kg'],['volume',bus==='SMALLSAT'?'bay':'U'],['cost','game-budget units'],['powerW','W'],['heaterW','W'],['radiatorM2','m²']] as const){
+  modelEnglish[`assumption.part.${part.id}.${field}`]=`Authored thermal hardware ${field} (${unit}); paid mass, volume, cost and thermal capability, not manufacturer-qualified data.`;
+  modelPortuguese[`assumption.part.${part.id}.${field}`]=`Parâmetro autoral ${field} do controle térmico (${unit}); massa, espaço, custo e capacidade térmica são contabilizados, não dados qualificados de fabricante.`;
  }
 }
 const attitudeLabels = {
@@ -86,3 +86,33 @@ Object.assign(modelPortuguese,{
  'assumption.model.forecasts':'A linha do tempo amostra até sete dias; janelas estreitas podem não aparecer. O ensaio usa comandos transportados e falhas reais por até 90 dias operacionais, com cruzeiro analítico e até 512 amostras. Não implica um plano autônomo enviado à nave.',
  'assumptionValue.model.forecasts':'Política DEFAULT limitada',
 });
+
+modelPortuguese['assumption.ride.RIDE_LEO_STAGE.cost']='Custo autoral da entrega em órbita com estágio superior; não é uma cotação de lançamento nem uma especificação qualificada para voo.';
+for(const launcher of listLaunchers())modelPortuguese[`assumption.launcher.${launcher.id}.cost`]='Custo de um lançador fictício dimensionado para as missões didáticas do ASTRIX; não é uma especificação de fabricante.';
+function objectivePortuguese(spec:ObjectiveSpec):string {
+ switch(spec.kind){
+  case 'DELIVERED_PRODUCT':return `Entregar ${spec.targetMB} MB de ${spec.metric==='IMAGES'?'imagens':spec.metric==='MAPS'?'mapas':'dados científicos'}.`;
+  case 'INSTRUMENT_HOURS':return `Registrar ${spec.targetHours} h entre ${spec.windowStartSec} e ${spec.windowEndSec} s de missão.`;
+  case 'APOGEE_BAND':return `Apogeu entre ${spec.minAltKm} e ${spec.maxAltKm} km.`;
+  case 'RETURN_BOUNDARY':return `Retornar abaixo de ${spec.altitudeKm} km após o objetivo ${spec.afterObjectiveId}.`;
+  case 'BOUND_ORBIT':return `Órbita ligada a ${spec.body==='EARTH'?'Terra':spec.body==='MOON'?'Lua':'Marte'}: periastro de ${spec.periapsisAltKm.min} a ${spec.periapsisAltKm.max} km; apoastro de ${spec.apoapsisAltKm.min} a ${spec.apoapsisAltKm.max} km; periastro seguro mínimo de ${spec.minSafePeriapsisAltKm} km.`;
+  case 'ESCAPE':return `Escapar com pelo menos ${spec.minExcessSpeedKms} km/s de velocidade excedente e periastro mínimo de ${spec.minPeriapsisAltKm} km.`;
+  case 'ENTRY_INTERFACE':return `Cruzar a interface de entrada a ${spec.altitudeKm} km.`;
+  case 'ENCOUNTER_DISTANCE':return `Passar a uma distância entre ${spec.minDistanceKm} e ${spec.maxDistanceKm} km da Lua.`;
+  case 'PROPELLANT_RESERVE':return `Preservar pelo menos ${spec.minKg} kg de propelente ${spec.inventory==='SPACECRAFT'?'na nave':'no estágio superior'}.`;
+  case 'CREW_SUPPORT_THROUGH_RECOVERY':return 'Manter o suporte da tripulação até concluir a recuperação.';
+  case 'CREW_ORBIT_HOURS':return `Permanecer pelo menos ${spec.hours} h em órbita.`;
+ }
+}
+for(const mission of listMissions()){
+ const key=`mission.${mission.id}`;
+ modelPortuguese[`assumption.${key}.budget`]='Unidades autorais de orçamento do jogo, dimensionadas para permitir equipamentos científicos completos em cada dificuldade; não são dólares.';
+ modelPortuguese[`assumption.${key}.durationSec`]='Duração autoral da missão; as missões de aprendizado terminam antes quando todos os objetivos obrigatórios são cumpridos.';
+ modelPortuguese[`assumption.${key}.epoch`]='Época autoral de referência: Storm Watch alinha a reprodução às medições históricas de maio de 2024; as missões lunares usam uma janela compatível com o plano de transferência no modelo reduzido.';
+ modelPortuguese[`assumptionValue.${key}.epoch`]=mission.environment.epochUTC;
+ modelPortuguese[`assumption.${key}.seed`]='Semente determinística autoral da missão.';
+ for(const objective of mission.objectives){
+  modelPortuguese[`assumption.${key}.objective.${objective.id}`]='Limiar autoral avaliado pelo estado físico ou pelos dados entregues; não é um requisito publicado de uma missão real.';
+  modelPortuguese[`assumptionValue.${key}.objective.${objective.id}`]=objectivePortuguese(objective.spec);
+ }
+}

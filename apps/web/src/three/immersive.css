@@ -1,0 +1,103 @@
+.immersive-scene {
+  --scene-left: 440px;
+  --scene-right: 0px;
+  --scene-open: calc(100vw - var(--scene-left) - var(--scene-right));
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  color: #e8f2f5;
+  background: #030812;
+  pointer-events: none;
+}
+.immersive-scene[data-view='play'], .immersive-scene[data-view='prepare'] {
+  --scene-left: 340px;
+  --scene-right: 320px;
+}
+.immersive-scene:focus-visible { outline: 2px solid #a8e8ef; outline-offset: -4px; }
+.immersive-scene-render { position: absolute; inset: 0; pointer-events: auto; }
+.immersive-scene-render canvas { touch-action: none; }
+.immersive-scene-caption, .immersive-scene-controls, .immersive-scene-fallback {
+  position: absolute;
+  left: calc(var(--scene-left) + var(--scene-open) / 2);
+  transform: translateX(-50%);
+  width: min(420px, calc(var(--scene-open) - 36px));
+  pointer-events: auto;
+}
+.immersive-scene-caption {
+  top: 92px;
+  display: grid;
+  gap: 5px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.5;
+  text-shadow: 0 2px 8px #000;
+}
+.immersive-scene-caption > strong { font-size: 15px; font-weight: 600; }
+.immersive-scene-caption > span { color: #b5cbd7; font-variant-numeric: tabular-nums; }
+.immersive-scene-caption details { position: relative; }
+.immersive-scene-caption summary { cursor: pointer; color: #b5cbd7; font-size: 11px; }
+.immersive-scene-caption details[open] {
+  z-index: 3;
+  max-height: min(48vh, 370px);
+  overflow: auto;
+  padding: 12px 16px;
+  background: #08131ff5;
+  border-radius: 12px;
+  text-align: left;
+  text-shadow: none;
+  box-shadow: 0 12px 32px #0008;
+}
+.immersive-scene-caption details[open] summary { color: #e8f2f5; }
+.immersive-scene-caption p { margin: 10px 0 0; }
+.immersive-scene-caption a { color: #9ee4ed; text-underline-offset: 3px; }
+.immersive-scene-controls { bottom: 26px; display: grid; justify-items: center; gap: 9px; }
+.immersive-camera-modes, .immersive-camera-buttons { display: flex; justify-content: center; flex-wrap: wrap; gap: 5px; }
+.immersive-scene-controls button, .immersive-scene-fallback button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 7px;
+  border: 1px solid #476174;
+  border-radius: 7px;
+  background: #0b1825ec;
+  color: #d9e9f0;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+}
+.immersive-camera-modes button { min-height: 32px; padding: 5px 13px; }
+.immersive-camera-modes button[aria-pressed='true'] { background: #d7e9ed; color: #10202d; border-color: #d7e9ed; }
+.immersive-scene-controls button:hover:not(:disabled), .immersive-scene-fallback button:hover { background: #253e51; color: #fff; }
+.immersive-scene-controls button:disabled { opacity: .45; cursor: not-allowed; }
+.immersive-scene button:focus-visible, .immersive-scene summary:focus-visible, .immersive-scene a:focus-visible { outline: 2px solid #a8e8ef; outline-offset: 3px; }
+.immersive-scene-fallback {
+  top: 40%;
+  padding: 22px;
+  background: #0b1825;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+  box-shadow: 0 12px 36px #0008;
+}
+.immersive-scene-fallback p { margin: 10px 0 16px; color: #b5cbd7; }
+@media (min-width: 901px) and (max-width: 1099px) {
+  .immersive-scene[data-view='play'], .immersive-scene[data-view='prepare'] { --scene-left: 660px; --scene-right: 0px; }
+  .immersive-scene-caption { top: 88px; }
+  .immersive-scene-controls { bottom: 18px; }
+}
+@media (max-width: 900px) {
+  .immersive-scene, .immersive-scene[data-view='play'], .immersive-scene[data-view='prepare'] { --scene-left: 0px; --scene-right: 0px; }
+  .immersive-scene-caption { top: 77px; width: calc(100vw - 32px); gap: 1px; font-size: 10px; }
+  .immersive-scene-caption > strong { font-size: 12px; }
+  .immersive-scene-caption summary { font-size: 10px; }
+  .immersive-scene-caption details[open] { margin: 0 auto; max-width: 420px; max-height: calc(42svh - 102px); font-size: 12px; }
+  .immersive-scene-controls { top: calc(42svh - 88px); bottom: auto; width: calc(100vw - 24px); gap: 4px; }
+  .immersive-scene-controls button { min-width: 34px; min-height: 34px; }
+  .immersive-camera-modes button { min-height: 28px; padding: 4px 12px; font-size: 11px; }
+  .immersive-scene:not([data-hardware='true']) .immersive-scene-controls { top: calc(42svh - 48px); }
+  .immersive-scene-fallback { top: 138px; width: calc(100vw - 48px); padding: 12px 16px; font-size: 12px; }
+  .immersive-scene-fallback p { margin: 4px 0 8px; }
+}

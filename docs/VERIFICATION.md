@@ -2,15 +2,39 @@
 
 This records observed checks, not inferred product claims. Challenge alignment is tracked in [CHALLENGE_ACCEPTANCE.md](./CHALLENGE_ACCEPTANCE.md). The application is served as a production static build for browser verification; no app state was injected to manufacture mission outcomes.
 
-## Rules-v5 mission-design integration — pending
+## Turn-based exploration revision — integration evidence
 
-The current implementation adds mission definitions, Expert authoring, short learning missions, physical ascent/lunar flight and a 15-concept curriculum. Canonical docs were updated during integration at the owner's request. **No completed combined typecheck, test suite, production build or browser acceptance is claimed for this revision.**
+The latest user correction requires an **always-visible immersive 3D scene with turn panels**, plus explicit mission names in both languages. That presentation correction is being integrated; the checks below precede its final build unless stated otherwise. They must not be treated as evidence that the corrected presentation has already passed.
 
-An independent GMAT R2025a console run produced orbit-raise, Earth-escape and lunar circular-coast reference outputs using `scripts/validate-flight.script`; see [reference scope](./research/gmat-validation.md#mission-design-expansion-independent-conic-references). This establishes external reference outputs only. Comparison against the integrated application, ascent, sphere-of-influence continuity, targeting and resource validation remain pending.
+- Full integrated suite after retained-contract repairs: **417 passed, 0 failed**, 52 files, 54,714 assertions, 160.52 seconds.
+- After final physical ambition bands, exact displayed goals and equal-kit deduplication: focused core gameplay, UI/persistence, bilingual parity, session turns and host room checks passed **78 tests, 0 failures**, 6 files, 19,567 assertions.
+- Typecheck and production build passed before the immersive correction. The build transformed 2,816 modules; existing >500 kB bundle warnings remain.
+- Real production HTTP/WebSocket checks passed with one host and one controller: authenticated admission/role assignment, start without unanimous Ready, proposal without advancement, host-only commit, identical duplicate result, stale refusal, controller reconnect, host reconnect and frozen mission time while idle. Tested protocol 3 on `wlp2s0`, `192.168.155.101/24`; no firewall changes or physical-phone qualification.
+- Browser gameplay completed `FIRST_SIGNAL` in four real commits, achieved 5 MB delivered, populated the discovery journal and exposed attributed Blue Marble context. Reload restored a committed decision; same-condition retry restarted at mission time zero. Expert preparation correctly refused a 129-unit science kit against its 114.75-unit allowance.
+- Browser GMAT workflow imported an inert Earth initial state with millisecond epoch `2026-11-14T00:00:00.123Z`, opened a compatible checked preparation and started it. The downloaded initial-state script parsed back to the exact imported state. Reported spacecraft-name omission was explicitly refused. An uploaded full mission sequence was refused without execution.
+- The actual OEM viewer rendered a two-segment/five-sample fixture. Selecting 165 seconds showed “No state in this gap” with no spacecraft marker; playback advanced from the initial sample and could be paused. These are reference-only samples, not game-resource or score evidence.
+- NASA GMAT R2025a reran `scripts/validate-flight.script` successfully. Compared at GMAT's reported times and matching point-mass constants: maximum position residual **2.141 × 10⁻⁷ km**, maximum velocity residual **1.591 × 10⁻¹⁰ km/s** across raise, circularization, escape and lunar coast. This does not validate atmosphere, full lunar targeting or resource models. Optional Python/MATLAB plugin warnings were unrelated to the executed script.
 
-The multiplayer review found stale production-build acceptance, mismatched definition-frame bounds and credential loss on protocol errors in its historical baseline. Corrections are being integrated; baseline review results are not proof of the current protocol-2 build. Shared Wi-Fi testing does not establish isolated-network security or physical-phone support.
+### Bounded design sweep
 
-Earlier sections below retain their original build-specific evidence.
+The [consolidated numerical evidence](../packages/core/gameplay-sweep.json) records 648 configurations: 12 missions × 2 levels × 3 ambitions × 3 kits × 3 approaches, at each mission's nominal seed. After conservative-policy, crew-maintenance and physical-ambition corrections:
+
+| Readiness result | Configurations |
+|---|---:|
+| Ready | 537 |
+| Stretched, with a successful witness | 54 |
+| Over limits | 36 |
+| No viable reference plan | 21 |
+
+No configuration threw an unhandled numerical exception. All 48 standard-Endurance witnesses across both levels and the cautious/balanced approaches succeeded. Equivalent hardware choices are grouped in the UI, rather than advertised as different upgrades. This sweep establishes nominal reference feasibility, not universal solvability, calibrated success odds, enjoyment or a statistically validated difficulty curve.
+
+Reproduce with `bun packages/core/scripts/sweepGameplay.ts --full --output=/tmp/astrix-gameplay-sweep.json`. The script also accepts `--mission=<id>` and `--approach=<id>` for affected subsets. Per-configuration computation times are observations from that machine, not latency guarantees.
+
+### Remaining acceptance at this record
+
+Complete the persistent-scene/panel and long-title integration, then rerun applicable typecheck/tests/build and inspect desktop/compact, Portuguese, keyboard and reduced-motion surfaces. Final-build multiplayer remains required after that presentation cutover. Human enjoyment/comprehension testing, independent Portuguese/science review, physical iOS/Android behavior and isolated-WAN deployment remain unverified.
+
+Earlier sections below retain their original build-specific evidence; descriptions of old dashboards, clocks and studio controls are historical.
 
 ## Bottom mission control and LAN groundwork (2026-11-15)
 

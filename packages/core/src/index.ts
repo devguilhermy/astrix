@@ -36,3 +36,6 @@ export type { CrewSupportPlan } from './crewPlan';
 export { normalizeAttitude, rotateAttitudeVector, attitudeTargetForDirection, attitudeDistance, slewAttitude } from './attitude';
 export { forecastTimeline, forecastMission } from './sim/forecast';
 export { transferPosition, planetPosition } from './physics';
+export * from './gameplayTypes';
+export { defaultQuickDesign, missionOffers, quickDesignBrief, quickKitOptions, validateQuickDesignConfig } from './quickDesign';
+export { MAX_GAME_TURNS, MAX_TURN_POLICY_STEPS, certifyQuickDesign, createTurnGame, turnDecision, previewTurn, commitTurn, retryTurnGame, turnDebrief, restoreTurnGame } from './gameplay';

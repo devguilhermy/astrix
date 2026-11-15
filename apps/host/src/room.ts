@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { createSession, reduceSession, tickSession, toPublicSnapshot, selectHistoryPage, parseClientMessage, messageByteLimit, PROTOCOL_VERSION, ROLES, type ParseResult, type SessionState, type SessionIntent, type SessionActor, type ServerMessage, type ClientMessage, type TransportCode } from '@astrix/session';
+import { createSession, reduceSession, toPublicSnapshot, selectHistoryPage, parseClientMessage, messageByteLimit, PROTOCOL_VERSION, ROLES, type ParseResult, type SessionState, type SessionIntent, type SessionActor, type ServerMessage, type ClientMessage, type TransportCode } from '@astrix/session';
 import { secret, WsTickets } from './auth/wsTicket';
 import { RoomQueue } from './clock';
 import { RateLimit, MAX_WS_FRAME_BYTES, MAX_BUFFER_BYTES } from './security/rateLimit';
@@ -17,7 +17,6 @@ export class Room {
   private readonly intents:RateLimit; private readonly frames:RateLimit; private readonly notes:RateLimit;
   private readonly controls=new Map<string,{fingerprint:string;message:ServerMessage|null}>();
   private readonly quoteExpiry=new Map<string,number>();
-  private stallPending=false;
   constructor(readonly buildId:string, private readonly now = Date.now, schedule?: (job:()=>void)=>void) {
     this.queue=new RoomQueue(256,schedule);
     this.tickets = new WsTickets(now); this.intents = new RateLimit(20,1000,now); this.frames = new RateLimit(80,1000,now); this.notes = new RateLimit(5,10000,now);
@@ -106,7 +105,7 @@ export class Room {
       const actor={...this.actor(d),role:m.actor.role};
       const next=reduceSession(this.state,m,actor);this.state=next.state;
       if(next.result.ok&&next.result.quote)this.quoteExpiry.set(next.result.quote.quoteId,this.now()+30000);
-      if(next.result.ok&&(m.intent.kind==='START_MISSION'||m.intent.kind==='START_DEFINITION'))this.locked=true;
+      if(next.result.ok&&(m.intent.kind==='START_GAME'||m.intent.kind==='START_MISSION'||m.intent.kind==='START_DEFINITION'))this.locked=true;
       this.send(d,{type:'RESULT',id:m.id,...next.result});this.broadcast();return;
     }
     if(m.type==='READY'){const next=reduceSession(this.state,{kind:'SET_READY',ready:m.ready,rosterRevision:m.rosterRevision},this.actor(d));this.state=next.state;if(!next.result.ok)this.send(d,{type:'RESULT',id:'ready',...next.result});this.broadcast();return;}
@@ -140,8 +139,6 @@ export class Room {
     if(action==='host-only'){this.apply({kind:'PAUSE',reason:'manual'});for(const device of [...this.devices.values()])if(!device.host)this.revoke(device.id);for(const role of ROLES)if(!this.state.roster.find(p=>p.id==='host')?.roles.includes(role))this.apply({kind:'ASSIGN_ROLE',role,playerId:'host',rosterRevision:this.state.rosterRevision});for(const reason of this.state.pauseReasons)if(reason.startsWith('controller-disconnected:'))this.apply({kind:'CLEAR_PAUSE',reason});this.locked=true;}
     this.broadcast();
   }))this.fail('RATE_LIMITED'); }
-  tick(seconds:number):void {if(!this.queue.enqueue(()=>{this.state=tickSession(this.state,seconds);this.broadcast();}))this.stall();}
-  stall():void {if(this.stallPending)return;this.stallPending=true;this.queue.enqueue(()=>{this.apply({kind:'PAUSE',reason:'host-stall'});this.stallPending=false;this.broadcast();},true);}
   broadcast():void {for(const d of this.devices.values()){if(!d.peer||!d.hello)continue;const encoded=JSON.stringify({type:'SNAPSHOT',snapshot:toPublicSnapshot(this.state,{playerId:d.playerId,isHost:d.host})} satisfies ServerMessage);if(d.peer.getBufferedAmount()>MAX_BUFFER_BYTES){d.peer.close(1013,'SLOW_CLIENT');continue;}if(d.peer.getBufferedAmount()>0)d.pendingSnapshot=encoded;else{d.pendingSnapshot=null;if(d.peer.send(encoded)===0)d.peer.close(1013,'SLOW_CLIENT');}}}
   drain(deviceId:string,peer:Peer):void {const d=this.devices.get(deviceId);if(d?.peer===peer&&d.pendingSnapshot){const data=d.pendingSnapshot;d.pendingSnapshot=null;if(peer.send(data)===0)peer.close(1013,'SLOW_CLIENT');}}
   maintenance():void {

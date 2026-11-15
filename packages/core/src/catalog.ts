@@ -31,7 +31,7 @@ export const MODEL = {
  cueCooldownSec: assumed(30, 'Minimum time between separate raises of a coaching cue.'), cueClearSec: assumed(5, 'Coaching cue clearing hysteresis.'),
 } as const;
 
-type PartExtras = Pick<PartDef, 'txPowerW' | 'generationW' | 'capacityWh' | 'storageMB' | 'rateKbps' | 'ispSec' | 'tankKg' | 'finePointing' | 'directional' | 'requiresTarget' | 'requiresLight' | 'metric' | 'heaterW' | 'slewRateDegSec' | 'accuracyDeg' | 'coneHalfAngleDeg' | 'beamHalfAngleDeg'>;
+type PartExtras = Pick<PartDef, 'txPowerW' | 'generationW' | 'capacityWh' | 'storageMB' | 'rateKbps' | 'ispSec' | 'tankKg' | 'finePointing' | 'directional' | 'requiresTarget' | 'requiresLight' | 'metric' | 'heaterW' | 'slewRateDegSec' | 'accuracyDeg' | 'coneHalfAngleDeg' | 'beamHalfAngleDeg' | 'radiatorM2'>;
 function part(id: string, busId: BusId, category: PartDef['category'], volume: number, mass: number, power: number, cost: number, extras: Partial<PartExtras> = {}): PartDef {
  const role = category === 'INSTRUMENT' || category === 'STORAGE' ? 'SCIENCE' : category === 'RADIO' ? 'GROUND_COMMS' : 'SPACECRAFT';
  return { id, busId, category, role, nameKey: `part.${id}.name`, descKey: `part.${id}.desc`, unique: ['COMPUTER', 'ADCS', 'PROPULSION'].includes(category), volume: a(volume), massKg: a(mass), powerW: a(power), cost: a(cost), ...extras };
@@ -73,6 +73,7 @@ export const PARTS: readonly PartDef[] = [
  part('DEPLOY_MITIGATION', 'CUBESAT_3U', 'THERMAL', .1, .08, 0, 8),
  part('HEATER_6', 'CUBESAT_3U', 'THERMAL', .1, .08, 0, 7, { heaterW: a(6) }),
  part('SS_HEATER_60', 'SMALLSAT', 'THERMAL', .25, 1, 0, 18, { heaterW: a(60) }),
+ part('SS_RADIATOR', 'SMALLSAT', 'THERMAL', 0, 2, 0, 25, { radiatorM2: a(.05) }),
 ];
 export const PART_BY_ID: Readonly<Record<string, PartDef>> = Object.fromEntries(PARTS.map(p => [p.id, p]));
 const EARTH_EPOCH = '2026-11-14T00:00:00Z';

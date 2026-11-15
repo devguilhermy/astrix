@@ -9,5 +9,4 @@ test('the host accepts only the exact protocol, rules and flight-model contract'
   expect(manifestProblem('[]')).toContain('object');
   for (const key of ['schema', 'protocol', 'rules', 'flightModel'] as const) expect(manifestProblem(JSON.stringify({ ...EXPECTED_MANIFEST, [key]: EXPECTED_MANIFEST[key] + 1 }))).toContain(key);
   expect(manifestProblem(JSON.stringify({ ...EXPECTED_MANIFEST, protocol: String(EXPECTED_MANIFEST.protocol) }))).toContain('protocol');
-  expect(EXPECTED_MANIFEST.protocol).toBe(2);
 });

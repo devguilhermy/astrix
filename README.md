@@ -1,6 +1,6 @@
-# ASTRIX Mission Studio
+# ASTRIX
 
-NASA Space Apps 2026 Space Mission Design Game: design a spacecraft, balance linked resource budgets, fly it, and understand the outcome.
+A space exploration and mission turn-based learning game for NASA Space Apps 2026. Quickly design a constrained mission, play its decisions, and discover why the outcome changed.
 
 ## Run
 
@@ -19,7 +19,7 @@ bun run build
 
 The production static site is built into `apps/web/dist`; static solo/shared-screen play needs no backend, login, API key or runtime data API. Repository research tools can contact NASA endpoints; the game imports committed data snapshots.
 
-For trusted-LAN room groundwork, prepare dependencies and the production build online, then disconnect internet while keeping LAN active:
+For trusted-LAN multiplayer, prepare dependencies and the production build online, then disconnect internet while keeping LAN active:
 
 ```sh
 bun run host
@@ -27,35 +27,33 @@ bun run host
 bun run host --bind 192.168.1.20 --port 3000
 ```
 
-Open the loopback control URL printed by Bun on the host computer. Its lobby supplies locally encoded QR/manual joining, host approval, role assignment and reconnect for three phones plus the host display. HTTP is plaintext: use an isolated trusted LAN and no sensitive names/data. The Bun process owns the in-memory mission; closing it loses the room. Dedicated phone design/flight consoles are not included in this groundwork. See [LAN runbook and rehearsal steps](docs/MULTIPLAYER.md); real-device behavior is not claimed verified.
+Open the loopback control URL printed by Bun on the host computer. Its lobby supplies QR/manual joining, host approval, role assignment and reconnect for three controllers plus the host display. Controllers propose current plans; only the host commits. HTTP is plaintext: use a trusted isolated LAN and no sensitive data. Closing Bun loses its in-memory room. See [LAN runbook and rehearsal steps](docs/MULTIPLAYER.md); desktop automation does not establish physical-phone qualification.
 
 ## Play
 
-**Rules-v5 integration in progress:** setup adds Learn, Challenge and Expert Create. Challenge retains First Light, Storm Watch, Red Relay and Crew Pathfinder. Learn adds short data-return, ascent/orbit/maneuver lessons and Earth-to-Moon flight. Expert Create edits validated mission definitions with local drafts, immutable revisions and JSON import/export. The combined acceptance pass is pending; earlier verification results do not cover these additions.
+1. Choose an Earth, Moon or Mars discovery and open **Design & Play**.
+2. Set ambition, spacecraft kit and approach in one workspace. Check the real target, allowance, fit and deadline.
+3. Wait for the reference-policy feasibility result. A Ready design has a demonstrated nominal path; it does not guarantee every choice succeeds.
+4. Play: select a plan, inspect the preview, then commit. A receipt explains elapsed mission time, resources, objective progress and interruptions.
+5. Debrief, record simulated discoveries and retry the same conditions with a different decision or design.
 
-Choose a mission and level using the setup cards; the expanded team section optionally divides responsibilities in player columns. Start with the local-play card or open the separate LAN lobby. The journey appears as **Briefing → Build → Test & launch → Fly → Debrief**, backed by seven core stages and their gates. Bottom **Mission control** combines the next action/Continue, Requirements, Spacecraft slots, Checklist, Flight options, chapter/substep navigation and panel buttons. **Show me** reveals the real control. Starting design does not launch, and time advances only when explicitly requested.
+**Aspiring** and **Expert** share the same clear loop. Expert adds tighter tradeoffs rather than a full engineering studio. There are no required raw orbital elements, burn vectors, speed controls, signoffs or publishing steps. Reading and thinking never consume a turn.
 
-**Aspiring** offers spotlight tours, short primary copy, self-paced advances and assisted practice checkpoints. **Expert** uses the same HUD with detailed engineering and on-demand explanations. Guided / Detailed remains independently changeable in Settings. Preview changes on the spacecraft and seven-resource grid before installing them; freeze, verify and approve the actual revision before launch. **Dry run** forecasts the design in a background worker without changing or scoring the flight.
+Local saves preserve committed decision boundaries. Corrupt/incompatible saves are explained rather than silently reset; old definition files remain exportable user work, not automatically certified missions. Same-condition retries are separate attempts, and Aspiring checkpoint retries are marked assisted.
 
-Closed tools consume no scene area; bottom panel buttons reopen them. Desktop tools retain draggable/resizable headers; compact screens use one sheet and short/high-zoom views use document flow. Automatic onboarding is capped at 15 concept cards across the first mission, not per stage. Skip suppresses the remaining automatic curriculum; Help replay and model limits remain available.
+The original First Light, Storm Watch, Red Relay and Crew Pathfinder challenges remain alongside the short data-return, ascent, orbit, maneuver and lunar lessons. Quick designs use the same physical evidence and constraints as curated offers.
 
-Click any component on the spacecraft (or a bottom Spacecraft slot) to open its **Component** panel, anchored beside that part and following it as you turn the view: catalogue specifications, the simulator's constraints and, in flight, live readings from the simulation. Keyboard users reach the same panel from **Spacecraft slots → Components** while building and from **As flown** in flight. Inspecting never changes the design or the flight.
-
-Explain/Entenda buttons open short science explanations, optional deeper material and evidence/assumptions. Static reading pauses operation; optional LAN explanations retain a frozen snapshot without stopping the shared room. Closing an explanation never automatically resumes a paused mission.
-
-Flight options embed the timeline, command hotbar and warp controls; next sunlight/shadow/contact edge, T+ time, advance and next contact remain visible with the tray closed. Decision overlays remain independent. `1/2/3` select Sun/Target/Earth hold, `D` requests downlink, `S` safe mode, `G` deployment and `P` pilot mode. In pilot mode use drag or `WASD/QE` to request attitude targets (touch pad available); manual steering is limited to 10× warp. Uncrewed steering waits for radio contact and Mars light time; crew steering is onboard. Camera controls remain independent of commands.
-
-Solo covers all roles. Shared-screen play divides responsibilities among up to four local players, with role ownership and design sign-offs. A separately launched local Bun host adds trusted-LAN admission and synchronization groundwork, not internet matchmaking.
+**GMAT tools** remain optional, reachable without entering a design studio. Export/import supported Earth/Mars initial states or inspect sampled trajectories/OEM. Uploaded scripts are inert data, never executed. Lunar interchange remains unsupported; imported samples cannot manufacture resources or scored success.
 
 ### Startup and recovery
 
-The pre-JavaScript startup screen uses the HUD theme and bilingual status text. A failed module download offers reload and documentation instead of an indefinite loading message. Root and layout error boundaries show styled diagnostics; layout retry retains the attempt and never resumes the clock automatically.
+The pre-JavaScript startup screen provides bilingual status and a reload path for module failures. Local save errors and disconnected LAN state must remain visible; neither error recovery nor reconnect commits a turn.
 
-Unknown app addresses show a keyboard-focused, localized 404. On the dev server use `http://localhost:5173/#setup/mission` (or the port printed by Vite), not a `/@fs/...` filesystem URL. Production includes a self-contained `404.html`; configure the static host to serve it with HTTP 404 for missing paths. Its Home link targets the site root (`/#home`).
+Use the URL printed by Vite, not a `/@fs/...` filesystem URL. Production includes `404.html`; configure a static host to serve it with HTTP 404 for missing paths.
 
 ## Scientific scope
 
-Two-body orbital propagation, cylindrical eclipse, ground-station geometry, idealized Earth–Mars transfer/capture and the rocket equation. Technical systems use bounded reduced models with disclosed coefficients: see [model parameters and reference cases](docs/TECHNICAL_MODELS.md). No atmospheric drag, full radiation transport, three-body dynamics, calibrated fault probabilities or flight qualification. Launch immersion is a skippable schematic storyboard, not ascent physics. Safe mode is not radiation shielding. Replayed ISS measurements are not a calibrated radiation map of all possible player orbits.
+Powered staged ascent uses a reduced finite-thrust/drag model; Earth/Moon coast uses patched two-body conics, with a reduced circular lunar ephemeris. Mars retains an analytical cruise/capture model. Resources, eclipse/contact geometry, finite inventories, slew and rocket-equation burns remain physical constraints underneath high-level plans. See [model parameters and reference cases](docs/TECHNICAL_MODELS.md). No full radiation transport, continuous three-body dynamics, real mission ephemeris, calibrated fault probabilities or flight qualification is implied. Safe mode is not shielding; historical ISS measurements are not a radiation map of arbitrary orbits.
 
 Start with the [canonical documentation index](docs/INDEX.md) or [system architecture](docs/ARCHITECTURE.md). Component references cover [missions](docs/MISSIONS.md), [resources and evidence](docs/RESOURCES.md), [simulation](docs/SIMULATION.md), [rendering](docs/RENDERIZATION.md), [layouts](docs/LAYOUTS.md) and [science UX](docs/SCIENCE_UX.md). The [implementation plan](docs/GAME_IMPLEMENTATION_PLAN.md) preserves design history; [verification](docs/VERIFICATION.md) records observed checks and the [changelog](docs/CHANGELOG.md) summarizes shipped changes.
 

@@ -1,4 +1,4 @@
-import { BUILTIN_DEFINITIONS, ascentProgramIssue, burnSpecValid, listLaunchers, listParts, listRides } from '@astrix/core';
+import { BUILTIN_DEFINITIONS, ascentProgramIssue, burnSpecValid, listLaunchers, listParts, listRides, validateQuickDesignConfig } from '@astrix/core';
 import type { ActorContext, AscentProgram, BuiltinMissionId, BurnSpec, BurnTrigger, Command, Digest, OrbitChoice } from '@astrix/core';
 import { MAX_CLIENT_FRAME_BYTES, MAX_DEFINITION_FRAME_BYTES, ROLES, STAGES, WARPS } from './contracts';
 import type { DesignEdit, PauseReason, SessionIntent } from './contracts';
@@ -95,6 +95,9 @@ function pauseReason(value:unknown):value is PauseReason{return member(value,['m
 function parseIntent(value:unknown):SessionIntent|null {
  if(!record(value))return null;
  switch(value.kind){
+ case 'START_GAME':return shape(value,['kind','config'])&&validateQuickDesignConfig(value.config)?{kind:'START_GAME',config:{...value.config}}:null;
+ case 'COMMIT_TURN':case 'PROPOSE_TURN':return shape(value,['kind','decisionId','turnRevision','planId'])&&text(value.decisionId)&&integer(value.turnRevision)&&text(value.planId,96)?{kind:value.kind,decisionId:value.decisionId,turnRevision:value.turnRevision,planId:value.planId}:null;
+ case 'RETRY_GAME':return shape(value,['kind'],['checkpointRevision'])&&(value.checkpointRevision===undefined||integer(value.checkpointRevision))?{kind:'RETRY_GAME',...(typeof value.checkpointRevision==='number'?{checkpointRevision:value.checkpointRevision}:{})}:null;
  case 'START_MISSION':return shape(value,['kind','missionId','levelId'],['retainHardware'])&&text(value.missionId,48)&&builtinIds.has(value.missionId)&&member(value.levelId,['ASPIRING','EXPERT'])&&(value.retainHardware===undefined||typeof value.retainHardware==='boolean')?{kind:'START_MISSION',missionId:value.missionId as BuiltinMissionId,levelId:value.levelId,...(typeof value.retainHardware==='boolean'?{retainHardware:value.retainHardware}:{})}:null;
  // The definition body is only checked to be a plain object here; core validation (bounds, depth, size, identity) runs again in the reducer.
  case 'START_DEFINITION':return shape(value,['kind','definition','levelId'],['retainHardware'])&&record(value.definition)&&boundedJson(value.definition)&&member(value.levelId,['ASPIRING','EXPERT'])&&(value.retainHardware===undefined||typeof value.retainHardware==='boolean')?{kind:'START_DEFINITION',definition:value.definition,levelId:value.levelId,...(typeof value.retainHardware==='boolean'?{retainHardware:value.retainHardware}:{})}:null;
@@ -144,7 +147,7 @@ function parseActor(value:unknown):ActorContext|null {
 function parse(raw:unknown):ClientMessage|null {
  if(!record(raw))return null;
  switch(raw.type){
- case 'HELLO':return shape(raw,['type','protocol','buildId','lastSeq'])&&raw.protocol===2&&text(raw.buildId)&&integer(raw.lastSeq)?{type:'HELLO',protocol:2,buildId:raw.buildId,lastSeq:raw.lastSeq}:null;
+ case 'HELLO':return shape(raw,['type','protocol','buildId','lastSeq'])&&raw.protocol===3&&text(raw.buildId)&&integer(raw.lastSeq)?{type:'HELLO',protocol:3,buildId:raw.buildId,lastSeq:raw.lastSeq}:null;
  case 'INTENT':{
   if(!shape(raw,['type','id','epoch','attemptId','rosterRevision','actor','intent'])||!text(raw.id)||!text(raw.epoch)||!integer(raw.attemptId)||!integer(raw.rosterRevision))return null;
   const actor=parseActor(raw.actor),intent=parseIntent(raw.intent);return actor&&intent?{type:'INTENT',id:raw.id,epoch:raw.epoch,attemptId:raw.attemptId,rosterRevision:raw.rosterRevision,actor,intent}:null;

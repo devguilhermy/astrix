@@ -159,6 +159,7 @@ const explicit = {
   'fact.TRAJECTORY': ['orbital-speed', 'vis-viva'], 'advice.TRAJECTORY': ['gravity-turn', 'hohmann-transfer', 'trajectory-model-limits'], 'advice.DEADLINE': ['mission-goal', 'mission-failure'],
   'model.limit.pointMassGravity': ['trajectory-model-limits', 'orbital-speed'], 'model.limit.ascentAtmosphere': ['trajectory-model-limits', 'gravity-drag-losses'], 'model.limit.impulsiveBurns': ['trajectory-model-limits', 'burn-direction'],
   'model.limit.patchedConics': ['sphere-of-influence', 'trajectory-model-limits'], 'model.limit.moonOnRails': ['lunar-phasing', 'trajectory-model-limits'], 'model.limit.noReentry': ['deorbit-entry', 'trajectory-model-limits'],
+  'preset.PARKING': ['orbit-height', 'orbital-speed', 'staging'],
   'preset.LEO_420': ['orbit-height', 'inclination', 'coverage'], 'preset.LEO_500': ['orbit-height', 'inclination', 'coverage'],
   'preset.LEO_550': ['orbit-height', 'inclination', 'coverage'], 'preset.LEO_CUSTOM': ['orbit-height', 'inclination', 'kepler-orbits'],
   'preset.MARS_CLOSE': ['orbit-shape', 'capture-burn'], 'preset.MARS_INTERMEDIATE': ['orbit-shape', 'capture-burn'],
@@ -177,7 +178,7 @@ const partCategories = {
   SS_SOLAR_400: 'SOLAR', SS_SOLAR_800: 'SOLAR', SS_OBC: 'COMPUTER', SS_ADCS: 'ADCS',
   SS_PROP_MONO: 'PROPULSION', SS_PROP_BI: 'PROPULSION', SS_XBAND: 'RADIO', SS_UHF_RELAY: 'RADIO',
   CREW_BATTERY: 'BATTERY', CREW_SOLAR: 'SOLAR', CREW_COMPUTER: 'COMPUTER', CREW_ADCS: 'ADCS', CREW_RADIO: 'RADIO', CREW_OBSERVER: 'INSTRUMENT', CREW_SUPPORT: 'THERMAL', CREW_HEATER: 'THERMAL', CREW_PROPULSION: 'PROPULSION', DEPLOY_MITIGATION: 'THERMAL',
-  SS_MAPPER: 'INSTRUMENT', SS_RAD: 'INSTRUMENT', HEATER_6: 'THERMAL', SS_HEATER_60: 'THERMAL'
+  SS_MAPPER: 'INSTRUMENT', SS_RAD: 'INSTRUMENT', HEATER_6: 'THERMAL', SS_HEATER_60: 'THERMAL', SS_RADIATOR: 'THERMAL'
 } as const;
 for (const [part, category] of Object.entries(partCategories)) bindings[`part.${part}`] = explicit[`category.${category}`];
 for (const ride of ['RIDE_CUBESAT_DISPENSER', 'RIDE_SMALL_LAUNCHER', 'RIDE_MARS_TRANSFER']) bindings[`ride.${ride}`] = ['launch-rides', ...(ride === 'RIDE_MARS_TRANSFER' ? ['transfer-orbits' as const] : ['orbit-height' as const])];

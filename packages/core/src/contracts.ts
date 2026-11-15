@@ -32,6 +32,7 @@ export interface PartDef {
  readonly metric?: 'IMAGES' | 'RADIATION_HOURS' | 'MAPS';
  readonly heaterW?: Q;
  readonly slewRateDegSec?: Q; readonly accuracyDeg?: Q; readonly coneHalfAngleDeg?: Q; readonly beamHalfAngleDeg?: Q;
+ readonly radiatorM2?: Q;
 }
 export interface RideDef { readonly id: string; readonly nameKey: string; readonly descKey: string; readonly busIds: readonly BusId[]; readonly body: BodyId; readonly cost: Q; readonly fixedOrbits?: readonly OrbitChoice[] }
 export interface DesignPart { readonly partId: string; readonly qty: number; readonly propellantKg?: number }

@@ -8,6 +8,7 @@ import { LAUNCHER_BY_ID } from './launchers';
 import { ascentProgramIssue } from './program';
 import { len, radiusOf } from './conic';
 import type { AscentPreview, FlightStateView, StateVector } from './types';
+import type { QuickApproach } from '../gameplayTypes';
 
 export const MODEL_LIMITS = ['model.limit.pointMassGravity', 'model.limit.ascentAtmosphere', 'model.limit.impulsiveBurns', 'model.limit.patchedConics', 'model.limit.moonOnRails', 'model.limit.noReentry'] as const;
 export const MAX_RECOMMENDATION_PREVIEWS = 64;
@@ -32,7 +33,7 @@ const apogeeBand = (design: Design) => design.definition.objectives.find(o => o.
  * Deterministic search: a bounded grid over pitch-kick, vertical rise and coast (plus a local refinement), or a bisection of the stage-1
  * load for apogee-band missions. At most MAX_RECOMMENDATION_PREVIEWS integrations; same inputs, same answer.
  */
-export function recommendAscentProgram(design: Design): { program: AscentProgram; preview: AscentPreview } | Refusal {
+export function recommendAscentProgram(design: Design, approach: QuickApproach = 'BALANCED'): { program: AscentProgram; preview: AscentPreview } | Refusal {
  const start = design.definition.start, launcher = design.launch ? LAUNCHER_BY_ID[design.launch.launcherId] : undefined;
  if (start.kind !== 'SURFACE_LAUNCH' || !design.launch || !launcher) return refusal('NO_STAGE', { missing: 'launcher' });
  const payload = designMassKg(design), base = design.launch.program;
@@ -41,23 +42,25 @@ export function recommendAscentProgram(design: Design): { program: AscentProgram
  const fly = (program: AscentProgram): AscentRun | null => { if (used >= MAX_RECOMMENDATION_PREVIEWS || ascentProgramIssue(program, launcher)) return null; used++; return runAscent(design.definition, { launcherId: launcher.id, program }, payload, 5); };
  const band = apogeeBand(design);
  if (band && band.kind === 'APOGEE_BAND') {
-  const mid = (band.minAltKm + band.maxAltKm) / 2;
+  const mid = band.minAltKm + (band.maxAltKm-band.minAltKm)*(approach==='CAUTIOUS'?.25:approach==='FAST'?.75:.5);
   let lo = 0.05, hi = 1, best: { program: AscentProgram; run: AscentRun } | null = null;
   for (let i = 0; i < 24; i++) {
-   const f = (lo + hi) / 2, program = { ...base, kickDeg: 0, holdUpperStage: false, stage1LoadFraction: f }, run = fly(program);
+   const f = (lo + hi) / 2, program = { ...base, verticalSec: Math.min(60,Math.max(2,base.verticalSec)), insertionAltKm: Math.max(150,base.insertionAltKm), kickDeg: 0, holdUpperStage: false, stage1LoadFraction: f }, run = fly(program);
    if (!run) break;
    if (!best || Math.abs(run.apogeeAltKm - mid) < Math.abs(best.run.apogeeAltKm - mid)) best = { program, run };
    if (run.apogeeAltKm < mid) lo = f; else hi = f;
   }
-  if (!best) return refusal('ASCENT_FORECAST_FAILS', { reason: 'no stable program' });
+  if (!best || best.run.apogeeAltKm < band.minAltKm || best.run.apogeeAltKm > band.maxAltKm) return refusal('ASCENT_FORECAST_FAILS', { reason: 'no searched program reaches the apogee band' });
   return { program: best.program, preview: toPreview(design, best.run) };
  }
  let best: { program: AscentProgram; run: AscentRun; score: number } | null = null;
  const consider = (kickDeg: number, verticalSec: number, stage2CoastSec: number): void => {
   const program: AscentProgram = { ...base, kickDeg, verticalSec, stage2CoastSec, stage1LoadFraction: 1 }, run = fly(program);
   if (!run || run.outcome !== 'ORBIT' || run.perigeeAltKm === null || run.perigeeAltKm < base.insertionAltKm - 10) return;
+  const orbitGoal = design.definition.objectives.find(o => o.required && o.spec.kind === 'BOUND_ORBIT' && o.spec.body === 'EARTH')?.spec;
+  if (orbitGoal?.kind === 'BOUND_ORBIT' && (run.perigeeAltKm < orbitGoal.periapsisAltKm.min || run.perigeeAltKm > orbitGoal.periapsisAltKm.max || run.apogeeAltKm < orbitGoal.apoapsisAltKm.min || run.apogeeAltKm > orbitGoal.apoapsisAltKm.max)) return;
   // Efficiency: leave the most propellant in the stage; among equals prefer the lower apogee (less to circularise).
-  const score = run.propellantKg.stage2 - 0.001 * run.apogeeAltKm;
+  const score = approach==='CAUTIOUS' ? -run.apogeeAltKm : approach==='FAST' ? -run.tEnd : run.propellantKg.stage2 - 0.001 * run.apogeeAltKm;
   if (!best || score > best.score) best = { program, run, score };
  };
  const kicks = launcher.stages.length > 1 ? [4, 6, 8, 10, 12, 14, 16, 18, 20, 24] : [0];

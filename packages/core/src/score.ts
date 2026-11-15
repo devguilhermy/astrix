@@ -49,5 +49,6 @@ export function summarizeMission(design: Design, budgets: Budgets, sim: SimState
 function progressOf(design: Design, sim: SimState | null): MissionSummary['progress'] {
  if (sim) { const p = primaryObjective(flight(sim)); return { metricKey: p.metricKey, value: p.value, target: p.target }; }
  const o = design.definition.objectives.find(x => x.required) ?? design.definition.objectives[0];
- return { metricKey: metricKeyOf(o.spec.kind), value: 0, target: 1 };
+ const target=o.spec.kind==='DELIVERED_PRODUCT'?o.spec.targetMB:o.spec.kind==='INSTRUMENT_HOURS'?o.spec.targetHours:o.spec.kind==='CREW_ORBIT_HOURS'?o.spec.hours:o.spec.kind==='APOGEE_BAND'?(o.spec.minAltKm+o.spec.maxAltKm)/2:o.spec.kind==='BOUND_ORBIT'?(o.spec.periapsisAltKm.min+o.spec.periapsisAltKm.max)/2:o.spec.kind==='ESCAPE'?o.spec.minExcessSpeedKms:o.spec.kind==='ENTRY_INTERFACE'||o.spec.kind==='RETURN_BOUNDARY'?o.spec.altitudeKm:o.spec.kind==='ENCOUNTER_DISTANCE'?(o.spec.minDistanceKm+o.spec.maxDistanceKm)/2:o.spec.kind==='PROPELLANT_RESERVE'?o.spec.minKg:1;
+ return { metricKey: metricKeyOf(o.spec.kind), value: 0, target };
 }

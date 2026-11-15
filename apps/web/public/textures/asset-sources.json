@@ -26,7 +26,7 @@
       "sourcePage": "https://svs.gsfc.nasa.gov/2915/",
       "original": "https://svs.gsfc.nasa.gov/vis/a000000/a002900/a002915/bluemarble-1024.png",
       "credit": "NASA/Goddard Space Flight Center Scientific Visualization Studio; Blue Marble Next Generation courtesy Reto Stockli (NASA/GSFC) and NASA Earth Observatory.",
-      "processing": "Existing 1024x512 historical surface retained unchanged as LOW and high-image failure fallback."
+      "processing": "Existing 1024x512 historical surface retained unchanged; shown as explicitly archival Earth discovery/debrief context in the turn-based game."
     },
     {
       "files": ["mars-viking-1024.jpg"],

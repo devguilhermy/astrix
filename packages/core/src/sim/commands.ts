@@ -122,7 +122,10 @@ export function applyCommand(s: FlightState, cmd: Command, events: SimEvent[]): 
  return null;
 }
 const pending = (status: string): boolean => status === 'WAITING_CONTACT' || status === 'IN_TRANSIT';
-export function issueCommand(state: SimState, cmd: Command, role: ActorRole, actor?: ActorContext): Quote<SimState> {
+/** Explicit operations plans execute onboard; ground commands retain their contact/light-time transport. */
+export function issuePlanCommand(state: SimState, cmd: Command): Quote<SimState> { return enqueueCommand(state,cmd,'ALL',undefined,true); }
+export function issueCommand(state: SimState, cmd: Command, role: ActorRole, actor?: ActorContext): Quote<SimState> { return enqueueCommand(state,cmd,role,actor,false); }
+function enqueueCommand(state: SimState, cmd: Command, role: ActorRole, actor: ActorContext | undefined, plan: boolean): Quote<SimState> {
  const old = flight(state), owner = commandRole(cmd);
  if (actor && actor.role !== role) return refusal('ROLE_LOCKED', { role });
  if (!ownsRole(role, owner) && !(cmd.kind === 'POINT' && role === 'SPACECRAFT')) return refusal('ROLE_LOCKED', { role: owner });
@@ -155,7 +158,7 @@ export function issueCommand(state: SimState, cmd: Command, role: ActorRole, act
  }
  const id = `command-${s.nextCommandId++}`;
  const crewSteering = !!s.crew && (cmd.kind === 'POINT' || cmd.kind === 'ATTITUDE_TARGET');
- const onboard = crewSteering || cmd.kind.startsWith('CREW_') || cmd.kind === 'DEPLOY' || cmd.kind === 'DEPLOY_RETRY';
+ const onboard = cmd.kind !== 'CAPTURE_CONFIRM' && (plan || crewSteering || cmd.kind.startsWith('CREW_') || cmd.kind === 'DEPLOY' || cmd.kind === 'DEPLOY_RETRY');
  const receipt = { id, command: cmd.kind === 'ATTITUDE_TARGET' ? { ...cmd, q: [...cmd.q] as const } : { ...cmd }, issuedAt: s.t, expiresAt: s.t + ENGINEERING.commandLifetimeSec.v, actor: actorContext, transport: onboard ? 'ONBOARD' as const : 'GROUND' as const };
  recordAudit(s, { t: s.t, kind: 'COMMAND_REQUEST', actor: receipt.actor, owner, transport: receipt.transport, revision: s.design.revision, detail: `${id}:${cmd.kind}` });
  if (onboard) {

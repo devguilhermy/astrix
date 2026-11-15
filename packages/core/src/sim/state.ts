@@ -33,6 +33,7 @@ export interface FlightState extends SimState {
  firstPassSeen: boolean; lowLatched: boolean; emptyLatched: boolean; storageLatched: boolean;
  depletedSec: number; healthySec: number; marginBadSec: number;
  temperatureK: number; heaterMode: HeaterMode; heaterOn: boolean; ratedHeaterW: number; heaterW: number; externalHeatW: number; internalHeatW: number; radiatedW: number; thermalTrend: number; thermalBadSec: number; thermalSurvivalSec: number; thermalInhibited: boolean;
+ extraRadiatorM2: number;
  pointing: PointingTelemetry; pointingReadyAt: number | null; pointingFaultAt: number; pointingFaultSeen: boolean;
  linkMode: LinkMode; linkQuality: number; linkDegradeAt: number; linkRestoreAt: number; linkDegradeSeen: boolean; linkRestoreSeen: boolean;
  computerState: ComputerTelemetry['state']; resetAt: number; resetSeen: boolean; commandEpochStartedAt: number; cooldownUntil: number; bootReadyAt: number | null; resets: number; recoveries: number; interventionEnergyWh: number;
@@ -58,11 +59,13 @@ export function createSim(design: Design, seed: number): SimState {
  if (ready.length) throw new RangeError(`Cannot launch invalid design: ${ready.map(r => r.code).join(', ')}`);
  const d: Design = Object.freeze({ ...design, orbit: design.orbit ? Object.freeze({ ...design.orbit }) : null, launch: design.launch ? Object.freeze({ launcherId: design.launch.launcherId, program: Object.freeze({ ...design.launch.program }) }) : null, burns: Object.freeze(design.burns.map(burn => Object.freeze({ ...burn }))), parts: Object.freeze(design.parts.map(p => Object.freeze({ ...p }))) });
  const b = computeBudgets(d), def = d.definition, mars = def.trajectory.model === 'MARS_ANALYTIC_CRUISE', technical = isTechnical(d.levelId), faults = def.environment.scheduledFaults;
- let capacity = 0, solar = 0, baseLoad = 0, storage = 0, isp = 0, heater = 0;
+ const cruise=mars&&!(def.start.kind==='PROVIDED_ORBIT'&&def.start.initialPhase==='OPERATIONS');
+ let capacity = 0, solar = 0, baseLoad = 0, storage = 0, isp = 0, heater = 0, extraRadiatorM2 = 0;
  const instruments: InstrumentState[] = [];
  for (const item of d.parts) {
   const p = PART_BY_ID[item.partId];
   capacity += (p.capacityWh?.v ?? 0) * item.qty; solar += (p.generationW?.v ?? 0) * item.qty; storage += (p.storageMB?.v ?? 0) * item.qty; heater += (p.heaterW?.v ?? 0) * item.qty;
+  extraRadiatorM2 += (p.radiatorM2?.v ?? 0)*item.qty;
   if (p.category === 'INSTRUMENT') instruments.push({ partId: p.id, on: false, lost: false, qty: item.qty, dutyFraction: 1 });
   else if (p.category !== 'PROPULSION') baseLoad += p.powerW.v * item.qty;
   if (p.ispSec) isp = p.ispSec.v;
@@ -70,12 +73,12 @@ export function createSim(design: Design, seed: number): SimState {
  let rng = seed >>> 0;
  const draw = (): number => { const [value, state] = next(rng); rng = state; return value; };
  const agingRoll = draw(), outageRoll = draw(), pointingRoll = draw(), resetRoll = draw(), captureRoll = draw();
- const duration = def.environment.durationSec, uncertainty = technical && mars ? ENGINEERING.captureLow.v + captureRoll * (ENGINEERING.captureHigh.v - ENGINEERING.captureLow.v) : 0;
+ const duration = def.environment.durationSec, uncertainty = technical && cruise ? ENGINEERING.captureLow.v + captureRoll * (ENGINEERING.captureHigh.v - ENGINEERING.captureLow.v) : 0;
  const nominalCapture = b.deltaV?.requiredKms ?? 0;
  const loadedPropellant = d.parts.reduce((sum, part) => sum + (part.propellantKg ?? 0) * part.qty, 0);
  const s: FlightState = {
   audit: [], auditDecimated: false, crew: def.support.crew ? initialCrew() : null, deployment: { wings: d.parts.some(p => p.partId === 'SOLAR_WINGS') ? 'STOWED' : 'NOT_APPLICABLE', antenna: d.busId === 'CUBESAT_3U' ? 'STOWED' : 'NOT_APPLICABLE' }, launchMassKg: b.massKg.used, sessionEnded: false,
-  version: 5, attitude: { q: [0,0,0,1], target: [0,0,0,1], rateRadSec: 0, hold: 'SUN', panelSunDeg: 0, instrumentTargetDeg: 0, antennaEarthDeg: 0 }, t: 0, design: d, seed: seed >>> 0, rng, assisted: false, remainderSec: 0, elapsed: 0, arrivalT: mars ? hohmann().transferSec : 0, cruise: mars, capturePending: false, captured: !mars, ended: false, finePointing: d.parts.some(i => PART_BY_ID[i.partId].finePointing),
+  version: 5, attitude: { q: [0,0,0,1], target: [0,0,0,1], rateRadSec: 0, hold: 'SUN', panelSunDeg: 0, instrumentTargetDeg: 0, antennaEarthDeg: 0 }, t: 0, design: d, seed: seed >>> 0, rng, assisted: false, remainderSec: 0, elapsed: 0, arrivalT: cruise ? hohmann().transferSec : 0, cruise, capturePending: false, captured: !cruise, ended: false, finePointing: d.parts.some(i => PART_BY_ID[i.partId].finePointing),
   epochUTC: def.environment.epochUTC, mars, flightHistory: def.start.kind === 'SURFACE_LAUNCH' || def.trajectory.model === 'PATCHED_CONICS' && def.trajectory.maneuvers.allowed, traj: undefined as never, objectives: initObjectives(def.objectives), centralBody: mars ? 'MARS' : 'EARTH', earthPosKm: [0, 0, 0], velocityKms: [0, 0, 0],
   capacityWh: capacity, nominalCapacityWh: capacity, arrayFactor: 1, batteryFactor: 1, capacityLostWh: 0, capacityClampNotified: false, socWh: capacity, genW: 0, loadW: baseLoad, ratedSolarW: solar, baseLoadW: baseLoad,
   mode: 'SUN', safe: false, downlinkRequested: false, downlinkActive: false,
@@ -83,14 +86,15 @@ export function createSim(design: Design, seed: number): SimState {
   positionKm: [0, 0, 0], sunDir: [0, 0, 0], stationPosKm: null, sunlit: true, inContact: false, lineOfSight: false, stationAvailable: false, doseUGyH: 0,
   instruments, queue: [], nextCommandId: 1,
   propellantKg: loadedPropellant, dryMassKg: b.massKg.used - loadedPropellant, ispSec: isp, captureRequiredKms: nominalCapture * (1 + uncertainty), captureNominalKms: nominalCapture, capturePlanningKms: nominalCapture * (technical ? 1 + ENGINEERING.captureHigh.v : MODEL.captureMargin.v), captureUncertainty: uncertainty, captureAvailableKms: b.deltaV?.availableKms ?? 0,
-  stormActive: false, stormStarted: false, stormEnded: false, agingAt: faults ? duration * (MODEL.agingDayFraction.v + (agingRoll - .5) * .2) : Infinity, aged: false,
-  outageAt: faults && !mars ? DAY * (1 + outageRoll * Math.max(1, duration / DAY - 2)) : Infinity, outageStarted: false, outageActive: false,
+  stormActive: false, stormStarted: false, stormEnded: false, agingAt: faults ? duration * (MODEL.agingDayFraction.v + (agingRoll - .5) * .2) : Number.MAX_SAFE_INTEGER, aged: false,
+  outageAt: faults && !mars ? DAY * (1 + outageRoll * Math.max(1, duration / DAY - 2)) : Number.MAX_SAFE_INTEGER, outageStarted: false, outageActive: false,
   firstPassSeen: false, lowLatched: false, emptyLatched: false, storageLatched: false,
   depletedSec: 0, healthySec: 0, marginBadSec: 0,
   temperatureK: THERMAL_MODELS[d.busId].initialK.v, heaterMode: 'AUTO', heaterOn: false, ratedHeaterW: heater, heaterW: 0, externalHeatW: 0, internalHeatW: 0, radiatedW: 0, thermalTrend: 0, thermalBadSec: 0, thermalSurvivalSec: 0, thermalInhibited: false,
-  pointing: { requested: 'SUN', state: 'SETTLED', remainingSec: 0, quality: 1, faulted: false, reacquisitions: 0 }, pointingReadyAt: null, pointingFaultAt: faults ? duration * (.16 + pointingRoll * .04) : Infinity, pointingFaultSeen: false,
-  linkMode: 'NORMAL', linkQuality: 1, linkDegradeAt: faults ? duration * .55 : Infinity, linkRestoreAt: faults ? duration * .55 + DAY : Infinity, linkDegradeSeen: false, linkRestoreSeen: false,
-  computerState: 'RUNNING', resetAt: faults ? duration * (.35 + resetRoll * .03) : Infinity, resetSeen: false, commandEpochStartedAt: 0, cooldownUntil: 0, bootReadyAt: null, resets: 0, recoveries: 0, interventionEnergyWh: 0,
+  extraRadiatorM2,
+  pointing: { requested: 'SUN', state: 'SETTLED', remainingSec: 0, quality: 1, faulted: false, reacquisitions: 0 }, pointingReadyAt: null, pointingFaultAt: faults ? duration * (.16 + pointingRoll * .04) : Number.MAX_SAFE_INTEGER, pointingFaultSeen: false,
+  linkMode: 'NORMAL', linkQuality: 1, linkDegradeAt: faults ? duration * .55 : Number.MAX_SAFE_INTEGER, linkRestoreAt: faults ? duration * .55 + DAY : Number.MAX_SAFE_INTEGER, linkDegradeSeen: false, linkRestoreSeen: false,
+  computerState: 'RUNNING', resetAt: faults ? duration * (.35 + resetRoll * .03) : Number.MAX_SAFE_INTEGER, resetSeen: false, commandEpochStartedAt: 0, cooldownUntil: 0, bootReadyAt: null, resets: 0, recoveries: 0, interventionEnergyWh: 0,
   firstFailure: null, pendingEvents: [], samples: [], sampleHead: 0, historyIntervalSec: MODEL.historyEverySec.v, historyDecimated: false, nextSampleAt: MODEL.historyEverySec.v, nextPassSec: null, nextPassAt: null, nextPassCheckedAt: -DAY,
  };
  const init = initTrajectory(s, b.massKg.used);

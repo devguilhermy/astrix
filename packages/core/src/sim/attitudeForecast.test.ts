@@ -4,7 +4,6 @@ import { PARTS } from '../catalog';
 import { missionById } from '../mission/library';
 import { attitudeDistance, attitudeTargetForDirection, normalizeAttitude, rotateAttitudeVector, slewAttitude, antennaGain } from '../attitude';
 import { CONSTANTS, DAY, cylinderEclipse, norm, radians, sunDirection } from '../physics';
-import { RULES_VERSION } from '../models';
 import { applyCommand, issueCommand } from './commands';
 import { forecastMission, forecastTimeline } from './forecast';
 import { environmentAt } from './environment';
@@ -14,9 +13,8 @@ import { telemetry } from './selectors';
 import { skipCruise, stepSim } from './step';
 import { accepted, advanceTo, referenceDesign } from './testSupport';
 
-describe('rules-v4 physical attitude contracts', () => {
+describe('physical attitude contracts', () => {
  it('has finite paid ADCS rates, errors, instrument cones and directional beam widths', () => {
-  expect(RULES_VERSION).toBe(4);
   for (const p of PARTS) {
    if (p.category === 'ADCS') { expect(p.slewRateDegSec!.v).toBeGreaterThan(0); expect(p.accuracyDeg!.v).toBeGreaterThan(0); }
    if (p.requiresTarget) expect(p.coneHalfAngleDeg!.v).toBeGreaterThan(0);

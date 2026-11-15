@@ -1,6 +1,6 @@
-# Bounded engineering and flight models — rules 5
+# Bounded engineering and flight models
 
-Rules-v5 integration adds immutable mission definitions, finite-thrust launch and Earth/Moon patched conics to the existing engineering systems below. `createStarterDesign(definition, levelId)` creates a paid draft; `createSim` validates the flown configuration. Both levels retain quaternion attitude and resource accounting; Expert enables applicable additional fault mechanisms. These are teaching models, not certified spacecraft or flight dynamics. The new combined verification pass is pending.
+The turn-based game retains immutable mission definitions, finite-thrust launch, Earth/Moon patched conics and the engineering systems below. High-level plans automate operations; they do not replace physical resource accounting. Both levels retain quaternion attitude and inventories; Expert enables applicable additional fault mechanisms. Rules/model versions qualify saved results and readiness witnesses. These are teaching models, not certified spacecraft or flight dynamics. Observed verification belongs in [Verification](./VERIFICATION.md).
 
 ## Launch and lunar approximation boundary
 

@@ -3,7 +3,6 @@ import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { PROTOCOL_VERSION } from '@astrix/session';
 import { Room } from './room';
-import { HostClock } from './clock';
 import { lanInterfaces, selectInterface, isAllowedPeer } from './interfaces';
 import { requestBoundary, readJson, RateLimit, MAX_FRAME_BYTES, MAX_WS_FRAME_BYTES, MAX_BUFFER_BYTES } from './security/rateLimit';
 import { verifyBuild } from './manifest';
@@ -72,7 +71,8 @@ export async function startHost(args=process.argv.slice(2)) {
       return new Response(null,{status:303,headers:{...publicHeaders,Location:`${origin}/host#host=${room.hostCapability}`}});
     }});}catch(error){server.stop(true);throw new Error(`Cannot bind loopback host control on ${controlHost}; choose a free --control-port.`,{cause:error});}
   })();
-  const clock=new HostClock(seconds=>room.tick(seconds),()=>room.stall());const interval=setInterval(()=>{clock.pulse();room.maintenance();},100);
+  // Heartbeats expire network peers; mission time advances only on an explicit turn commit.
+  const interval=setInterval(()=>room.maintenance(),1000);
   console.log(`ASTRIX trusted-LAN room\nInterface: ${selected.name}\nLAN: ${origin}\nOpen host control locally: http://${controlHost}/\nHTTP is plaintext. Use an isolated trusted LAN; never port-forward. Stopping Bun ends this in-memory room.`);
   const stop=()=>{clearInterval(interval);room.close();server.stop();control.stop(true);};process.once('SIGINT',stop);process.once('SIGTERM',stop);return {server,control,room,stop};
 }

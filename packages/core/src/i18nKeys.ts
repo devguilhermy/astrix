@@ -6,7 +6,7 @@ import { CORE_TECHNICAL_EN } from './technicalCopy';
 
 /** Exhaustive core-emitted locale keys and authoring defaults; not runtime English fallback. */
 export const CORE_ENGLISH: Readonly<Record<string, string>> = {
- 'scenario.CREW_PATHFINDER.name': 'Crew Pathfinder', 'scenario.CREW_PATHFINDER.desc': 'Support four virtual crew in Earth orbit and return them through an abstracted recovery.', 'scenario.CREW_PATHFINDER.objective': 'Maintain support for 72 hours, return 100 MB and complete six hours of recovery.',
+ 'scenario.CREW_PATHFINDER.name': 'Crewed Earth Orbit: Support, Observe and Recover', 'scenario.CREW_PATHFINDER.desc': 'Support four virtual crew in Earth orbit and return them through an abstracted recovery.', 'scenario.CREW_PATHFINDER.objective': 'Maintain support for 72 hours, return 100 MB and complete six hours of recovery.',
  'part.CREW_BATTERY.name': 'Crew battery', 'part.CREW_BATTERY.desc': 'Stores 8,000 Wh for the capsule electrical loads.',
  'part.CREW_SOLAR.name': 'Crew solar array', 'part.CREW_SOLAR.desc': 'Rated 5,000 W at Earth distance in sunlight.',
  'part.CREW_COMPUTER.name': 'Crew flight computer', 'part.CREW_COMPUTER.desc': 'Controls the capsule and stores 32,000 MB.',
@@ -30,9 +30,9 @@ export const CORE_ENGLISH: Readonly<Record<string, string>> = {
  'fact.CREW_SUPPORT': 'Support at the event: oxygen tank {{oxygenKg}} kg, cabin {{cabinOxygenKg}} kg, water {{waterKg}} kg, food {{foodKg}} kg, CO₂ {{co2MmHg}} mmHg, inspired oxygen {{inspiredOxygenMmHg}} mmHg (one-hour mean {{inspiredOxygenAverageMmHg}}); battery {{socWh}} Wh.',
  'advice.CREW_SUPPORT': 'Compare consumable runway, fan power, cabin gases and recovery duration; use available onboard procedures before a support limit is reached.',
  'failure.CREW_SUPPORT_LOST.title': 'Crew support requirements lost', 'failure.CREW_SUPPORT_LOST.body': 'A finite store or modeled atmosphere requirement was exceeded; no medical outcome is inferred.',
- 'scenario.FIRST_LIGHT.name': 'First Light', 'scenario.FIRST_LIGHT.desc': 'Build an Earth-observing spacecraft and send its pictures home.', 'scenario.FIRST_LIGHT.objective': 'Send home at least 1,500 MB of images within 14 days.',
- 'scenario.STORM_WATCH.name': 'Storm Watch', 'scenario.STORM_WATCH.desc': 'Measure a replay of real ISS radiation readings while keeping your spacecraft operating.', 'scenario.STORM_WATCH.objective': 'Record at least 24 hours during the 48-hour radiation replay and finish healthy.',
- 'scenario.RED_RELAY.name': 'Red Relay', 'scenario.RED_RELAY.desc': 'Plan fuel, travel to Mars, slow into orbit and return mapping data.', 'scenario.RED_RELAY.objective': 'Send 5,000 MB of Mars maps home within 60 operational days after capture.',
+ 'scenario.FIRST_LIGHT.name': 'Earth Observation: Build an Imaging Satellite and Return Data', 'scenario.FIRST_LIGHT.desc': 'Build an Earth-observing spacecraft and send its pictures home.', 'scenario.FIRST_LIGHT.objective': 'Send home at least 1,500 MB of images within 14 days.',
+ 'scenario.STORM_WATCH.name': 'Radiation Survey: Record the Historical ISS Storm Replay', 'scenario.STORM_WATCH.desc': 'Measure a replay of real ISS radiation readings while keeping your spacecraft operating.', 'scenario.STORM_WATCH.objective': 'Record at least 24 hours during the 48-hour radiation replay and finish healthy.',
+ 'scenario.RED_RELAY.name': 'Mars Mapping: Operate an Orbiter and Return Data', 'scenario.RED_RELAY.desc': 'Plan fuel, travel to Mars, slow into orbit and return mapping data.', 'scenario.RED_RELAY.objective': 'Send 5,000 MB of Mars maps home within 60 operational days after capture.',
  'part.EPS_BATT_20.name': 'Power controller and small battery', 'part.EPS_BATT_20.desc': 'Stores 20 Wh; the planning estimate reserves 60% for uncertainty.',
  'part.BATT_40.name': 'Larger battery', 'part.BATT_40.desc': 'Adds 40 Wh of stored energy, weight and room use.',
  'part.SOLAR_BODY.name': 'Body-mounted solar panels', 'part.SOLAR_BODY.desc': 'Light, inexpensive panels make electricity in sunlight.',
@@ -59,6 +59,7 @@ export const CORE_ENGLISH: Readonly<Record<string, string>> = {
  'part.SS_RAD.name': 'SmallSat radiation monitor', 'part.SS_RAD.desc': 'An optional environmental instrument, not a replacement for the mapper.',
  'part.HEATER_6.name': 'Thermostatic bus heater', 'part.HEATER_6.desc': 'Paid 6 W heater: 0.08 kg, 0.1 U, 7 budget units. Automatic mode uses 278/286 K hysteresis.',
  'part.SS_HEATER_60.name': 'SmallSat bus heater', 'part.SS_HEATER_60.desc': 'Paid 60 W heater: 1 kg, 0.25 bay, 18 budget units. Automatic mode uses 278/286 K hysteresis.',
+ 'part.SS_RADIATOR.name': 'SmallSat radiator', 'part.SS_RADIATOR.desc': 'Paid 2 kg radiator adds 0.05 m² effective radiating area and costs 25 budget units; it rejects heat, not electricity.',
  'ride.RIDE_CUBESAT_DISPENSER.name': 'Shared CubeSat ride', 'ride.RIDE_CUBESAT_DISPENSER.desc': 'Choose one of three authored fixed Earth paths.',
  'ride.RIDE_SMALL_LAUNCHER.name': 'Custom Earth launch', 'ride.RIDE_SMALL_LAUNCHER.desc': 'Choose a circular Earth orbit from 350 to 800 km and inclination from 0 to 98 degrees.',
  'ride.RIDE_MARS_TRANSFER.name': 'Mars transfer ride', 'ride.RIDE_MARS_TRANSFER.desc': 'Supplies Earth departure; your spacecraft must carry its own Mars capture fuel.',

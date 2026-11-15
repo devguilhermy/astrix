@@ -1,87 +1,83 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { orbitAltitudes, quoteSetOrbit, withOrbitAltitudes, type OrbitChoice } from '@astrix/core';
+import { CONSTANTS, type OrbitChoice } from '@astrix/core';
 import { exportInitialOrbit, sampleTrajectory, type Trajectory } from '@astrix/core/interop/gmat';
-import { useMission } from '../../store';
 import { advancedCopy } from './copy';
-import { TeachingCard } from '../science/TeachingCard';
-import { trajectoryViewer } from './trajectoryStore';
+import { usePlayCopy } from '../play/copy';
 
-function intervalRange(trajectory: Trajectory): string {
- let min = Infinity, max = 0;
- for (const segment of trajectory.segments) for (let i = 1; i < segment.samples.length; i++) {
-  const seconds = (segment.samples[i].time - segment.samples[i-1].time) / 1000;
-  min = Math.min(min, seconds); max = Math.max(max, seconds);
- }
- return Number.isFinite(min) ? `${min}–${max} s` : 'N/A';
+function portugueseError(message:string):string {
+  if(/Moon|Luna|MOON/.test(message))return 'Estados centrados na Lua não são suportados neste intercâmbio.';
+  if(/exceeds|Too many/.test(message))return 'O arquivo excede os limites de tamanho, linhas, amostras ou segmentos.';
+  if(/Leap-second|timestamp|UTC/.test(message))return 'A data ou escala de tempo não pertence ao subconjunto UTC suportado.';
+  if(/frame|center|metadata|EME2000/.test(message))return 'Confira o centro, quadro e metadados obrigatórios.';
+  if(/script|statement|property|literal/.test(message))return 'Somente o subconjunto inerte de estado inicial é aceito; scripts não são executados.';
+  return 'O arquivo não pertence ao perfil suportado. Confira os detalhes técnicos.';
 }
 
-function portugueseError(message: string): string {
- if (/exceeds|Too many/.test(message)) return 'O arquivo excede os limites de tamanho, linha, amostras ou segmentos.';
- if (/Leap-second/.test(message)) return 'Segundos intercalares não são suportados; use timestamps UTC sem segundo 60.';
- if (/timestamp|UTC date/.test(message)) return 'A data UTC é inválida ou usa um formato não suportado.';
- if (/strictly increasing|backward|Overlapping/.test(message)) return 'Os tempos devem avançar e os segmentos não podem se sobrepor.';
- if (/Missing|incomplete|no data|no samples|Empty|nonempty/.test(message)) return 'Faltam metadados ou amostras obrigatórias; confira o perfil selecionado.';
- if (/metadata|center|frame|CoordinateSystem|EME2000|TIME_SYSTEM/.test(message)) return 'Centro, quadro, escala de tempo ou metadados não são suportados ou são inconsistentes.';
- if (/Report|columns|header/.test(message)) return 'O relatório não identifica exclusivamente as colunas UTC e cartesianas exigidas para a espaçonave selecionada.';
- if (/spacecraft|Spacecraft|object|Object/.test(message)) return 'Selecione uma espaçonave declarada e não ambígua.';
- if (/script|statement|property|literal|Keplerian/.test(message)) return 'O script não pertence ao subconjunto de estado inicial; use OEM para visualizar uma missão completa.';
- if (/orbit|periapsis/.test(message)) return 'A órbita deve ser elíptica, com inclinação válida e periastro acima da superfície.';
- if (/finite|numeric|values/.test(message)) return 'Os valores de estado devem ser números finitos literais.';
- if (/ORBIT_NOT_OFFERED|RIDE_MISMATCH|ROLE_LOCKED|INVALID_PARAMETER/.test(message)) return 'A órbita não passou nas regras atuais de missão, lançador ou autorização.';
- return 'Não foi possível importar o arquivo ou aplicar a órbita com as opções atuais.';
+/** Scientific interchange is independent of the gameplay renderer and never awards evidence. */
+export function AdvancedTools({initialOrbit,onPrepare}:{initialOrbit?:OrbitChoice|null;onPrepare?:(orbit:OrbitChoice)=>void}) {
+  const {i18n}=useTranslation(),c=advancedCopy[i18n.resolvedLanguage?.startsWith('pt')?'pt':'en'],p=usePlayCopy(),pt=i18n.resolvedLanguage?.startsWith('pt');
+  const [kind,setKind]=useState<'oem'|'report'|'script'>('oem'),[object,setObject]=useState(''),[file,setFile]=useState<File|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[result,setResult]=useState<Trajectory|OrbitChoice|null>(null),[viewing,setViewing]=useState(false);
+  const worker=useRef<Worker|null>(null);
+  useEffect(()=>()=>{worker.current?.terminate();},[]);
+  const clear=()=>{worker.current?.terminate();worker.current=null;setBusy(false);setResult(null);setViewing(false);setError('');};
+  const inspect=()=>{
+    if(!file){setError(c.unsupported);return;}
+    clear();setBusy(true);
+    try {
+      const w=new Worker(new URL('./parser.worker.ts',import.meta.url),{type:'module'});worker.current=w;
+      w.onmessage=(event:MessageEvent<{result?:Trajectory|OrbitChoice;error?:string}>)=>{if(worker.current!==w)return;setBusy(false);setError(event.data.error??'');setResult(event.data.result??null);worker.current=null;w.terminate();};
+      w.onerror=()=>{if(worker.current!==w)return;setBusy(false);setError(c.worker);worker.current=null;w.terminate();};
+      w.postMessage({file,kind,object});
+    }catch{setBusy(false);setError(c.worker);}
+  };
+  const orbit=result&&'smaKm'in result?result:null,trajectory=result&&'segments'in result?result:null;
+  const download=()=>{
+    if(!initialOrbit)return;
+    try{const url=URL.createObjectURL(new Blob([exportInitialOrbit(initialOrbit)],{type:'text/plain'})),link=document.createElement('a');link.href=url;link.download='astrix-initial-state.script';link.click();window.setTimeout(()=>URL.revokeObjectURL(url),1000);}catch(cause){setError(cause instanceof Error?cause.message:String(cause));}
+  };
+  return <section className="gmat-tools" aria-label={p('tools')}><h1>{p('tools')}</h1><p>{c.warning}</p><p>{pt?'Quadros EarthMJ2000Eq/MarsMJ2000Eq nos estados iniciais; OEM EME2000, UTC, km e km/s. Lua não suportada. Nenhum script é executado.':'Initial states use EarthMJ2000Eq/MarsMJ2000Eq; OEM uses EME2000, UTC, km and km/s. Moon interchange is unsupported. Uploaded scripts are never executed.'}</p>
+    <div className="play-form"><label>{c.format}<select value={kind} onChange={event=>{clear();setKind(event.target.value as typeof kind);}}><option value="oem">CCSDS OEM 2.0 KVN</option><option value="report">GMAT ReportFile</option><option value="script">GMAT initial-state script</option></select></label>
+      {kind!=='oem'&&<label>{c.object}<input value={object} onChange={event=>{clear();setObject(event.target.value);}}/></label>}
+      <label>{c.file}<input type="file" accept=".txt,.oem,.script,text/plain" onChange={event=>{clear();setFile(event.target.files?.[0]??null);}}/></label>
+      <div className="button-wrap"><button className="button primary" disabled={busy||!file} onClick={inspect}>{c.parse}</button>{busy&&<button className="button" onClick={clear}>{c.cancel}</button>}{initialOrbit&&<button className="button" onClick={download}>{c.export}</button>}</div>
+    </div>
+    {busy&&<p role="status">{pt?'Inspecionando arquivo…':'Inspecting file…'}</p>}
+    {error&&<div role="alert" className="play-notice danger"><p>{pt?portugueseError(error):error}</p>{pt&&<details><summary>{c.detail}</summary><p lang="en">{error}</p></details>}</div>}
+    {orbit&&<section className="play-section"><h2>{c.preview}</h2><p>{orbit.body} · {orbit.frame} · {orbit.epochUTC}</p><dl><dt>SMA</dt><dd>{orbit.smaKm} km</dd><dt>e</dt><dd>{orbit.ecc}</dd><dt>i</dt><dd>{orbit.inclinationDeg}°</dd><dt>RAAN / AOP / TA</dt><dd>{orbit.raanDeg}° / {orbit.argPeriapsisDeg}° / {orbit.trueAnomalyDeg}°</dd></dl>
+      <p>{pt?'Importar abre uma nova preparação compatível. A órbita precisa passar nos limites do catálogo e na referência; ela não substitui um voo em andamento.':'Import opens a new compatible preparation. The orbit must pass catalogue constraints and a reference flight; it never replaces an active flight.'}</p>
+      {onPrepare&&<button className="button primary" onClick={()=>onPrepare(orbit)}>{pt?'Preparar nova missão com este estado':'Prepare a new mission with this state'}</button>}
+    </section>}
+    {trajectory&&<section className="play-section"><h2>{c.preview}</h2><p>{trajectory.source} · {trajectory.object} · {trajectory.body} · {trajectory.frame} · {trajectory.timeSystem} · {trajectory.units}</p><p>{trajectory.segments.length} {c.segments} · {trajectory.segments.reduce((sum,segment)=>sum+segment.samples.length,0)} {c.samples}</p><button className="button" onClick={()=>setViewing(!viewing)}>{viewing?p('close'):c.viewer}</button>{viewing&&<TrajectoryView trajectory={trajectory}/>}</section>}
+  </section>;
 }
 
-export function AdvancedTools() {
- const {i18n} = useTranslation(), c = advancedCopy[i18n.resolvedLanguage?.startsWith('pt') ? 'pt' : 'en'];
- const design = useMission(s => s.design), actor = useMission(s => s.actor), applyDesign = useMission(s => s.applyDesign), pauseMission = useMission(s => s.pause), clearPause = useMission(s => s.clearPauseReason);
- const active = trajectoryViewer(s => s.active), trajectory = trajectoryViewer(s => s.trajectory), time = trajectoryViewer(s => s.time), playing = trajectoryViewer(s => s.playing);
- const [kind,setKind] = useState<'oem'|'report'|'script'>('oem'), [object,setObject] = useState(''), [file,setFile] = useState<File|null>(null), [busy,setBusy] = useState(false), [error,setError] = useState(''), [result,setResult] = useState<Trajectory|OrbitChoice|null>(null);
- const worker = useRef<Worker|null>(null);
- useEffect(() => () => { worker.current?.terminate(); }, []);
- useEffect(() => {
-  if (!active || !playing || !trajectory) return;
-  let last = performance.now();
-  const id = window.setInterval(() => { const now = performance.now(), current = trajectoryViewer.getState(), end = trajectory.segments[trajectory.segments.length-1].samples.at(-1)!.time; const next = Math.min(end,current.time + (now-last)); last = now; current.seek(next); if (next >= end) current.play(false); }, 250);
-  return () => window.clearInterval(id);
- }, [active,playing,trajectory]);
- const inspect = () => {
-  if (!file) { setError(c.unsupported); return; }
-  worker.current?.terminate(); setError(''); setResult(null); setBusy(true);
-  const w = new Worker(new URL('./parser.worker.ts', import.meta.url), {type:'module'}); worker.current = w;
-  w.onmessage = (event: MessageEvent<{result?:Trajectory|OrbitChoice;error?:string}>) => { setBusy(false); setError(event.data.error ?? ''); setResult(event.data.result ?? null); w.terminate(); if (worker.current === w) worker.current = null; };
-  w.onerror = () => { setBusy(false); setError(c.worker); w.terminate(); worker.current = null; };
-  w.postMessage({file,kind,object});
- };
- const orbit = result && 'smaKm' in result ? result : null;
- const imported = result && 'segments' in result ? result : null;
- const interval = useMemo(() => imported ? intervalRange(imported) : '', [imported]);
- const pt = i18n.resolvedLanguage?.startsWith('pt'), number = new Intl.NumberFormat(i18n.resolvedLanguage, {maximumFractionDigits: 4});
- const bodyName = (body: string) => body === 'EARTH' ? (pt ? 'Terra' : 'Earth') : (pt ? 'Marte' : 'Mars');
- const teachingValues: Record<string, string | number> = orbit ? {
-  [pt ? 'Corpo' : 'Body']: bodyName(orbit.body),
-  [pt ? 'Época UTC' : 'UTC epoch']: orbit.epochUTC,
-  [pt ? 'Semieixo maior' : 'Semi-major axis']: `${number.format(orbit.smaKm)} km`,
-  [pt ? 'Excentricidade' : 'Eccentricity']: number.format(orbit.ecc),
-  [pt ? 'Inclinação' : 'Inclination']: `${number.format(orbit.inclinationDeg)}°`,
- } : imported ? {
-  [pt ? 'Corpo' : 'Body']: bodyName(imported.body),
-  [pt ? 'Segmentos' : 'Segments']: imported.segments.length,
-  [pt ? 'Amostras' : 'Samples']: imported.segments.reduce((n,s)=>n+s.samples.length,0),
-  [pt ? 'Intervalo entre amostras' : 'Sample interval']: interval,
- } : {[pt ? 'Formato' : 'Format']:kind};
- const apply = (candidate:OrbitChoice) => { if (!design) return; const quote = quoteSetOrbit(design,candidate,actor()); if (!quote.ok) { setError(`${quote.code}: ${JSON.stringify(quote.values)}`); return; } if (!applyDesign(quote)) setError(c.stale); else setError(''); };
- const download = () => { if (!design?.orbit) return; const url = URL.createObjectURL(new Blob([exportInitialOrbit(design.orbit)],{type:'text/plain'})); const a = document.createElement('a'); a.href=url; a.download='astrix-initial.script'; a.click(); URL.revokeObjectURL(url); };
- return <section aria-label={c.title}><h3>{c.title}</h3><p>{c.warning}</p>
-  <label>{c.format} <select value={kind} onChange={e => {setKind(e.target.value as typeof kind); setResult(null);}}><option value="oem">CCSDS OEM 2.0 KVN</option><option value="report">GMAT ReportFile</option><option value="script">GMAT initial-state script</option></select></label>
-  <TeachingCard topic={active ? 'viewer-provenance' : kind === 'script' ? 'initial-orbit-state' : 'external-trajectories'} context={active ? 'advanced.viewer' : `advanced.${kind}`} values={teachingValues}/>
-  {kind !== 'oem' && <label>{c.object} <input value={object} onChange={e=>setObject(e.target.value)}/></label>}
-  <label>{c.file} <input type="file" accept=".txt,.oem,.script,text/plain" onChange={e=>{setFile(e.target.files?.[0] ?? null);setResult(null);}}/></label>
-  <button type="button" disabled={busy} onClick={inspect}>{c.parse}</button>{busy && <button type="button" onClick={()=>{worker.current?.terminate();worker.current=null;setBusy(false);}}>{c.cancel}</button>}
-  {error && <p role="alert">{c.error}: {i18n.resolvedLanguage?.startsWith('pt') && error !== c.unsupported && error !== c.worker && error !== c.stale ? <>{portugueseError(error)} <small>{c.detail}: {error}</small></> : error}</p>}
-  {orbit && <div><h4>{c.preview}</h4><p>{orbit.body} · {orbit.frame} · {orbit.epochUTC} · SMA {orbit.smaKm} km · e {orbit.ecc} · i {orbit.inclinationDeg}° · RAAN {orbit.raanDeg}° · AOP {orbit.argPeriapsisDeg}° · TA {orbit.trueAnomalyDeg}°</p><button type="button" onClick={()=>apply(orbit)}>{c.apply}</button>{design?.orbit && <button type="button" onClick={()=>{const alt = orbitAltitudes(orbit); apply(withOrbitAltitudes(design.orbit!,alt.altitudeKm,alt.apoapsisAltitudeKm,orbit.inclinationDeg));}}>{c.shape}</button>}</div>}
-  {imported && <div><h4>{c.preview}</h4><p>{imported.source} · {imported.object} {imported.objectId && `(${imported.objectId})`} · {imported.body} · {imported.frame} · {imported.timeSystem} · {imported.units} · {imported.segments.length} {c.segments} · {imported.segments.reduce((n,s)=>n+s.samples.length,0)} {c.samples} · {c.interval} {interval}</p><button type="button" onClick={()=>{pauseMission('viewer');trajectoryViewer.getState().open(imported);}}>{c.viewer}</button></div>}
-  {design?.orbit && <button type="button" onClick={download}>{c.export}</button>}
-  {active && trajectory && <div><p>{trajectory.source} · {trajectory.object} · {trajectory.body} · {new Date(time).toISOString()} · {c.elapsed} {((time-trajectory.segments[0].samples[0].time)/1000).toFixed(1)} s · {i18n.resolvedLanguage?.startsWith('pt') ? 'Interpolação linear só até 120 segundos; sem extrapolação. Linhas limitadas podem omitir segmentos.' : 'Linear interpolation only up to 120 seconds; no extrapolation. Bounded path lines may omit segments.'}</p>{!sampleTrajectory(trajectory,time) && <p role="status">{c.gap}</p>}<label>{c.time}<input type="range" min={trajectory.segments[0].samples[0].time} max={trajectory.segments.at(-1)!.samples.at(-1)!.time} value={time} onChange={e=>trajectoryViewer.getState().seek(Number(e.target.value))}/></label><button type="button" onClick={()=>trajectoryViewer.getState().play(!playing)}>{playing?c.pause:c.play}</button><button type="button" onClick={()=>{trajectoryViewer.getState().exit();clearPause('viewer');}}>{c.close}</button></div>}
- </section>;
+function TrajectoryView({trajectory}:{trajectory:Trajectory}) {
+  const {i18n}=useTranslation(),pt=i18n.resolvedLanguage?.startsWith('pt'),c=advancedCopy[pt?'pt':'en'];
+  const start=trajectory.segments[0].samples[0].time,end=trajectory.segments.at(-1)!.samples.at(-1)!.time;
+  const [time,setTime]=useState(start),[playing,setPlaying]=useState(false),[plane,setPlane]=useState<'XY'|'XZ'>('XY');
+  useEffect(()=>{setTime(start);setPlaying(false);},[start,trajectory]);
+  useEffect(()=>{if(!playing)return;let previous=performance.now();const id=window.setInterval(()=>{const now=performance.now(),delta=now-previous;previous=now;setTime(value=>{const next=Math.min(end,value+delta);if(next===end)setPlaying(false);return next;});},100);return()=>clearInterval(id);},[playing,end]);
+  const geometry=useMemo(()=>{
+    const count=trajectory.segments.reduce((sum,segment)=>sum+segment.samples.length,0),stride=Math.max(1,Math.ceil(count/1200));
+    let extent=CONSTANTS[trajectory.body].radius.v*1.2;
+    for(const segment of trajectory.segments)for(const sample of segment.samples)extent=Math.max(extent,Math.abs(sample.positionKm[0]),Math.abs(sample.positionKm[plane==='XY'?1:2]));
+    const scale=160/extent,paths:string[]=[];
+    for(const segment of trajectory.segments){let path='';for(let index=0;index<segment.samples.length;index++){
+      const sample=segment.samples[index],gap=index>0&&sample.time-segment.samples[index-1].time>120000;
+      if(gap&&path){paths.push(path);path='';}
+      if(index%stride!==0&&index!==segment.samples.length-1&&!gap)continue;
+      const x=200+sample.positionKm[0]*scale,y=180-sample.positionKm[plane==='XY'?1:2]*scale;
+      path+=`${path?'L':'M'}${x.toFixed(2)},${y.toFixed(2)} `;
+    }if(path)paths.push(path);}
+    return {paths,scale,radius:CONSTANTS[trajectory.body].radius.v*scale};
+  },[trajectory,plane]);
+  const position=sampleTrajectory(trajectory,time);
+  return <div className="trajectory-view"><p>{pt?'Referência externa, sem recursos, objetivos ou pontuação. Projeção cartesiana; o caminho é amostrado para exibição.':'External reference only: no resources, objectives or score. Cartesian projection; the displayed path is sampled.'}</p>
+    <label>{pt?'Projeção':'Projection'}<select value={plane} onChange={event=>setPlane(event.target.value as typeof plane)}><option>XY</option><option>XZ</option></select></label>
+    <svg viewBox="0 0 400 360" role="img" aria-label={pt?'Trajetória externa e posição selecionada':'External trajectory and selected position'}><circle cx="200" cy="180" r={geometry.radius} fill="#284857"/>{geometry.paths.map((path,index)=><path key={index} d={path} fill="none" stroke="#72dce5" strokeWidth="1.5"/>)}{position&&<circle cx={200+position[0]*geometry.scale} cy={180-position[plane==='XY'?1:2]*geometry.scale} r="4" fill="#f1b777"/>}</svg>
+    <p>{new Date(time).toISOString()} · {((time-start)/1000).toFixed(1)} s</p>{!position&&<p role="status">{c.gap}</p>}
+    <label>{c.time}<input type="range" min={start} max={end} step="1" value={time} onChange={event=>{setPlaying(false);setTime(Number(event.target.value));}}/></label><button className="button" onClick={()=>setPlaying(!playing)} disabled={time>=end&&!playing}>{playing?c.pause:c.play}</button><button className="button" onClick={()=>{setPlaying(false);setTime(start);}}>{pt?'Voltar ao início':'Return to start'}</button>
+    {position&&<p className="number">{position.map(value=>value.toFixed(3)).join(', ')} km</p>}<p>{pt?'Interpolação linear apenas em intervalos de até 120 segundos; sem extrapolação nem linhas sobre lacunas.':'Linear interpolation only across intervals up to 120 seconds; no extrapolation or lines across gaps.'}</p>
+  </div>;
 }

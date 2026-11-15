@@ -13,7 +13,7 @@ const refusal=(code:SessionRefusal['code'],values:Readonly<Record<string,string|
 const success=(state:SessionState):IntentResult=>({ok:true,seq:state.seq,receiptIds:[]});
 export function createSession(options:SessionOptions={}):SessionState {
  const id=options.hostPlayerId??'player-1';
- return {epoch:options.epoch??'local',seq:0,rosterRevision:0,mode:options.mode??'LOCAL',participantMode:options.participantMode??'SOLO',roster:[{id,name:options.hostName??'Host',roles:ROLES,ready:true,acknowledged:true,connected:true}],approvals:[],missionId:'FIRST_LIGHT',definition:core.missionById('FIRST_LIGHT'),authorPlayerId:null,levelId:'ASPIRING',attemptId:0,artifacts:null,activeStage:'NEED_GOALS',furthestStage:0,activeSubstep:'brief',activeView:'GOAL',players:[ROLES],facilitator:0,signoffs:blankSigns(),team:emptyTeam(),design:null,budgets:null,cues:emptyCues(),designNotes:[],rosterHistory:[],acceptedTrades:[],sim:null,telemetry:null,running:false,warp:100,historyVersion:0,events:[],pendingDecisions:[],decisions:[],pauseReasons:[],pauseOwners:{},pauseRoles:{},advancing:false,advanceMessage:null,advanceTarget:null,advanceWork:0,practiceCheckpoints:[],nextCheckpointId:0,assisted:false,results:{},quotes:{},replay:[]};
+ return {game:null,turnProposals:[],epoch:options.epoch??'local',seq:0,rosterRevision:0,mode:options.mode??'LOCAL',participantMode:options.participantMode??'SOLO',roster:[{id,name:options.hostName??'Host',roles:ROLES,ready:true,acknowledged:true,connected:true}],approvals:[],missionId:'FIRST_LIGHT',definition:core.missionById('FIRST_LIGHT'),authorPlayerId:null,levelId:'ASPIRING',attemptId:0,artifacts:null,activeStage:'NEED_GOALS',furthestStage:0,activeSubstep:'brief',activeView:'GOAL',players:[ROLES],facilitator:0,signoffs:blankSigns(),team:emptyTeam(),design:null,budgets:null,cues:emptyCues(),designNotes:[],rosterHistory:[],acceptedTrades:[],sim:null,telemetry:null,running:false,warp:100,historyVersion:0,events:[],pendingDecisions:[],decisions:[],pauseReasons:[],pauseOwners:{},pauseRoles:{},advancing:false,advanceMessage:null,advanceTarget:null,advanceWork:0,practiceCheckpoints:[],nextCheckpointId:0,assisted:false,results:{},quotes:{},replay:[]};
 }
 export function quoteDesign(design:Design,edit:DesignEdit,actor:SessionActor['role']):Quote<{next:Design}> {
  switch(edit.kind){case 'ADD_PART':return core.quoteAddPart(design,edit.partId,actor);case 'REMOVE_PART':return core.quoteRemovePart(design,edit.partId,actor);case 'SET_RIDE':return core.quoteSetRide(design,edit.rideId,actor);case 'SET_ORBIT':return core.quoteSetOrbit(design,edit.orbit,actor);case 'SET_PROPELLANT':return core.quoteSetPropellant(design,edit.kg,actor);case 'SET_LAUNCHER':return core.quoteSetLauncher(design,edit.launcherId,actor);case 'SET_ASCENT':return core.quoteSetAscent(design,edit.program,actor);case 'SET_BURNS':return core.quoteSetBurns(design,edit.burns,actor);}
@@ -43,6 +43,11 @@ function reconcile(old:Design,definition:ResolvedMissionDefinition):Design {
  return {...next,parts:old.parts,launch,burns:core.burnPlanIssue(definition,old.burns)?next.burns:old.burns};
 }
 interface Transition {state:SessionState;result:IntentResult}
+/** Mirror only committed game state for scientific tools and existing snapshot consumers. */
+function gameState(s:SessionState,game:core.TurnGameState):SessionState {
+ const t=core.telemetry(game.sim);
+ return {...s,game,turnProposals:[],missionId:game.design.missionId,definition:core.definitionOf(game.design),levelId:game.config.levelId,design:game.design,budgets:core.computeBudgets(game.design),sim:game.sim,telemetry:t,running:false,advancing:false,advanceTarget:null,advanceWork:0,activeStage:t.ended?'REVIEW':'IMPLEMENT',activeSubstep:t.ended?'results':'operations',activeView:t.ended?'REPORT':'OPERATE',assisted:game.assisted,historyVersion:s.historyVersion+1,pendingDecisions:[],decisions:[],events:game.receipts.flatMap(r=>r.events).slice(-100)};
+}
 function transact(s:SessionState,intent:SessionIntent,actor:SessionActor):Transition {
  const fail=(code:SessionRefusal['code']='NOT_READY',values:Readonly<Record<string,string|number>>={}):Transition=>({state:s,result:{ok:false,refusal:refusal(code,values)}});
  const done=(state:SessionState):Transition=>({state,result:success(state)});
@@ -53,13 +58,53 @@ function transact(s:SessionState,intent:SessionIntent,actor:SessionActor):Transi
  // Definitions are the only large replayed payloads; bound how many a replay suffix may hold.
  if((intent.kind==='SUBMIT_DEFINITION'||intent.kind==='START_DEFINITION')&&s.replay.reduce((n,e)=>n+(e.kind==='INTENT'&&(e.intent.kind==='SUBMIT_DEFINITION'||e.intent.kind==='START_DEFINITION')?1:0),0)>=64)return fail('RATE_LIMITED');
  // Host capability permits administration, never a physical-role bypass.
- const admin=['START_MISSION','START_DEFINITION','GRANT_AUTHORING','RESET_MISSION','SET_TEAM','ADD_PLAYER','ASSIGN_ROLE','SET_PRESENCE','ROTATE_FACILITATOR','END_MISSION','RETRY_CHECKPOINT'];
+ const admin=['START_GAME','COMMIT_TURN','RETRY_GAME','LOCAL_RESTORE_GAME','START_MISSION','START_DEFINITION','GRANT_AUTHORING','RESET_MISSION','SET_TEAM','ADD_PLAYER','ASSIGN_ROLE','SET_PRESENCE','ROTATE_FACILITATOR','END_MISSION','RETRY_CHECKPOINT'];
  if(admin.includes(intent.kind)&&!host())return fail('HOST_ONLY');
  if(!admin.includes(intent.kind)&&!['PAUSE','CLEAR_PAUSE','RESUME','SET_READY','ACK_LEARNING','SET_STAGE','SET_SUBSTEP','SET_VIEW','SUBMIT_DEFINITION'].includes(intent.kind)&&!canAct(s,actor))return fail('ROLE_NOT_ASSIGNED');
  if('designRevision'in intent&&intent.designRevision!==d?.revision)return fail('STALE_DESIGN');
  if('baseRevision'in intent&&intent.baseRevision!==d?.revision)return fail('STALE_DESIGN');
  if('rosterRevision'in intent&&intent.rosterRevision!==s.rosterRevision)return fail('STALE_ROSTER');
+ // A turn game has one advancing authority. Legacy clock/command paths cannot mutate it.
+ if(s.game&&['COMMANDS','LAUNCH','RESUME','SET_WARP','ADVANCE_NEXT','SKIP_CRUISE','RETRY_CHECKPOINT','END_MISSION','LOCAL_RESTORE'].includes(intent.kind))return fail('NOT_READY',{missing:'turnCommit'});
  switch(intent.kind){
+ case 'START_GAME':{
+  if(!core.validateQuickDesignConfig(intent.config))return fail('BAD_MESSAGE');
+  try{
+   const game=core.createTurnGame(intent.config);
+   return done(gameState({...s,attemptId:s.attemptId+1,artifacts:null,approvals:[],signoffs:blankSigns(),quotes:{},practiceCheckpoints:[],pauseReasons:[],pauseOwners:{},pauseRoles:{}},game));
+  }catch(error){return fail('NOT_READY',{reason:error instanceof Error?error.message:'Mission could not be prepared'});}
+ }
+ case 'LOCAL_RESTORE_GAME':{
+  if(s.mode!=='LOCAL')return fail('HOST_ONLY');
+  try{return done(gameState({...s,attemptId:s.attemptId+1},core.restoreTurnGame(intent.game)));}catch{return fail('BAD_MESSAGE');}
+ }
+ case 'COMMIT_TURN':case 'PROPOSE_TURN':{
+  if(!s.game)return fail();
+  const decision=core.turnDecision(s.game);
+  if(intent.turnRevision!==s.game.revision||intent.decisionId!==decision.id)return fail('STALE_DESIGN',{revision:s.game.revision});
+  if(!decision.plans.some(plan=>plan.id===intent.planId))return fail('BAD_MESSAGE');
+  if(intent.kind==='PROPOSE_TURN')return done({...s,turnProposals:[...s.turnProposals.filter(p=>p.playerId!==actor.playerId),{playerId:actor.playerId,decisionId:intent.decisionId,turnRevision:intent.turnRevision,planId:intent.planId}]});
+  const result=core.commitTurn(s.game,{decisionId:intent.decisionId,baseRevision:intent.turnRevision,planId:intent.planId,idempotencyKey:`${s.epoch}:${s.attemptId}:${s.game.revision}`});
+  if(!result.ok)return fail('NOT_READY',{reason:result.message});
+  const state=gameState(s,result.value.state);
+  return {state,result:{ok:true,seq:state.seq,receiptIds:[result.value.receipt.id]}};
+ }
+ case 'RETRY_GAME':{
+  if(!s.game)return fail();
+  let checkpoint:core.TurnGameState|undefined;
+  if(intent.checkpointRevision!==undefined){
+   if(s.levelId!=='ASPIRING'||!Number.isSafeInteger(intent.checkpointRevision)||intent.checkpointRevision<0||intent.checkpointRevision>=s.game.revision)return fail('NOT_READY');
+   checkpoint=core.createTurnGame(s.game.config);
+   for(const receipt of s.game.receipts){
+    if(checkpoint.revision>=intent.checkpointRevision)break;
+    const decision=core.turnDecision(checkpoint),result=core.commitTurn(checkpoint,{decisionId:decision.id,baseRevision:checkpoint.revision,planId:receipt.planId,idempotencyKey:`retry:${checkpoint.revision}`});
+    if(!result.ok)return fail('NOT_READY',{reason:result.message});
+    checkpoint=result.value.state;
+   }
+   if(checkpoint.revision!==intent.checkpointRevision)return fail('NOT_READY');
+  }
+  return done(gameState({...s,attemptId:s.attemptId+1},core.retryTurnGame(s.game,checkpoint)));
+ }
  case 'LOCAL_RESTORE':return s.mode==='LOCAL'&&actor.isHost?done({...intent.state,seq:s.seq,results:s.results,replay:s.replay,running:false,advancing:false}):fail('HOST_ONLY');
  case 'LOCAL_TRADE':return s.mode==='LOCAL'&&!s.sim&&d?.revision===intent.revision&&s.artifacts?done({...s,artifacts:{...s.artifacts,trade:{revision:intent.revision,description:intent.description,before:intent.before,after:intent.after,actor:intent.actor}}}):fail('HOST_ONLY');
  case 'INVALIDATE_BASELINE':return !s.sim&&s.artifacts?done({...s,artifacts:{...s.artifacts,baselineRevision:null,verifiedRevision:null}}):fail();
@@ -258,7 +303,9 @@ export function reduceSession(state:SessionState,input:SessionIntent|IntentEnvel
  };
  if(envelope&&envelope.attemptId!==state.attemptId)return reject('STALE_ATTEMPT');
  if(envelope&&envelope.rosterRevision!==state.rosterRevision)return reject('STALE_ROSTER');
- const transition=transact(state,intent,actor),changed=transition.state!==state;
+ let transition:Transition;
+ try{transition=transact(state,intent,actor);}catch{return reject('BAD_MESSAGE');}
+ const changed=transition.state!==state;
  const seq=state.seq+(changed?1:0),result=transition.result.ok?{...transition.result,seq}:transition.result;
  let next=changed?{...transition.state,seq,replay:appendReplay(state,{kind:'INTENT',seq,actor:{...actor},intent})}:state;
  // Results are retained for the epoch; exhausted ledgers refuse before mutation.
@@ -274,6 +321,7 @@ function integrate(state:SessionState,dtSec:number):SessionState {
 }
 /** Simulation-seconds entry point retained for static callers, never a wire intent. */
 export function advanceSession(state:SessionState,dtSec:number):SessionState {
+ if(state.game)return state;
  const next=integrate(state,dtSec);if(next===state)return state;
  const seq=state.seq+1;return {...next,seq,replay:appendReplay(state,{kind:'TICK',seq,dtSec,simulated:true})};
 }
@@ -292,6 +340,7 @@ function advanceBatch(state:SessionState):SessionState {
 }
 /** Host/local wall-clock entry point. Warp belongs to authority, not client timestamps. */
 export function tickSession(state:SessionState,dtSec:number):SessionState {
+ if(state.game)return state;
  if(!Number.isFinite(dtSec)||dtSec<0)return state;
  const next=state.advancing?advanceBatch(state):integrate(state,Math.min(dtSec,.1)*state.warp);
  if(next===state)return state;

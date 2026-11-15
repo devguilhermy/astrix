@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'bun:test';
-import { missionById } from '@astrix/core';
+import { editAsCopy, missionById } from '@astrix/core';
 import { LIBRARY_KEY, deleteEntry, exportDraftText, freshId, importMissionText, publishDraft, readLibrary, saveDraft, toDraft, type DraftDefinition } from './library';
 
 function memory(initial: Record<string, string> = {}) {
   const values = new Map(Object.entries(initial));
   return { values, getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => { values.set(key, value); }, removeItem: (key: string) => { values.delete(key); } };
 }
-const sample = (id = 'user.sample'): DraftDefinition => ({ ...toDraft(missionById('FIRST_SIGNAL')), id, origin: 'CUSTOM', revision: 1 });
+const sample = (id = 'user.sample'): DraftDefinition => toDraft(editAsCopy(missionById('FIRST_SIGNAL'), {name:'Sample mission',description:'Return a camera observation.',objectiveSummary:'Deliver the required data.'}, {id}));
 
 describe('mission library persistence', () => {
   test('a saved draft is read back unchanged and the first read of empty storage is empty', () => {

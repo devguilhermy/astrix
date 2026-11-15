@@ -127,8 +127,8 @@ export function FlightScene({ design, live, preview, telemetry, reviewSample, mo
     }
     const burn = useFlightPreview.getState().burn;
     if (burnPreview.current) {
-      burnPreview.current.visible = !!burn;
-      if (burn) relativePosition(burnPreview.current.position, toEarthFrame(burn.before.central, epoch), origin);
+      burnPreview.current.visible = !!burn?.before;
+      if (burn?.before) relativePosition(burnPreview.current.position, toEarthFrame(burn.before.central, epoch), origin);
     }
     lastReceipts.current.forEach((receipt, index) => {
       const group = receiptRefs.current[index];

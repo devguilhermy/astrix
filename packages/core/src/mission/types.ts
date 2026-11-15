@@ -2,7 +2,7 @@
 import type { BodyId, BusId, DesignPart, OrbitChoice, RoleId } from '../contracts';
 
 export const DEFINITION_SCHEMA_VERSION = 1 as const;
-export const FLIGHT_MODEL_VERSION = 1 as const;
+export const FLIGHT_MODEL_VERSION = 2 as const;
 export const MAX_DEFINITION_BYTES = 32768;
 export const MAX_DEFINITION_FRAME_BYTES = 40960;
 
@@ -28,7 +28,9 @@ export type ObjectiveSpec =
  | { readonly kind: 'CREW_SUPPORT_THROUGH_RECOVERY' }
  | { readonly kind: 'CREW_ORBIT_HOURS'; readonly hours: number };
 export interface ObjectiveDef { readonly id: string; readonly label: Label; readonly required: boolean; readonly owner: RoleId; readonly deadlineSec: number | null; readonly dwellSec: number; readonly spec: ObjectiveSpec }
-export interface ProvidedOrbitStart { readonly kind: 'PROVIDED_ORBIT'; readonly body: 'EARTH' | 'MARS'; readonly orbit: OrbitChoice; readonly orbitOptions: 'RIDE'; readonly stage?: { readonly launcherId: string; readonly propellantKg: number } }
+/** OPERATIONS means the supplied orbit is the actual state at the mission epoch,
+ * not the target orbit of an earlier analytical delivery/capture segment. */
+export interface ProvidedOrbitStart { readonly kind: 'PROVIDED_ORBIT'; readonly body: 'EARTH' | 'MARS'; readonly orbit: OrbitChoice; readonly orbitOptions: 'RIDE'; readonly initialPhase?: 'OPERATIONS'; readonly stage?: { readonly launcherId: string; readonly propellantKg: number } }
 export interface SurfaceLaunchStart { readonly kind: 'SURFACE_LAUNCH'; readonly site: { readonly name: Label; readonly latDeg: number; readonly lonDeg: number }; readonly launcherIds: readonly string[] }
 export type TrajectorySpec = { readonly model: 'PATCHED_CONICS'; readonly bodies: readonly ('EARTH' | 'MOON')[]; readonly maneuvers: { readonly allowed: boolean; readonly maxBurns: number } } | { readonly model: 'MARS_ANALYTIC_CRUISE' };
 export interface AscentProgram { readonly azimuthDeg: number; readonly verticalSec: number; readonly kickDeg: number; readonly kickSec: number; readonly stage1LoadFraction: number; readonly stage2CoastSec: number; readonly insertionAltKm: number; readonly holdUpperStage: boolean }

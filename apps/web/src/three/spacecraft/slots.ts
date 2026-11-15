@@ -68,6 +68,7 @@ const SMALL: readonly SlotSpec[] = [
   ['SS_MAPPER', 'INSTRUMENT', 'optical', [0, -.25, .57], [.40, .40, .38]],
   ['SS_RAD', 'INSTRUMENT', 'radiation', [-.30, 0, .56], [.24, .26, .22]],
   ['SS_HEATER_60', 'THERMAL', 'heater', [-.45, 0, -.20], [.05, .32, .38]],
+  ['SS_RADIATOR', 'THERMAL', 'radiator', [-.51, .04, -.20], [.025, .32, .38]],
 ];
 const CREW: readonly SlotSpec[] = [
   ['CREW_BATTERY', 'BATTERY', 'battery', [.24, -.23, 0], [.24, .12, .32]],

@@ -4,18 +4,20 @@
 
 ASTRIX is an educational mission-design and operations game built for NASA Space Apps' [Space Mission Design Game](https://www.spaceappschallenge.org/2026/challenges/space-mission-design-game/). Players connect a measurable objective to spacecraft hardware, launch/trajectory choices, resource limits, operations and an evidence-based debrief. It is a reduced teaching simulation, **not flight-planning software, a medical simulator or NASA-certified engineering**.
 
-**Current status:** the existing scene-first interface and LAN pairing/session foundation have recorded verification. Rules-v5 custom missions, learning progression, physical ascent/lunar flight and shorter tours are being integrated. Their descriptions below explain the current implementation direction and source contracts, not a completed release or acceptance claim. See [Verification](./VERIFICATION.md) for the exact boundary.
+**Current status:** the [turn-based learning-game revision](./plans/TURN_BASED_EXPLORATION_REVISION.md) is approved and being implemented. The pre-revision baseline was 381 passing / 24 failing tests; integrated typecheck, full tests, production build and browser/multiplayer verification will be recorded after the cutover. The goal is a fun exploration game with a clear **Design & Play** path, not a full design studio; GMAT support stays. Descriptions below are being reconciled with the new implementation and are not release acceptance evidence.
 
 ### What the player does
 
-1. **Choose a starting point.** Learn provides short lessons; Challenge preserves First Light, Storm Watch, Red Relay and Crew Pathfinder; Expert Create opens a mission-definition editor. Solo covers all disciplines; shared-screen teams distribute Science, Spacecraft, Launch/Orbit and Ground/Comms.
-2. **Define the mission.** Confirm the scientific or flight objective and connect launch, space, ground and user segments. Custom definitions specify objectives, required hardware, budget, duration, environment, start conditions and allowed trajectory capabilities.
-3. **Design and compare.** Install paid hardware, compare actual before/after quotes and inspect its effect on mass, power, budget, data, communications, time and crew support. The spacecraft model reflects installed equipment; selecting a component opens its specifications and applicable live readings.
-4. **Verify a revision.** Freeze the design, inspect requirements/readiness, obtain required role approvals and optionally run a worker-based forecast. A preview or completed checklist does not launch the spacecraft.
-5. **Fly deliberately.** Launch and resume are explicit. Operate instruments, power, downlink and pointing; use trajectory controls where the definition permits them. Command acceptance, transmission and execution are distinct: uncrewed requests obey contact/light time, while crew procedures are onboard.
-6. **Read evidence and revise.** Debrief separates objective achievement, failure, assistance, resources and planned-versus-flown results. A new design or definition is a new experiment, not a rewrite of the previous flight.
+1. **Choose a discovery.** The small mission board groups Earth, Moon and Mars goals; **Design & Play** is available to both levels.
+2. **Prepare in one workspace.** Choose a bounded ambition, real hardware kit and approach. See objective targets, deadline, cost/fit and constraints together; no naming, publishing or engineering signoff is required.
+3. **Check a feasible path.** Compatibility is not enough: a Ready design has a successful reference-policy witness using the actual engine. Changing the design invalidates that proof. Ready is not a guarantee that every choice will succeed.
+4. **Choose and preview.** Each decision offers relevant operational plans, expected elapsed mission time, resource changes and the next boundary. Selecting does not execute.
+5. **Commit and discover.** One explicit action resolves physics until the next decision or terminal event, then displays a receipt. Thinking and reading consume no mission time.
+6. **Debrief and try differently.** Evidence, discoveries, failure causes and same-condition comparisons make the design tradeoff visible. Local decision-boundary saves preserve return-to-play; optional GMAT tools remain outside the ordinary loop.
 
-The UI presents **Briefing → Build → Test & launch → Fly → Debrief** over seven guarded core stages. One bottom MissionControl combines the next action, navigation and optional trays. Seven resource categories remain visible. English and Brazilian Portuguese, keyboard/touch alternatives, reduced motion and narrow-screen layouts are maintained contracts. New automatic onboarding is capped at **15 concept cards across the first mission**, with a persistent opt-out and optional Help replay.
+Aspiring and Expert share this interaction. Expert tightens tradeoffs rather than exposing a second design studio. English/Brazilian Portuguese, keyboard access, reduced motion and compact layouts remain requirements. Scientific details are optional; no numeric orbital elements, attitude controller or burn-vector entry is needed for ordinary missions.
+
+**Immersion:** the 3D scene remains visible throughout the game. Preparation, turn choices, consequence previews and debrief use contextual panels over the scene; the new turn rules do not replace space exploration with a document form. Mission names explicitly identify destination, operation and purpose.
 
 ### Components and ownership
 
@@ -23,9 +25,9 @@ The UI presents **Briefing → Build → Test & launch → Fly → Debrief** ove
 |---|---|---|
 | `packages/core` | Mission-definition validation, hardware/quotes, readiness, physics, resources, commands, objective evidence and scoring | The only physical/rules authority; no browser or renderer decides an outcome |
 | `packages/data` | Committed scientific snapshots, source registry, topic vocabulary and contextual science bindings | Historical inputs and reference metadata, not live telemetry |
-| `packages/session` | Journey state, attempts, role ownership, approvals, pauses, replay and typed mission transactions | Same authority model for local play and LAN; rejects stale or unauthorized actions |
-| `apps/web` | React interface, local mission library, explanations, worker previews and Three.js visualization | Projects state and sends intents; camera, panels, tours and inspection are device-local |
-| `apps/host` | Optional Bun HTTP/WebSocket server, host bootstrap, QR/manual admission and authoritative LAN clock | One in-memory room, main display plus up to three phones; no internet matchmaking or durable server recovery |
+| `packages/session` | Attempts, authenticated actors, turn commitments/proposals, stale checks, idempotency and replay | Same transaction authority for local and LAN play; no wall-clock advancement of a turn game |
+| `apps/web` | React mission board/preparation/play, local saves/journal, worker previews, optional GMAT tools and visualization | Projects committed state; selecting, reading and camera movement do not execute |
+| `apps/host` | Optional Bun HTTP/WebSocket server, host bootstrap, QR/manual admission and serialized turn authority | One in-memory room, display plus up to three phones; network heartbeat is not a mission clock |
 | `scripts` | Scientific snapshot acquisition/reduction, document packaging and independent reference inputs | Preparation/research tools; not a hidden live-data service during gameplay |
 
 ```mermaid
@@ -35,21 +37,21 @@ flowchart LR
     Session --> Core
     Core --> Projection[Budgets, telemetry and evidence]
     Projection --> UI
-    Projection --> Scene[One persistent 3D Canvas]
+    Projection --> Scene[Scientific visualization]
     Host[Optional Bun LAN host] --> Session
     Phone[Admitted phone clients] --> Host
     Host --> Phone
 ```
 
-In static mode the browser schedules the local session. In LAN mode **only Bun advances time**; host and phone browsers receive snapshots, including after reconnect. Losing the connection does not create a second local simulation. Dedicated role-specific phone design/flight consoles remain outside the delivered pairing foundation.
+Static play dispatches directly to the local session. In LAN mode **only Bun resolves a committed turn**; host and phones receive snapshots, including after reconnect. Phones can propose and the host commits. Losing a connection never starts a second local simulation. Host process restart recovery is not implied by local browser saves.
 
 ### Mission definitions, flight and persistence
 
-Rules v5 binds a design to a resolved immutable definition and content digest rather than a four-value scenario ID. The same schema/evaluator serves built-ins, lessons and custom missions. The Expert library separates editable drafts from immutable published revisions and supports validated JSON import/export. Unsupported fields or capabilities are refused, not silently guessed.
+Designs bind to resolved immutable definitions and content digests. The same objective evaluator serves the original challenges and short lessons; quick configuration compiles bounded choices into real paid hardware and constraints. Definition validation/import/export remain content and preservation tools, not a mandatory full-studio player workflow. Unsupported fields/capabilities are refused, not silently guessed.
 
 Short lessons distinguish returning data, suborbital ascent, entering orbit, raising an orbit, reaching an entry boundary, escaping Earth and encountering the Moon. The complete lunar-orbiter path adds launch, parking orbit, injection, encounter, capture and data return. Surface ascent uses a reduced staged finite-thrust model; coast and lunar transitions use patched two-body conics; burns are explicitly impulsive and consume fuel. Mars retains its separate analytical cruise/capture model. No lunar landing, real lunar ephemeris or continuous three-body propagation is implied.
 
-Saved mission definitions are **not saved flights**. Static reload loses the active attempt; LAN refresh can recover a room only while its Bun process remains alive. Definition ID/revision/digest/origin, rules/model versions, level, seed, assistance and policy qualify run comparisons. Old scores must not be relabelled as results under a new model.
+Local saves are versioned decision-boundary attempts, distinct from old saved mission definitions. Corrupt/incompatible saves must remain explainable/exportable, and failed writes preserve the previous valid save. LAN refresh recovers only while Bun remains alive. Definition/configuration identity, rules/model/policy versions, level, seed and assistance qualify comparisons; old results are never relabelled.
 
 ## NASA resources: what we use and how
 
@@ -87,14 +89,13 @@ Independent runs, script inputs and comparison limits are in [GMAT reference res
 
 ASTRIX labels sourced quantities separately from authored assumptions. Watts versus watt-hours, collected versus delivered data, calculated forecasts versus observed simulation outcomes, and source measurements versus teaching parameters remain separate concepts.
 
-### NASA imagery in the 3D scene
+### NASA imagery and archival discovery context
 
-| Asset | Use | Provenance and display limits |
+| Asset | Current use | Provenance and display limits |
 |---|---|---|
-| [NASA SVS Deep Star Maps 2020](https://svs.gsfc.nasa.gov/4851/) | Open-space sky shared across mission scenes, with lower-resolution derivatives for lower quality tiers | Celestial J2000 right ascension/declination mapping; credits include NASA/GSFC/SVS and ESA/Gaia/DPAC. Historical map, not live observations |
-| [Blue Marble Next Generation](https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/base-map/) | Earth daytime surface | Historical composite. ASTRIX maps it to a reduced rotating Earth, not current weather or precision geolocation |
-| [Black Marble Earth-at-night maps](https://science.nasa.gov/earth/earth-observatory/earth-at-night/maps/) | Earth night-side luminance, packed with daytime RGB into a local texture | NASA Earth Observatory/Goddard and NASA/NOAA Suomi NPP VIIRS; historical 2016 lights, not current city illumination |
-| [USGS/NASA Viking Mars mosaic](https://astrogeology.usgs.gov/search/map/mars_viking_global_color_mosaic_925m) | Mars surface in the existing orbital/transfer scenes | USGS-produced historical Viking composite, not a live surface feed |
+| [NASA SVS Blue Marble](https://svs.gsfc.nasa.gov/2915/) | Local `earth-blue-marble-1024.png` beside Earth discovery/debrief context | NASA/GSFC SVS; Blue Marble Next Generation courtesy Reto Stockli and NASA Earth Observatory. Historical surface composite, not the player's new observation |
+| [USGS/NASA Viking Mars mosaic](https://astrogeology.usgs.gov/search/map/mars_viking_global_color_mosaic_925m) | Local `mars-viking-1024.jpg` beside Mars discovery/debrief context and mission comparisons | USGS Astrogeology/NASA Viking, 1976–1980 archival imagery; not live or generated mission data |
+| [NASA SVS Deep Star Maps 2020](https://svs.gsfc.nasa.gov/4851/) and [Black Marble](https://science.nasa.gov/earth/earth-observatory/earth-at-night/maps/) | Retained credited assets from the previous renderer; not loaded by the new ordinary gameplay context | Their presence in the repository is not a current runtime-use claim |
 
 The [texture manifest](../apps/web/public/textures/asset-sources.json) records exact source URLs, credits, conversion/resizing, coordinate conventions and decoded-memory limits. [CREDITS.md](../CREDITS.md) records attribution and use conditions. Spacecraft geometry and explanatory diagrams are application-generated, not NASA vehicle models. NASA logos or endorsements are not implied.
 
@@ -102,8 +103,8 @@ The [texture manifest](../apps/web/public/textures/asset-sources.json) records e
 
 - **Acquire deliberately:** `bun run snapshot` fetches scientific responses during data preparation, not during a mission. Raw responses retain URL, retrieval metadata and SHA-256. Explicit offline reproduction uses preserved inputs and checks their hashes.
 - **Reduce transparently:** RadLab requires all 48 selected hourly buckets and does not interpolate missing hours. DONKI retains distinct event analyses. USGS whole-catalogue facet counts remain separate from the sampled records and heuristic product matches.
-- **Commit and bundle:** reduced JSON enters through `packages/data/src/index.ts`; core consumes the applicable measured profile and reference constants. Textures are served locally. Normal gameplay makes no runtime NASA/USGS data-API request.
-- **Expose the evidence:** source IDs and topic bindings connect parts, budgets, commands, events and refusals to Explain/Help. Explanations retain a frozen opening snapshot, references and model limits. External source/product links still need connectivity when opened.
+- **Commit and bundle:** reduced JSON enters through `packages/data/src/index.ts`; core consumes the applicable measured profile and reference constants. Archival discovery images are served locally. Normal gameplay makes no runtime NASA/USGS data-API request.
+- **Expose the evidence:** topic explanations, translated assumptions, source metadata and bounded mission comparisons accompany simulated discoveries. Reference checks, previews and actual receipts remain distinct. External source/product links still need connectivity when opened.
 - **Verify the right claim:** data provenance checks, physics/reference comparisons and browser interaction checks answer different questions. None substitutes for scientific review, novice-user research, physical-phone qualification or organizer approval.
 
 Detailed reductions, retrieval qualifications, licences and update commands live in [Resources](./RESOURCES.md); numerical assumptions live in [Technical models](./TECHNICAL_MODELS.md) and source code. This overview is a reading map, not a second source registry.
@@ -119,7 +120,7 @@ Detailed reductions, retrieval qualifications, licences and update commands live
 
 [SIMULATOR_REFINEMENT_SPEC.md](./SIMULATOR_REFINEMENT_SPEC.md): historical refinement, superseded by the guided redesign where it specifies four-stage navigation, the dock, or no follow camera.
 
-[MISSION_FLOW_REFINEMENT_SPEC.md](./MISSION_FLOW_REFINEMENT_SPEC.md): mission-design contracts: seven core stages, local collaboration, core authority, crew/CubeSat work, accessibility and optional GMAT tools. The [guided immersive redesign](./plans/GUIDED_IMMERSIVE_REDESIGN_PLAN.md) presents these as five chapters with a scene-first HUD.
+[MISSION_FLOW_REFINEMENT_SPEC.md](./MISSION_FLOW_REFINEMENT_SPEC.md) and the [guided immersive redesign](./plans/GUIDED_IMMERSIVE_REDESIGN_PLAN.md) preserve historical design context. Their stage/signoff workflow is superseded by the turn-based revision; the user's persistent-scene/turn-panel requirement remains binding.
 
 ## Canonical system documentation
 
@@ -167,6 +168,7 @@ These pages explain the **implemented system**. Start with Architecture, then fo
 - [Independent GMAT reference](./research/gmat-validation.md): recorded external reference run and comparison context.
 - [Junior trainer resource audit](./research/junior-trainer-resources-report.md): access notes, caveats and suggestions for that alternative challenge.
 - [Void Protocol reuse report](./research/void-protocol-reuse.md): approved reuse decisions and pinned-source research. Actual adaptations are listed in [CREDITS.md](../CREDITS.md).
+- [Void Protocol gameplay lessons](./research/void-protocol-gameplay-lessons.md): deeper current-source research into missions, progression, resource tradeoffs and balancing limits; proposes first-class quick Design & Play rather than another studio.
 
 ## Local research assets
 
@@ -180,4 +182,6 @@ Root dev/build preparation copies Markdown and notices into the static site's pu
 
 ## Remaining implementation work
 
-[Mission-design completion plan](./plans/MISSION_DESIGN_COMPLETION_PLAN.md) orders the final work: observed startup/input-validation blockers, translation and API integration, automated/numerical checks, stable production build, real authoring/learning/lunar browser flows, final LAN rehearsal and evidence-backed delivery. It is an execution plan, not a passed checklist.
+The approved [turn-based exploration revision](./plans/TURN_BASED_EXPLORATION_REVISION.md) is the current execution plan: first-class **Design & Play**, real constraints and feasibility checks, decision-based play for both levels, discoveries/replay, local saves and optional GMAT tools. Final verification includes the production build and actual HTTP/WebSocket multiplayer.
+
+The [previous mission-design completion plan](./plans/MISSION_DESIGN_COMPLETION_PLAN.md) preserves historical integration defects only; its studio-first workflow is superseded.

@@ -1,34 +1,36 @@
 # Missions
 
-Rules v5 replaces fixed scenario identity with immutable mission definitions. The catalogue separates the four built-in challenges below from short learning missions; Expert also authors custom definitions. Goals, costs and hardware ratings remain teaching assumptions, not flight qualification. **Current status: source integration and acceptance checks are pending.** The older expansion research remains proposed work unless explicitly listed in the new learning catalogue.
+ASTRIX offers short lessons and four longer challenges through the same **Design & Play** path. Both Aspiring and Expert choose a goal, ambition, hardware kit and approach; they do not need a mission-definition editor. Immutable definitions remain the engine's content format. Goals, costs and hardware ratings are teaching assumptions, not flight qualification.
 
-| Scenario | Destination and class | Objective | Operational horizon |
-|---|---|---|---|
-| `FIRST_LIGHT` | Earth, CubeSat 3U | Deliver 1,500 MB of qualifying images | 14 days |
-| `STORM_WATCH` | Earth, CubeSat 3U | Record 24 hours of radiation monitoring during the historical 48-hour replay | 21 days |
-| `RED_RELAY` | Mars, SmallSat | Deliver 5,000 MB of qualifying maps after capture | 60 days after capture; analytical cruise separate |
-| `CREW_PATHFINDER` | Earth, crew capsule | Maintain support for 72 hours, deliver 100 MB of observation data and complete six hours of abstracted recovery | 72 hours orbit plus return/recovery |
+| Stable ID | Player-facing name | Objective / nominal horizon |
+|---|---|---|
+| `FIRST_LIGHT` | Earth Observation: Build an Imaging Satellite and Return Data | Deliver 1,500 MB of Earth images in 14 days |
+| `STORM_WATCH` | Radiation Survey: Record the Historical ISS Storm Replay | Record 24 monitor hours during the historical 48-hour window; 21-day mission |
+| `RED_RELAY` | Mars Mapping: Operate an Orbiter and Return Data | Deliver 5,000 MB of map data within 60 operational days |
+| `CREW_PATHFINDER` | Crewed Earth Orbit: Support, Observe and Recover | Maintain crew support, deliver 100 MB, complete recovery; nominal 72 hours in orbit |
 
-A run requires `ASPIRING` or `EXPERT`, rules version 5, and the resolved definition/digest. Both levels use paid hardware, real resource accounting and finite quaternion slew; neither repairs failures automatically. Budget factors remain 1.30 and 1.275. Presentation depth is independent. Changing the mission creates a new attempt; changing an authored definition creates a distinct content identity.
+A run carries the resolved definition/digest, rules/model versions, level, seed, assistance and configuration identity. Both levels use paid hardware, finite inventories and physical slew; neither repairs failures automatically. Expert adds tighter tradeoffs, not mandatory orbital-element entry or real-time reactions.
 
-The journey starts with a measurable need and four-segment storyboard, then requirements, design/trade, build and verification, explicit launch/operation, and terminal Review. Requirements state targets, units, method, owner, revision and results; unmodeled scientific quality stays Not evaluated. The baseline and verification are revision-bound and launch rechecks readiness and role approvals. One actual baseline-versus-proposal quote is a trade; no duplicate vehicle or quiz is required.
+The mission board leads directly to one preparation workspace. A live brief shows the actual target, deadline, cost and fit. Static compatibility and within-limits checks are separate from a successful reference-policy readiness certificate. **Play mission** freezes the checked configuration; selecting an operational plan previews it and the named commit executes one decision. Discovery/debrief and same-condition retry close the loop.
 
-## Learning catalogue and Expert authoring
+## Learning catalogue and quick design
 
-| Definition | Lesson |
+| Stable ID | Player-facing name |
 |---|---|
-| `FIRST_SIGNAL` | Generate and return a small useful product |
-| `UP_AND_BACK` | Reach a suborbital apogee and return to a boundary |
-| `STAY_IN_ORBIT` | Gain enough sideways speed for a safe bound orbit |
-| `RAISE_YOUR_ORBIT` | Raise an orbit and circularize with planned burns |
-| `LEAVE_ORBIT_SAFELY` | Lower the orbit to an explicit entry interface |
-| `PAST_EARTH` | Escape Earth; an optional branch, not synonymous with orbit |
-| `MEET_THE_MOON` | Time a lunar encounter |
-| `EARTH_TO_MOON` | Launch, establish parking orbit, inject, encounter, capture and return data |
+| `FIRST_SIGNAL` | Earth Orbit: Take a Picture and Send It Home |
+| `UP_AND_BACK` | Suborbital Rocket: Reach a Target Altitude and Return |
+| `STAY_IN_ORBIT` | Earth Launch: Reach and Hold a Safe Orbit |
+| `RAISE_YOUR_ORBIT` | Orbital Maneuvers: Raise and Circularize an Earth Orbit |
+| `LEAVE_ORBIT_SAFELY` | Earth Deorbit: Reach the Atmospheric Entry Boundary |
+| `PAST_EARTH` | Earth Escape: Depart Using a Fueled Upper Stage |
+| `MEET_THE_MOON` | Lunar Flyby: Time a Close Approach to the Moon |
+| `EARTH_TO_MOON` | Lunar Orbiter: Launch, Capture and Return Map Data |
 
-Lessons expose their relevant choices and declare any precompleted scaffolding in the definition. They use the same physics and evidence as custom missions. Reaching space, orbiting and escaping are different objectives. A failed ascent, missed encounter or insufficient-fuel burn must remain an observable outcome.
+The same physics and evidence serve curated and player-configured missions. Reaching space, orbiting and escaping are different objectives. A failed ascent, missed encounter or insufficient-fuel burn remains an observable outcome.
 
-Expert **Create** edits identity, spacecraft constraints/budget, epoch/environment, provided-orbit or surface start, trajectory/maneuver permissions, objectives and termination rules. The editor uses a closed schema, not executable scripts or unrestricted celestial mechanics. Drafts can be saved while invalid, but publishing, export and execution require validation. Published revisions are immutable; imports preserve provenance and avoid overwriting existing IDs. Opening a built-in as an editable copy creates custom identity.
+Quick design uses bounded ambition, kit and approach choices rather than arbitrary schema editing. Packages resolve to actual paid catalogue hardware. Higher ambition does not silently raise the allowance; each changed configuration needs a fresh feasibility check. Ready means a reference policy succeeded under the nominal model, not that every player choice succeeds. Previous custom-definition files remain distinct user work and can be exported; they are not silently converted into certified quick missions.
+
+Display names describe the destination, operation and purpose in English and Brazilian Portuguese. Stable IDs and saved identities do not change when wording improves. Exact ambition-dependent targets come from the current definition, not a number embedded in a nominal title.
 
 Supported objective kinds are delivered product, instrument hours, apogee band, return boundary, bound orbit, escape, entry interface, lunar encounter distance, propellant reserve, crew support through recovery and crew orbit hours. Required flags, owners, deadlines and dwell requirements are explicit. Review reports per-objective evidence and full definition/run identity; a title alone cannot redefine success.
 
@@ -45,15 +47,15 @@ CubeSat wings and antenna have stowed/deployed/anomalous states; deployment and 
 
 Crew Pathfinder is a fictional four-person exercise, not a vehicle replica or health simulator. It tracks finite oxygen, nitrogen, water, dry food and scrubber capacity, cabin gases, powered fan, retained waste and modeled leakage. Crew procedures are onboard actions independent of radio; deorbit burns finite propellant and recovery advances elapsed time and consumption. Recovery is abstracted rather than an entry dynamics solution. `CREW_SUPPORT_LOST` means an authored support requirement was lost, not an injury or diagnosis. A successful score requires objective data, support and completed recovery; an early return can succeed while the separate 72-hour duration requirement remains unmet; a confirmed team end is not success.
 
-Ground requests, onboard procedures and session actions retain distinct transports and actor receipts. Unsent attitude targets may coalesce by actor/gesture; transmitted requests cannot be recalled. History and audit are bounded and may be decimated. Older rules-v4 results remain historical and cannot become comparable rules-v5/custom-definition scores.
+Ground requests, declared onboard plans and crew procedures retain distinct transport semantics. Low-level manual-command tools preserve issuer receipts; the normal player commits high-level plans. History and audit are bounded and may be decimated. Earlier rules and scores remain historical, not comparable results under the turn cutover.
 
 ## Collaboration and session authority
 
-Static solo and 2–4-player shared-screen play use the same pure session transactions as the LAN host. Roles remain Science, Spacecraft, Launch/Orbit and Ground/Comms; `ALL` is the solo actor, not an unrestricted remote-host capability.
+Local and LAN play use the same pure turn transactions. Roles remain Science, Spacecraft, Launch/Orbit and Ground/Comms; authenticated device identity is separate from the displayed discipline.
 
-The current [LAN groundwork](./MULTIPLAYER.md) admits the main display plus up to three phones, assigns one owner per discipline, records Ready separately from design sign-off, and retains the mission in Bun across a browser refresh. Only Bun advances a LAN flight. The phone page currently handles pairing, ownership/readiness, presence and team pause; dedicated phone design and execution consoles are not implemented. Static hot-seat remains the complete shared-screen gameplay path.
+The [LAN host](./MULTIPLAYER.md) admits the main display plus up to three phones. Controllers propose a plan without executing it; the host commits once. A turn does not require unanimous Ready or signoffs. Only Bun resolves the LAN commitment; no browser advances an independent mission clock.
 
-Optional phone reading/visibility changes are device-local; shared decisions and explicit team pauses remain authoritative. Reconnect and host-only takeover never implicitly resume. Host-only continuation revokes phone credentials and transfers role ownership without discarding physical state or historical actors. Plain HTTP is supported only on a trusted isolated LAN; process loss ends the room.
+Reading and visibility changes are device-local. Reconnect restores the committed decision and never auto-commits. Host-only continuation revokes phone credentials and transfers ownership without discarding physical state. Plain HTTP is supported only on a trusted isolated LAN; process loss ends the room.
 
 ## Expansion research — not implemented
 

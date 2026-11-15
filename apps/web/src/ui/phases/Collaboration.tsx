@@ -1,9 +1,0 @@
-import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { useMission, type DesignNote } from '../../store';
-import { ExplainButton } from '../science/ExplainButton';
-export function Collaboration(){
- const {t}=useTranslation(),s=useMission(),[text,setText]=useState(''),[kind,setKind]=useState<DesignNote['kind']>('CONCERN'),[target,setTarget]=useState<DesignNote['target']>('mass');
- if(s.players.length===1)return null;
- return <details><summary>{t('flow.collaboration')}</summary><ExplainButton topic="design-rounds" context="design.collaboration"/><p>{t('flow.facilitator',{number:s.facilitator+1})}</p><button className="button" onClick={()=>s.rotateFacilitator()}>{t('flow.rotate')}</button><label>{t('flow.notes')}<select value={kind} onChange={e=>setKind(e.target.value as DesignNote['kind'])}><option value="CONCERN">{t('flow.concern')}</option><option value="SIDEBAR">{t('flow.sidebar')}</option></select></label><label>{t('flow.resource')}<select value={target} onChange={e=>setTarget(e.target.value as DesignNote['target'])}>{(['mass','power','budget','data'] as const).map(item=><option key={item} value={item}>{t(`flow.${item}`)}</option>)}</select></label><textarea maxLength={500} value={text} onChange={e=>setText(e.target.value)} aria-label={t(kind==='CONCERN'?'flow.concern':'flow.sidebar')}/><button className="button" disabled={!text.trim()} onClick={()=>{s.addDesignNote(kind,target,text);setText('');}}>{t('flow.addNote')}</button><ol>{s.designNotes.map((note,index)=><li key={index}>{t(note.kind==='CONCERN'?'flow.concern':'flow.sidebar')} · {t(`flow.${note.target}`)} · {t(note.actor==='ALL'?'flow.solo':`role.${note.actor}`)} · r{note.revision}: {note.text} · {t(note.resolved?'flow.resolved':'flow.unresolved')}{!note.resolved&&<button className="button" onClick={()=>s.resolveDesignNote(index)}>{t('flow.resolve')}</button>}</li>)}</ol></details>;
-}

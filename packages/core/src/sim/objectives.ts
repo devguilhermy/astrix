@@ -17,7 +17,7 @@ function read(s: FlightState, o: ObjectiveDef, runtime: ReadonlyMap<string, Obje
  const spec = o.spec, c = ascentActive(s) ? null : centralStateAt(s, s.t), info = c ? orbitInfo(c.r, c.v, muOf(c.body)) : null, alt = c ? Math.hypot(...c.r) - radiusOf(c.body) : 0;
  switch (spec.kind) {
   case 'DELIVERED_PRODUCT': return { actual: s.missionDownlinkedMB, target: spec.targetMB, unit: 'MB', source: 'DELIVERED_DATA', holds: s.missionDownlinkedMB + 1e-9 >= spec.targetMB, failed: false, progress: ratio(s.missionDownlinkedMB, spec.targetMB), detail: { storedMB: s.missionStoredMB } };
-  case 'INSTRUMENT_HOURS': return { actual: s.radiationHours, target: spec.targetHours, unit: 'h', source: 'DELIVERED_DATA', holds: s.radiationHours + 1e-9 >= spec.targetHours, failed: false, progress: ratio(s.radiationHours, spec.targetHours), detail: {} };
+  case 'INSTRUMENT_HOURS': return { actual: s.radiationHours, target: spec.targetHours, unit: 'h', source: 'CLOCK', holds: s.radiationHours + 1e-9 >= spec.targetHours, failed: false, progress: ratio(s.radiationHours, spec.targetHours), detail: { windowStartSec:spec.windowStartSec,windowEndSec:spec.windowEndSec } };
   case 'APOGEE_BAND': {
    const peak = Math.max(s.traj.maxAltKm, c && c.body === 'EARTH' ? alt : 0), passed = s.traj.peakPassed, inBand = peak >= spec.minAltKm - 1e-9 && peak <= spec.maxAltKm + 1e-9;
    return { actual: peak, target: (spec.minAltKm + spec.maxAltKm) / 2, unit: 'km', source: 'ASCENT_STATE', holds: passed && inBand, failed: peak > spec.maxAltKm + 1e-9 || passed && peak < spec.minAltKm - 1e-9, progress: Math.max(0, Math.min(1, peak / spec.minAltKm)), detail: { minAltKm: spec.minAltKm, maxAltKm: spec.maxAltKm, peakPassed: passed ? 1 : 0 } };
@@ -42,7 +42,7 @@ function read(s: FlightState, o: ObjectiveDef, runtime: ReadonlyMap<string, Obje
    return { actual: e ? e.closestKm : null, target: (spec.minDistanceKm + spec.maxDistanceKm) / 2, unit: 'km', source: 'ENCOUNTER', holds: inBand, failed: !!e && !inBand, progress: e ? (inBand ? 1 : 0) : 0, detail: e ? { atSec: e.atSec } : {} };
   }
   case 'PROPELLANT_RESERVE': return { actual: s.propellantKg, target: spec.minKg, unit: 'kg', source: 'PROPELLANT', holds: s.propellantKg + 1e-9 >= spec.minKg, failed: s.propellantKg + 1e-9 < spec.minKg, progress: ratio(s.propellantKg, spec.minKg), detail: {} };
-  case 'CREW_SUPPORT_THROUGH_RECOVERY': return { actual: s.crew ? (s.crew.phase === 'COMPLETE' ? 1 : 0) : null, target: 1, unit: '', source: 'CREW', holds: !!s.crew && s.crew.phase === 'COMPLETE' && (!s.firstFailure || s.firstFailure.causeKey === 'failure.OBJECTIVE_MISSED.title'), failed: !!s.firstFailure && s.firstFailure.causeKey === 'failure.CREW_SUPPORT_LOST.title', progress: s.crew?.phase === 'COMPLETE' ? 1 : 0, detail: {} };
+  case 'CREW_SUPPORT_THROUGH_RECOVERY': return { actual: s.crew ? s.elapsed / 3600 : null, target: null, unit: 'h', source: 'CREW', holds: !!s.crew && s.crew.phase === 'COMPLETE' && (!s.firstFailure || s.firstFailure.causeKey === 'failure.OBJECTIVE_MISSED.title'), failed: !!s.firstFailure && s.firstFailure.causeKey === 'failure.CREW_SUPPORT_LOST.title', progress: s.crew?.phase === 'COMPLETE' ? 1 : 0, detail: {} };
   case 'CREW_ORBIT_HOURS': { const hours = ((s.crew?.orbitEndSec ?? s.elapsed)) / 3600; return { actual: hours, target: spec.hours, unit: 'h', source: 'CREW', holds: hours + 1e-9 >= spec.hours, failed: false, progress: ratio(hours, spec.hours), detail: {} }; }
  }
 }
@@ -54,6 +54,7 @@ export function updateObjectives(s: FlightState, dt: number, events: SimEvent[])
  for (let pass = 0; pass < 2; pass++) for (const o of defs) {
   const r = runtime.get(o.id)!;
   if (r.state === 'FAILED' || r.state === 'MET' && !reserve(o)) continue;
+  if (o.deadlineSec !== null && s.elapsed + 1e-8 >= o.deadlineSec) { r.state='FAILED';r.metAt=null;continue; }
   const reading = read(s, o, runtime);
   r.actual = reading.actual;
   if (reading.holds) r.held += pass === 0 ? dt : 0; else if (pass === 0) r.held = 0;
@@ -67,7 +68,8 @@ export function evidenceOf(s: FlightState): ObjectiveEvidence[] {
  const runtime = new Map(s.objectives.map(r => [r.id, r]));
  return s.design.definition.objectives.map(o => {
   const r = runtime.get(o.id)!, reading = read(s, o, runtime);
-  return { id: o.id, kind: o.spec.kind, required: o.required, owner: o.owner, state: r.state, progress: r.state === 'MET' ? 1 : reading.progress, actual: r.state === 'MET' && r.actual !== null ? r.actual : reading.actual, target: reading.target, unit: reading.unit, source: reading.source, dwellHeldSec: r.held, dwellRequiredSec: o.dwellSec, metAtSec: r.metAt, detail: reading.detail };
+  const cumulative=o.spec.kind==='DELIVERED_PRODUCT'||o.spec.kind==='INSTRUMENT_HOURS';
+  return { id: o.id, kind: o.spec.kind, required: o.required, owner: o.owner, state: r.state, progress: r.state === 'MET' ? 1 : reading.progress, actual: !cumulative&&r.state === 'MET' && r.actual !== null ? r.actual : reading.actual, target: reading.target, unit: reading.unit, source: reading.source, dwellHeldSec: r.held, dwellRequiredSec: o.dwellSec, metAtSec: r.metAt, detail: reading.detail };
  });
 }
 /** Success is every required objective MET. Optional objectives and averages never rescue or sink it. */

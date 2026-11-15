@@ -8,7 +8,7 @@ import { len, radiusOf } from '../flight/conic';
 export type { FailureCause };
 export function fail(s: FlightState, cause: FailureCause, events: SimEvent[], at = s.t): void {
  // A definition decides which causes end the mission; an unmet required objective always does.
- if (cause !== 'OBJECTIVE_MISSED' && !s.design.definition.termination.failOn.includes(cause)) return;
+ if (cause !== 'OBJECTIVE_MISSED' && cause !== 'DEADLINE_MISSED' && !s.design.definition.termination.failOn.includes(cause)) return;
  if (!s.firstFailure) {
   const primary = primaryObjective(s);
   const facts: FailureReport['facts'][number][] = [

@@ -59,7 +59,7 @@ export function nextBoundary(state: SimState): { kind: string; inSec: number } |
  if (s.cruise) return { kind: 'ARRIVAL', inSec: Math.max(0, s.arrivalT - s.t) };
  if (ascentActive(s)) return { kind: 'ASCENT', inSec: 1800 };
  const candidates: { kind: string; inSec: number }[] = [];
- const trajectory = nextTrajectoryBoundary(s);
+ const trajectory = nextTrajectoryBoundary(cloneFlight(s));
  if (Number.isFinite(trajectory)) candidates.push({ kind: 'TRAJECTORY', inSec: Math.max(0, trajectory - s.t) });
  if (s.nextPassSec !== null && s.nextPassSec > 0) candidates.push({ kind: 'CONTACT', inSec: s.nextPassSec });
  for (const q of s.queue) if (q.status === 'IN_TRANSIT' && q.applyAt !== null && q.applyAt > s.t) candidates.push({ kind: 'COMMAND', inSec: q.applyAt - s.t });

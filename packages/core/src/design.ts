@@ -52,7 +52,7 @@ function estimate(design: Design): Forecast | null {
  const key = `${def.digest}|${design.levelId}|${design.rulesVersion}|${design.stationId}|${JSON.stringify(o)}`;
  const cached = forecasts.get(key);
  if (cached) return cached;
- const epoch = o.body === 'MARS' ? hohmann().transferSec : 0, dt = MODEL.forecastStepSec.v, crew = def.support.crew, allocation = def.environment.stationAllocationStartSec;
+ const epoch = o.body === 'MARS' && !(def.start.kind==='PROVIDED_ORBIT'&&def.start.initialPhase==='OPERATIONS') ? hohmann().transferSec : 0, dt = MODEL.forecastStepSec.v, crew = def.support.crew, allocation = def.environment.stationAllocationStartSec;
  let eclipseSec = 0, contactSec = 0, run = 0, longest = 0, initialRun = 0, stillInitial = true, targetSolar = 0, earthSolar = 0;
  for (let t = 0; t < DAY; t += dt) {
   const p = orbitPosition(o, t), sun = sunDirection(o.body, epoch + t, undefined, o.epochUTC);
@@ -122,14 +122,17 @@ export function computeBudgets(design: Design): Budgets {
  // conservatively carries the entire installed heater rating throughout shadow.
  const plannedLoad = load + (technical ? heater * MODEL.targetDuty.v : 0);
  const eclipseWh = (load + (technical ? heater : 0)) * (forecast?.maxEclipseSec ?? 0) / 3600;
- const nominalCapture = body === 'MARS' && design.orbit ? captureDeltaV(design.orbit) : plannedDv;
+ const delivery=body==='MARS'&&design.orbit&&!(def.start.kind==='PROVIDED_ORBIT'&&def.start.initialPhase==='OPERATIONS');
+ const nominalCapture = delivery ? captureDeltaV(design.orbit!) : plannedDv;
+ const planningTimeSec=delivery?hohmann().transferSec:0;
+ const extraRadiatorM2=design.parts.reduce((n,i)=>n+(PART_BY_ID[i.partId]?.radiatorM2?.v??0)*i.qty,0);
  return {
   massKg: { used: mass, limit: bus.massKg.v }, volume: { used: volume, limit: bus.volume.v, unit: design.busId === 'CUBESAT_3U' ? 'U' : 'BAY' }, cost: { used: cost, limit: def.vehicle.budget * (LEVELS[design.levelId]?.budgetFactor.v ?? 1) },
   orbit: forecast ? { periodMin: forecast.periodMin, eclipseFrac: forecast.eclipseFrac, contactMinPerDay: forecast.contactMinPerDay } : null,
   power: forecast ? { avgGenW: eolGen, avgLoadW: plannedLoad, marginPct: plannedLoad ? (eolGen - plannedLoad) / plannedLoad * 100 : eolGen ? 100 : 0, eclipseWh, usableBatteryWh: eolBattery * MODEL.usableDepth.v } : null,
-  data: forecast ? { genMBPerDay: generationRate * DAY / 8000, downMBPerDay: linkRateKbps(radioRate, body, body === 'MARS' ? hohmann().transferSec : 0, design.orbit?.epochUTC) * forecast.contactMinPerDay * 60 / 8000, storageMB: storage } : null,
-  deltaV: body === 'MARS' && design.orbit ? { requiredKms: captureDeltaV(design.orbit), availableKms: rocketDeltaV(mass - propellant, propellant, isp), propellantKg: propellant } : def.trajectory.model === 'PATCHED_CONICS' && def.trajectory.maneuvers.allowed ? { requiredKms: plannedDv, availableKms: rocketDeltaV(mass - propellant, propellant, isp), propellantKg: propellant } : null,
-  technical: technical && forecast ? { bolGenerationW: avgGen, eolGenerationW: eolGen, eolCapacityWh: eolBattery, eolUsableBatteryWh: eolBattery * MODEL.usableDepth.v, eclipseRequiredWh: eclipseWh, nominalCaptureKms: nominalCapture, planningCaptureKms: nominalCapture * (1 + ENGINEERING.captureHigh.v), thermalColdEquilibriumK: thermalEquilibriumK(design.busId, baseLoad + m.bodyHeatW.v + heater + (design.busId === 'CREW_CAPSULE' ? 4 * 12.426e6 / DAY : 0)), thermalHotEquilibriumK: thermalEquilibriumK(design.busId, peakLoad + m.bodyHeatW.v + (design.busId === 'CREW_CAPSULE' ? 4 * 12.426e6 / DAY : 0) + ENGINEERING.solarFlux.v * solarFactor(body) * m.absorbingM2.v), recordingRequiredMB: def.vehicle.minRecordingMB, minimumLinkKbps: linkRateKbps(fullRadioRate, body, body === 'MARS' ? hohmann().transferSec : 0, design.orbit?.epochUTC) } : null,
+  data: forecast ? { genMBPerDay: generationRate * DAY / 8000, downMBPerDay: linkRateKbps(radioRate, body,planningTimeSec, design.orbit?.epochUTC) * forecast.contactMinPerDay * 60 / 8000, storageMB: storage } : null,
+  deltaV: body === 'MARS' && design.orbit ? { requiredKms:nominalCapture, availableKms: rocketDeltaV(mass - propellant, propellant, isp), propellantKg: propellant } : def.trajectory.model === 'PATCHED_CONICS' && def.trajectory.maneuvers.allowed ? { requiredKms: plannedDv, availableKms: rocketDeltaV(mass - propellant, propellant, isp), propellantKg: propellant } : null,
+  technical: technical && forecast ? { bolGenerationW: avgGen, eolGenerationW: eolGen, eolCapacityWh: eolBattery, eolUsableBatteryWh: eolBattery * MODEL.usableDepth.v, eclipseRequiredWh: eclipseWh, nominalCaptureKms: nominalCapture, planningCaptureKms: nominalCapture * (1 + ENGINEERING.captureHigh.v), thermalColdEquilibriumK: thermalEquilibriumK(design.busId, baseLoad + m.bodyHeatW.v + heater + (design.busId === 'CREW_CAPSULE' ? 4 * 12.426e6 / DAY : 0),extraRadiatorM2), thermalHotEquilibriumK: thermalEquilibriumK(design.busId, peakLoad + m.bodyHeatW.v + (design.busId === 'CREW_CAPSULE' ? 4 * 12.426e6 / DAY : 0) + ENGINEERING.solarFlux.v * solarFactor(body) * m.absorbingM2.v,extraRadiatorM2), recordingRequiredMB: def.vehicle.minRecordingMB, minimumLinkKbps: linkRateKbps(fullRadioRate, body,planningTimeSec, design.orbit?.epochUTC) } : null,
  };
 }
 function limits(design: Design): Refusal | null {
@@ -311,7 +314,7 @@ export function planPropellant(design: Design, role: ActorRole): Quote<{ next: D
  const engine = design.parts.find(item => PART_BY_ID[item.partId]?.ispSec);
  if (!engine) return refusal('REQUIRES_PART', { needs: 'PROPULSION' });
  const budget = computeBudgets(design), dry = budget.massKg.used - (budget.deltaV?.propellantKg ?? 0);
- const requiredKg = propellantNeeded(dry, captureDeltaV(design.orbit) * (isTechnical(design.levelId) ? 1 + ENGINEERING.captureHigh.v : MODEL.captureMargin.v), PART_BY_ID[engine.partId].ispSec!.v);
+ const requiredKg = propellantNeeded(dry, (budget.deltaV?.requiredKms??0) * (isTechnical(design.levelId) ? 1 + ENGINEERING.captureHigh.v : MODEL.captureMargin.v), PART_BY_ID[engine.partId].ispSec!.v);
  const quote = quoteSetPropellant(design, requiredKg, role);
  return quote.ok ? { ok: true, value: { next: quote.value.next, requiredKg, after: computeBudgets(quote.value.next) } } : quote;
 }

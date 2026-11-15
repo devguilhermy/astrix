@@ -1,199 +1,87 @@
 # Scientific design without a science prerequisite
 
-ASTRIX serves first-time learners starting around 12–13, secondary/university students, educators and technically experienced users. Age is guidance, not an account field or access gate. Simplify choices and explanations, not consequences. Technical missions remain engineering-learning models, not flight-qualified operational software. This page describes the current learning architecture and the scientific interaction requirements maintainers must preserve; [VERIFICATION.md](./VERIFICATION.md) separately records observed checks and limitations, not an external novice-participant study.
+ASTRIX serves learners, educators and technically experienced players. Simplify the choices and explanations, not their consequences. The product is a fun space-exploration game, not a mission-design studio or flight-qualified tool. [Verification](./VERIFICATION.md) records functional evidence; automation is not a novice-comprehension or enjoyment study.
 
-## 1. Level and information depth are different
+## One loop for both levels
 
-`ASPIRING` and `EXPERT` select versioned rules and pacing. Aspiring receives a state-driven checklist in bottom mission control and first-entry tours; Expert sees the same controller, all catalogue choices and on-demand guidance. `GUIDED` and `DETAILED` remain independent presentation preferences. Defaults follow level unless the player explicitly chose display depth.
+Both Aspiring and Expert use **discovery → quick design → preview → commit → receipt → debrief/retry**. Expert adds tighter competing constraints and applicable fault mechanisms, not a required form for every subsystem. No formula quiz, acronym test, mandatory documentation or reward for opening Help is required.
 
-TeachingCard introductions are optional disclosures, not automatic paragraphs. Adjacent Explain and Help → Model limits retain the full topic registry, sources, assumptions and opening snapshots. Guidance is not evidence of mastery. Actual quotes, queued requests and observed outcomes remain distinct; opening help never completes a task or resumes execution.
+Preparation keeps the coupled choices together: destination-compatible goal, ambition, kit and approach. The live brief displays the actual success target, budget allowance, deadline and dominant constraints. A suggested configuration remains editable. A change must not silently alter the player's goal, buy hardware, raise a budget or repair a failure.
 
-No formula-solving quiz, acronym test, required reading or reward for opening help is introduced. The challenge is choosing costs/benefits from disclosed consequences.
+Readiness has distinct meanings: compatible; within limits; checking; no viable plan found; Ready; Stretched. Ready requires a successful reference-policy witness through the actual engine. It is not an arbitrary score, probability, NASA endorsement or guaranteed victory. Unsupported or unfinished checks remain explicit.
 
-## 2. Entry, mission choice and contextual immersion
+## Meaningful equipment tradeoffs
 
-Setup separates Learn, Challenge and Expert Create. Learn introduces one physical idea at a time; Challenge retains the original four briefs; Expert Create authors a real mission definition rather than only changing a title. Level cards, expanded team columns, role ownership and distinct local/LAN entry remain. The editor and lesson controls are being integrated; current acceptance status is in Verification.
+Packages resolve to paid catalogue parts. Every included part contributes actual cost, mass, volume and applicable operating load. Higher ambition cannot receive an undisclosed larger allowance.
 
-The journey moves through Need & goals, Concept, Requirements, Design, Build & verify and Implement, followed by terminal-only Review. Shared artifacts connect these steps; launch remains explicit and is subject to current core checks. Four concurrent launch, space, ground and user segments are not four separate phases.
-
-The learning progression distinguishes useful data return, suborbital ascent, bound orbit, orbit raising, safe entry, escape, lunar encounter and a complete lunar orbiter. Reaching altitude is not entering orbit; reaching the Moon is not capture. Required deadlines, dwell and data return are evaluated from model state. Recommendations are explained starting points, never proof a mission will succeed.
-
-## 3. Starting spacecraft and revisitable choices
-
-`createStarterDesign(definition, levelId)` in [mission/library.ts](../packages/core/src/mission/library.ts) creates a paid editable spacecraft from a resolved immutable definition. Every included part counts toward cost, mass and volume. Learning scaffolding is explicit definition data, not hidden equipment or a readiness bypass.
-
-[Design.tsx](../apps/web/src/ui/phases/Design.tsx) shows the category needed by the current guided step, with Show all parts and explicit category controls. Bottom mission control keeps requirements, spacecraft slots and the contextual primary together. Selecting a slot during Build selects and reveals the same Workshop category. Preview records a real quoted trade, shows the ghost and resource deltas, and requires explicit Install; removal uses the same safeguards. Full part descriptions and scientific limits remain under Details/Explain.
-
-Clicking an installed spacecraft part or using bottom **Spacecraft slots → Components** (and Workshop **As flown** in flight) opens **Component**: function, owner, quantity, catalogue values (authored teaching values marked `*`), simulator constraints and actual live readings when available. During Design, **Find in Workshop** reveals the part card; nothing installs from the panel. Desktop anchoring still follows the projected part until dragged. Compact inspection closes the slots tray and restores it on close. This remains a learning surface with adjacent Explain, not a second quote path.
-
-| Decision | Beginner-facing trade-off | Exact detail remains available |
+| Choice | Legible tradeoff | Scientific detail |
 |---|---|---|
-| Instrument | Pictures/maps versus radiation monitoring; electricity, pointing and storage requirements | Mass, power, rate, metric and observing prerequisites |
-| Solar panels | More generation versus heavier/pricier hardware | Reference-distance watts, mass and cost |
-| Battery | Longer shadow reserve versus mass/room/cost | Capacity, usable forecast reserve and eclipse demand |
-| Radio | More data returned versus transmit power/pointing cost | Rate, receive/transmit power and directional requirements |
-| Earth orbit | Ride-compatible named paths, with current power/contact/observing consequences | Altitude, inclination, period, eclipse; free sliders only where the ride allows |
-| Mars capture | Close, intermediate, balanced or wide capture paths; compare fuel and operational consequences | 400 km periapsis, apoapsides 400/5000/10000/33000 km, computed period/Δv/fuel |
-| Mars fuel | Plan the amount needed for this design/path, with remaining mass room | Engine Isp, wet/dry mass, planning margin and rocket equation |
-| Technical support | Thermal, lifetime power, pointing/link/computer recovery and capture reserve | Core forecasts, operating controls, failure facts and disclosed model assumptions |
+| Payload | More observations versus electricity, storage and mass | Rate, useful product, illumination and pointing prerequisites |
+| Battery | More shadow reserve versus weight and price | Stored Wh, capacity and actual energy use |
+| Solar hardware | More generation versus weight and price | Watts, illumination and panel orientation |
+| Radio | More returned data versus power and directional requirements | Rate, contact, antenna alignment and link mode |
+| Route/operations | Faster output versus reserve and time slack | Actual fuel, elapsed time, geometric opportunities and hazards |
+| Crew support | Observation time versus finite support and return margin | Oxygen, water, food, scrubber, powered fan and recovery consumption |
 
-Do not call a 97° orbit sun-synchronous: J2/precession is not modeled. Higher/wider orbits are not universally better. Ride restrictions remain real; explain the refusal and offer a ride comparison instead of silently changing it. The fuel planner is a quoted edit, not a free fill or automatic engine/bus upgrade. Extra fuel adds mass and cost; an infeasible plan stays unapplied.
+Exact values come from core budgets and telemetry, never a second beginner calculator. Source-derived constants, calculated forecasts, historical measurements and authored hardware ratings have different provenance.
 
-### Gain/cost confirmation
+## Decisions and receipts
 
-Comparisons derive before/after budgets from a **core quote**, not a web calculator. The preview communicates improvement, cost and current mission consequence, with adjacent Explain. Confirmation checks the original revision and actor; stale previews cannot silently overwrite new edits. Session/core guards refuse in-flight editing, including LAN intents. Solo Go for launch explicitly records sign-offs and verifies the frozen revision before advancing to the launch gate; teams retain per-role approvals.
+At a decision the player must be able to identify the goal, relevant choices, expected consequence and next stopping point. Offer at most four primary plans with one commit action. Selecting a plan changes only the preview. Commit labels name the action; the UI does not ask the player to operate a speed control or routine sequence of pointing/instrument/contact commands.
 
-Unknown forecasts say “Not estimated yet”/choose a path, not zero or green. Recommendations do not automatically apply changes or guarantee a win. Operational pointing, power, contact, instrument state, delivery and hazards determine actual results. Technical planning assumptions and numerical provenance are owned by [TECHNICAL_MODELS.md](./TECHNICAL_MODELS.md), [SIMULATION.md](./SIMULATION.md) and [RESOURCES.md](./RESOURCES.md).
+Plans are declared operational automation. Observation, transmit, recharge, maneuver, recovery and return resolve actual commands, slew, geometry, inventories and deadlines. An Observe plan is not a magic data grant; recharge is not an instantaneous refill; a lunar encounter is not capture. An unsupported repair must not appear as a universal recovery button.
 
-## 4. Readable, truthful dashboard
+The receipt communicates **choice → measured change → consequence → next experiment**. Show elapsed mission time and objective progress independently of resource indicators. Use up to three relevant normal resource indicators; imminent thermal, crew or other failure conditions must still surface. W and Wh, stored and returned data, and planning reserve versus flown reserve remain distinct.
 
-Do not merge incompatible quantities into a made-up readiness score.
+Internal resolution errors preserve the committed boundary and explain that resolution failed. They must not masquerade as physical mission losses. Thinking, reading, settings, animation and browser backgrounding do not advance the game. LAN readers may see newer host commits after opening an explanation, so frozen contextual values must be labelled as snapshots.
 
-| Group | Overview | Explanation/detail |
+## Scientific help
+
+The topic/source registry remains authoritative: [science.ts](../packages/data/src/science.ts), [scienceBindings.ts](../packages/data/src/scienceBindings.ts), core catalogue sources and [sources-extra.json](../packages/data/sources-extra.json). Scientific help should provide:
+
+1. Plain-language meaning.
+2. Why it matters to this goal or decision.
+3. A diagram with a text equivalent where useful.
+4. Costs, benefits and what a changed decision could achieve.
+5. Optional units, model assumptions and limitations.
+6. Attributed reference links and historical-data time basis.
+
+English and Brazilian Portuguese are maintained together. Key parity does not establish translation quality or scientific accuracy. Unknown values remain unknown; explanatory examples cannot be presented as measurements. Topic navigation, opening details and source links do not acquire science or mark a requirement complete. A reveal action is offered only when it targets a real reachable control, never an obsolete studio panel.
+
+Technical topics retain their boundaries:
+
+| Topic | Explanation | Limit |
 |---|---|---|
-| Fits on the rocket | Separate mass and room capacity | Actual bus/ride limits; strict limits still enforced at rounded boundaries |
-| Energy for the trip | Generation balance **and** shadow battery reserve, separately | W versus Wh, usable planning depth, eclipse and operating assumptions |
-| Mission progress | Actual sent-home data or powered radiation-monitor hours / real target | Storage occupancy is a separate warning, not objective completion |
-| Game budget | Spent / allowed units | Authored game units, never dollars or a real launch quote |
-| Contextual Mars fuel | Capture requirement/reserve and feasible proposed amount | Δv, Isp, fuel mass, tank limit and uncertainty |
+| Thermal control | Equipment temperature and operating/survival constraints | One lumped bus, not a spatial thermal solver |
+| Power aging | Changing array/battery performance | Accelerated authored exercise, not calibrated mission-life prediction |
+| Pointing recovery | Slew, pointing quality and supported recovery | Not torque dynamics or momentum unloading |
+| Link resilience | Geometry, allocation and rate/power tradeoff | Reduced quality envelope, not calibrated dB/SNR or live DSN |
+| Onboard recovery | Supported computer procedures and their time/energy | Authored fault timing, not dose-calibrated reliability |
+| Capture reserve | Available fuel versus nominal/realized burn demand | Not navigation covariance or a guarantee of capture |
 
-Targets remain 1500 MB / 5000 MB delivered or 24 monitor hours, not invented photo counts. Radiation-monitor objective hours are not silently redefined as all bytes collected. A power surplus does not prove battery survival, and stored data is not downlinked science. “Room for surprises” explains a safety margin; the precise percentage/assumption stays available.
+The corresponding NASA chapters explain phenomena, not the calibration of fictional coefficients. Exact numeric assumptions belong to [Technical models](./TECHNICAL_MODELS.md).
 
-The pure `resourceModel` maps design budgets, actual telemetry and the currently valid quote to seven fixed-order badges: mass, power, budget, data, comms, time and crew. FORECAST/LIVE is explicit; battery energy remains Wh and generation/load remain W. Contact/next opportunity, queued commands, storage/delivered progress, phase time and conditional crew runway remain distinct. Popovers expose subvalues, changing parts and Explain. `Budgets.tsx` and `TechnicalForecast` retain detailed forecast evidence in the collapsed Details panel.
+## Discovery and replay
 
-## 5. Explain: one contextual drawer
+A journal entry is a simulated achievement with its objective evidence and qualified run identity. NASA/USGS images and mission comparisons are archival context, not observations acquired by the player's spacecraft. There is no spendable science currency, agency economy or forced grind to unlock the Moon.
 
-The scientific interaction requirement is an explicit visible **BookOpen + Explain / Entenda** button, not hover-only tooltips or an unlabelled question mark. [ExplainButton.tsx](../apps/web/src/ui/science/ExplainButton.tsx) accepts a closed topic ID and optional context (default `ui.<topic>`), includes the translated topic in its accessible name, and records its actual opener.
+Debrief distinguishes success, failure, incomplete objectives and assistance. Definition/configuration identity, rules/model/policy versions, level and seed qualify same-condition comparisons. A new design is a new experiment, not a rewrite of an old score. Aspiring checkpoint retries are assisted; Expert restarts are separate attempts. Local saves preserve committed boundaries without promising durable recovery of a stopped LAN host.
 
-Coverage belongs beside mission objectives, part/orbit comparisons, resource sublimits, commands, forecasts, scientific refusals, review cues, decisions, failure facts, chart axes, report facts and evidence. One button may explain a clearly labelled repeated group; a global glossary alone does not satisfy adjacent scientific coverage. Non-scientific language/volume/close controls do not need science explanations. Home/chooser mission cards, the brief and scientific workspace share the same drawer; their SVG illustrations are not another help system or WebGL canvas.
+## Scientific honesty guardrails
 
-App mounts one [ScienceDrawer.tsx](../apps/web/src/ui/science/ScienceDrawer.tsx) outside the lazy Simulator, serving Home/chooser Explain, workspace Explain, glossary/search, related terms and report evidence without requiring WebGL. It displays:
+- Watts are a rate; watt-hours are energy. Do not collapse them into a readiness number.
+- Storage, observation hours and delivered product are distinct. Show each objective's actual target and units.
+- Safe mode changes operation; it is not shielding. Historical ISS dose does not establish spacecraft loss probabilities or a radiation map of arbitrary orbits. DONKI co-occurrence does not attribute every peak to a storm.
+- Surface measurements remain surface facts. Authored orbital hazards are separate assumptions.
+- Reaching altitude, entering a bound orbit, escaping and encountering the Moon are different achievements. Entering the lunar sphere of influence does not establish capture.
+- Earth/Moon coast is patched two-body; the Moon follows a reduced circular ephemeris. Ascent uses finite thrust and exponential drag. Mars cruise is analytical. No J2, continuous three-body dynamics, wind/lift or flight qualification is implied.
+- Capture depends on actual dry mass, engine, tank and fuel; a nominal upper bound is not guaranteed realized success.
+- Camera and playback do not issue spacecraft commands or create evidence. Scene-only controls cannot gate play.
+- Initial-state GMAT interchange and sampled-trajectory inspection remain optional. Uploaded text is never executed, and imported samples cannot invent inventories or scored results.
+- Do not label a check green before the engine establishes it, round away a strict constraint, or promise a repair through reload.
 
-1. **In one sentence:** plain-language meaning without unexplained acronyms.
-2. **Why it matters here:** contextual prose plus actual opening design/budget/telemetry values. Missing values remain unknown, not fabricated examples.
-3. **See it:** [ScienceDiagram.tsx](../apps/web/src/ui/science/ScienceDiagram.tsx) SVG with text equivalent; no extra WebGL context or implied full-fidelity visualization.
-4. **What could you change:** benefits/costs, with “Show me” only for an available registered route. No automatic fix.
-5. **Go deeper:** collapsed scientific/model detail, units and limitations. Equations explain; translations do not execute or duplicate formulas.
-6. **Evidence and assumptions:** resolved source links, publisher/retrieval metadata, snapshot interval where applicable, and explicit reference/calculated/assumed distinctions.
+## Accessibility and evaluation
 
-Related topics, search results, Back and glossary replace the current topic in the **same** drawer. The opening snapshot remains unchanged while navigating topics. Unknown topic/source IDs throw rather than displaying a generic “coming soon” or invented fallback.
+Use native labelled controls, visible focus, keyboard alternatives, bounded scrolling panels, textual result/error states and reduced-motion support. The immersive 3D scene remains visible behind or beside the panels, including on compact screens; it is not an opt-in illustration below the workflow. Optional dialogs retain focus/inert behavior and return to a connected opener. Teach the first decisions inline rather than through a mandatory full-screen tour chain.
 
-### Clock and side-effect contract
-
-`openExplanation(topicId, contextId, opener)` first requests `pause('explanation')`, then captures design, budgets and latest live/published telemetry. Static play pauses for reading. In LAN play optional explanations are local, including on the host: the room can continue while the drawer retains its opening snapshot. Help remains available while already paused or while a physical decision is pending; it neither acknowledges nor replaces that decision.
-
-Help itself never spends resources, advances time, consumes RNG, signs off a role, changes an instrument or queues a command. Pending delayed commands retain their timestamps/state. It carries no score penalty. Related/search navigation does not recapture drifting figures; LAN readers must not mistake the frozen explanatory context for current room telemetry.
-
-`closeExplanation` removes only the explanation reason and restores the connected opener or `#mission-primary` fallback. **Never auto-resume.** Settings, chooser, Home, hidden-tab, graphics, decision and handoff reasons remain independent and follow the session's local/shared pause policy. Bottom mission control names remaining shared blockers; the host coordinates explicit LAN Resume. Optional phone reading, tours and visibility do not create a shared stop.
-
-### Modal inert and focus
-
-Shared [Modal](../apps/web/src/ui/primitives/index.tsx) labels the dialog, focuses/traps visible enabled controls, supports Escape/scrim/Close, makes unrelated ancestor branches inert and restores their previous states on cleanup. This includes header, controller, panels and scene controls. Focus returns to a visible opener or header/main fallback; closed tool focus returns to its bottom navigation button. These semantics are not proof of screen-reader certification.
-
-### “Show me” now reveals hidden destinations
-
-With a design and a visible simulator, the drawer resolves semantic topic targets through `revealTopic`, closes without restoring its opener, selects the permitted stage/section, then calls `showWindow` after the commit. The helper expands in place, raises/selects, opens enclosing disclosures and focuses/scrolls the target or stable header. Collapsed panels and inactive compact sheets remain reachable.
-
-| Target | Destination |
-|---|---|
-| `mission-goal` | Need & goals / mission window |
-| `design`, `parts` | Design equipment / mission window |
-| `rides`, `orbit`, `fuel-planner` | Design orbit / mission window |
-| `budgets`, fit/cost/energy/data budget targets | Readiness window |
-| `commands`, `cruise`; `command-queue` | Implement Workshop; command receipts in Log |
-| `report`, `dose-chart` | Review after a terminal outcome |
-| `technical-*` | Implement operations in flight; technical forecast in readiness preflight |
-
-On Home, before a design exists, or for an unroutable topic, help stays explanatory without a Show me action. Reveal changes workspace/focus only: no launch, command, decision acknowledgement or automatic resume. Implementing a new target requires both registry content and a route to an actual control.
-
-## 6. Topic registry and six Technical topics
-
-[science.ts](../packages/data/src/science.ts) owns `SCIENCE_TOPICS`; `ScienceTopicId` is `keyof` that authored registry. Entries define title/summary/context/consequence/deeper/limitations/diagram keys, diagram ID, evidence, related IDs and target. [scienceBindings.ts](../packages/data/src/scienceBindings.ts) binds UI/catalogue/event/refusal contexts. Web [registry.ts](../apps/web/src/ui/science/registry.ts) validates access. Content/localisation does not import core runtime or React.
-
-| Topic group | Shipped IDs |
-|---|---|
-| Mission/design | `mission-goal`, `mission-design`, `concept-maturity`, `systems-tradeoffs` |
-| Size/cost | `mass-volume`, `cubesat-size`, `smallsat-class`, `launch-rides`, `game-budget` |
-| Power | `energy-budget`, `battery-storage`, `eclipse`, `solar-distance` |
-| Data/communications | `data-return`, `data-storage`, `ground-contact`, `radio-links`, `pointing` |
-| Orbits | `orbit-height`, `orbit-shape`, `inclination`, `orbital-period`, `coverage`, `kepler-orbits` |
-| Transfer/control | `propulsion`, `specific-impulse`, `rocket-equation`, `transfer-orbits`, `capture-burn`, `light-time`, `command-delay` |
-| Risk/evidence/results | `radiation`, `safe-mode`, `instrument-risk`, `model-assumptions`, `source-evidence`, `safety-margins`, `science-return`, `mission-failure` |
-
-The six added Technical topics are working content, not reserved future-mission placeholders:
-
-| Topic | Current visible consequence/action and reveal | Scientific boundary/evidence |
-|---|---|---|
-| `thermal-control` | Temperature, trend, operating/survival dwell, inhibited payload, heater OFF/ON/AUTO; `technical-thermal` | Single equipment-bus thermal model, not a spatial thermal solver; [NASA thermal control](https://www.nasa.gov/smallsat-institute/sst-soa/thermal-control/) plus model assumptions |
-| `power-aging` | BOL/EOL forecast, array/battery factors, lost capacity; `technical-power` or preflight forecast | Exercise-duration degradation is accelerated/authored, not calibrated short-duration chemical aging; [NASA power](https://www.nasa.gov/smallsat-institute/sst-soa/power-subsystems/) |
-| `pointing-recovery` | Requested/state/quality/settling and explicit `REACQUIRE_POINTING`; `technical-pointing` | Finite slew/reacquisition abstraction, not reaction-wheel momentum unloading or rigid-body control; [NASA GNC](https://www.nasa.gov/smallsat-institute/sst-soa/guidance-navigation-and-control/) |
-| `link-resilience` | Geometry/allocation/uplink/quality/reason, NORMAL/ROBUST rate/power trade-off; `technical-link` | Dimensionless quality envelope, not calibrated dB/SNR or live DSN; [NASA communications](https://www.nasa.gov/smallsat-institute/sst-soa/soa-communications/) |
-| `onboard-recovery` | State, cooldown, boot time/energy/power and explicit `RECOVER_COMPUTER`; `technical-computer` | Authored fault/recovery timing, not a dose-derived reliability calibration; [NASA avionics](https://www.nasa.gov/smallsat-institute/sst-soa/small-spacecraft-avionics/) |
-| `capture-reserve` | Nominal/planning/available/reserve and realized capture Δv; `fuel-planner` | Bounded seeded burn-demand uncertainty, not navigation covariance/Monte Carlo trajectory dispersion; [NASA Mars fact sheet](https://nssdc.gsfc.nasa.gov/planetary/factsheet/marsfact.html) plus explicit assumptions |
-
-`TechnicalSystems` in [TechnicalSystems.tsx](../apps/web/src/ui/phases/TechnicalSystems.tsx) also exposes duty-cycle controls through ordinary role-checked commands. All six topic families include limitations and related explanations. A general NASA chapter explains the phenomenon; it does **not** validate authored coefficients. Exact units/ranges/provenance belong to core model definitions and [TECHNICAL_MODELS.md](./TECHNICAL_MODELS.md).
-
-All shipped topic prose and UI labels need English and Brazilian Portuguese. [i18n/config.ts](../apps/web/src/i18n/config.ts) initializes the languages; [i18n/resources.ts](../apps/web/src/i18n/resources.ts) integrates additional resource bundles with locale JSON. Numeric display uses the current locale. Key parity is necessary but does not prove scientific accuracy, adjacent coverage or understandable teaching.
-
-## 7. Operation, decisions and causal reports
-
-Friendly labels are not autopilot:
-
-- **Charge** requests `POINT SUN`; it does not silently turn off instruments/downlink.
-- **Observe** requests `POINT TARGET`; instrument on/off remains explicit, and its observing requirements still apply.
-- **Point home** requests `POINT EARTH`; **Send** separately requests `DOWNLINK on`. The UI explains the combination rather than disguising it as a permission-bypassing bundle. Requested, queued, delivered and actually sending remain different states.
-- **Protect spacecraft** requests `SAFE on`; exiting safe is also explicit. Safe mode is an operating strategy, not radiation shielding.
-- Technical heater, link mode, duty, pointing and computer recovery use `CommandButton`/core quotes and the same actor/delivery rules. A successful request preview is not proof the command has applied onboard.
-
-[FlightControls.tsx](../apps/web/src/ui/phases/FlightControls.tsx) supplies core quote/refusal previews and actor/transport receipts. Flight options are embedded in bottom mission control, not a second fixed deck. The single primary owns contextual clock control; a persistent summary retains next light/shadow/contact edge, absolute T+ time, its advance action and next contact even with the full timeline closed. Closing options never conceals when the next contact is. A centred DecisionOverlay remains visible regardless of tool visibility and preserves explicit options. Acknowledgement stays paused. Workshop retains instruments, crew procedures and technical subsystem controls; Log retains receipts/events.
-
-[Report.tsx](../apps/web/src/ui/phases/Report.tsx) consumes authority-projected outcome and per-objective evidence, never recomputing a LAN outcome from a reduced snapshot. Review separates observed achievement, terminal failure and incomplete work. Definition ID/revision/digest/origin, rules/model versions, level, seed, assistance and policy qualify comparisons. Planned versus flown trajectories and burn records must remain distinct.
-
-The report tells **choice → observed result → what to try next**, backed by actual design/telemetry/first-failure facts. Battery and delivered-results charts are primary; dose and score weights are Detailed content. Chart/failure/recommendation groups have Explain. Curated USGS mission/product links are contextual evidence with a labelled heuristic, not proof the fictional spacecraft produced those real datasets.
-
-## 8. Scientific honesty guardrails
-
-- Watts are a rate; watt-hours are stored energy. Never call both “battery power” or combine them into one energy score.
-- Storage, collection, monitor hours and delivered data are distinct; show the objective's actual metric and units.
-- Safe mode changes modeled operations, not radiation dose/shielding or guaranteed survival. Do not infer hardware loss probabilities from ISS dose readings.
-- RadLab readings are an ISS snapshot replayed as an environment approximation, not a calibrated map for arbitrary player orbits. Co-occurrence with DONKI does not attribute each peak to a storm.
-- Mars surface measurements remain surface facts; authored Mars-orbit hazards must be separately labelled.
-- Higher/wider orbits are not universally safer. Disclose the actual regime: patched two-body Earth/Moon coast, reduced circular Moon ephemeris, finite-thrust ascent with exponential drag, and the separate analytical Mars transfer. No J2, continuous three-body dynamics, winds, lift or flight-qualified atmosphere is implied.
-- Capture feasibility depends on actual dry mass, Isp, tank and fuel. Do not assert that one Δv universally breaks the 180 kg class, or that a planning upper bound guarantees realized success.
-- Thermal temperature is a single-bus estimate; reduced link quality is not dB; accelerated aging is not real mission-life prediction; reacquisition is not momentum desaturation; command expiry is an authored operations rule.
-- Camera modes never issue attitude commands. Close views use true-proportioned spacecraft and floating origin; maps use markers. Pilot input explicitly sends a core attitude target, with GROUND transport for uncrewed missions and ONBOARD for crew. Kinematic quaternion slew is not torque integration, thrust, a changed orbit or a guaranteed successful command.
-- Readiness/refusal uses core validators in both presentations. Never turn missing forecasts green, hide strict limits behind rounded bars, promise repair through reload, or invent numerical examples as measurements. Static reload loses the active flight; LAN reconnect rehydrates only while the in-memory Bun room survives.
-
-### Bottom mission control, tours and the copy diet
-
-The pure next-step resolver orders mission payload/mass/eclipse/radio failures before severity-three cues, actual stage blockers and severity-two improvements. Design improvements wait until Build is reachable; returned-data shortfalls select radio rather than more instruments when core forecasts identify downlink as the bottleneck. Flight prioritizes pending decisions, deployment and operational cues. After a terminal outcome the steps are open the debrief, inspect the replay and redesign; operating cues no longer appear. Redesign keeps the accepted brief and paid hardware and reopens Build, but freeze, verification and sign-offs are redone; an unaccepted brief stays at Need & goals. Steps carry the requirement/cue/blocker owner; completion comes only from actual state. First Light exposes its missing Earth camera during Build, before readiness. Show me reveals and highlights a control/model slot without choosing equipment, signing, repairing or issuing commands.
-
-Primary Aspiring prose blocks target at most 25 words. Resource teaching, hardware descriptions, provenance IDs, owner/method/revision evidence, maturity and disposal disclaimers move into Details, adjacent Explain or Help → Model limits; none is deleted. The report keeps actual objective return, failure title and one suggested experiment visible; the evidence remains expandable. A changed design is never silently installed during redesign. Test & launch offers an explicit Return to Build beside the forecast/checks, including prelaunch Implement; navigation never refreezes or repairs the design.
-
-Automatic onboarding is one **15-concept curriculum** across the first mission: Welcome 3, Build 5, Launch 2, Flight 3, Debrief 2. Related controls share a card; contextual Choice is optional Help-only content. `astrix.tour-concepts.v3` tracks concepts and curriculum opt-out, respecting older skips. Skip/Escape or declining an offer suppresses the remaining automatic chain; Help replay does not reset it. Cards retain count, navigation, focus restoration and visible target alternatives. Tours reveal local presentation only and never mutate mission stages, hardware, approvals or commands. Static tours pause locally without auto-resume; LAN tours explain the shared clock and offer explicit team pause instead.
-
-The Requirements tray reuses actual targets/results through briefing, Build, flight and debrief; Detailed evidence remains available. Spacecraft slots move from the scene overlay to the same bottom controller. Desktop exposes five gated chapter buttons plus a native stage/substep selector; compact retains the selector and four panel buttons instead of repeated collapsed pills. This explicitly requested bottom navigation replaces, rather than adds to, the former scattered chrome. Navigation is not permission to bypass guards. One options tray opens at a time; its close returns to its trigger. Component inspection remains anchored beside the projected part on desktop and view-only in flight.
-
-LAN pairing shows admission, assigned responsibilities, readiness, presence and stale/disconnected status. These establish shared identity and authority, not completed phone gameplay: dedicated role-specific design/flight consoles remain unimplemented. A personal role tab or explanation cannot claim another player's discipline or acknowledge a pending physical decision. See [Multiplayer](./MULTIPLAYER.md).
-
-Disclosure relocation map:
-
-| Previously primary | Current reachable location |
-|---|---|
-| Automatic resource lessons and W/Wh explanation | Badge popover → Explain; Help → Model limits |
-| Full part descriptions and physical requirements | Component panel and Explain |
-| Requirement IDs, method, owner, revision and unmodeled quality | Requirements Details; Detailed presentation |
-| CML qualification and provider/CAD boundaries | Concept maturity and CubeSat-size topics |
-| FCC/disposal screening uncertainty | Readiness Model limits → disposal-screening |
-| Scene scale, frame, imagery and illustration limits | Scene status Explain → scene-scale |
-| Detailed readiness/maturity provenance | Readiness Model limits; Details forecast |
-| Report identity, traces, unsupported quality and replay limits | Expandable outcome/identity/replay evidence |
-
-
-## 9. Maintenance and verification ownership
-
-When adding a scientific field/control: extend core output/provenance, topic/binding/source registry, both languages, diagram text equivalent where appropriate, adjacent Explain, and an actual reveal route if Show me is offered. Keep the `core → data` boundary acyclic. No duplicate beginner calculator or executable formula in translations; displayed results come from core.
-
-Source-level checks cover quote equivalence/refusals, seven-resource forecast/live mapping, component specifications/live readings, state-derived guidance ordering/completion, role ownership, tour navigation/persistence, setup defaults, complete topic locales, pause preservation and delayed receipts. Browser procedures cover target visibility, drag tracking, all collapse/tour controls, focus/inert restoration, 320 pixels/200% zoom, both locales, reduced motion and a complete mission journey. Novice comprehension still requires a separate human study.
-
-The integration owner records commands actually run, browser observations, failures and unverified cases in [VERIFICATION.md](./VERIFICATION.md). This documentation task records no executed tests, browser acceptance or participant-study result.
+Functional verification covers design constraints, stale checks, preview purity, commit/retry/save behavior, both languages, compact layouts and multiplayer. Human sessions must separately measure assistance, comprehension, enjoyment and replay intent. The proposed first-choice/first-outcome/mission-duration targets in the [revision plan](./plans/TURN_BASED_EXPLORATION_REVISION.md) remain hypotheses until measured with participants.
