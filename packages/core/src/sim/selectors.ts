@@ -1,12 +1,11 @@
 import type { FailureReport, HistorySample, LinkTelemetry, SimState, Telemetry } from '../contracts';
 import { ENGINEERING, THERMAL_MODELS, isTechnical } from '../models';
-import { DAY, lightTime } from '../physics';
+import { DAY } from '../physics';
 import { crewTelemetry } from './crew';
 import { bootEnergyWh, bootPowerW } from './commands';
-import { stationRangeKm, availableRadioRate, electricalLoadW, flight, generatedPowerW, heaterDemandW, recordAudit, cloneFlight, transmittingRate, uplinkAvailable } from './state';
+import { availableRadioRate, electricalLoadW, flight, generatedPowerW, heaterDemandW, recordAudit, cloneFlight, signalDelaySec, transmittingRate, uplinkAvailable } from './state';
 import { allRequiredMet, evidenceOf, primaryObjective } from './objectives';
-import { ascentActive, flightTelemetry, nextTrajectoryBoundary } from './trajectory';
-import { CONSTANTS } from '../physics';
+import { ascentActive, flightTelemetry, heliocentric, nextTrajectoryBoundary } from './trajectory';
 import { copyAttitude } from './attitude';
 
 export function telemetry(state: SimState): Telemetry {
@@ -38,9 +37,10 @@ export function telemetry(state: SimState): Telemetry {
   capture: s.mars ? { nominalKms: s.captureNominalKms, planningKms: s.capturePlanningKms, realizedKms: s.captureRequiredKms, availableKms: s.captureAvailableKms, reserveKms: s.captureAvailableKms - s.capturePlanningKms, propellantKg: s.propellantKg, uncertaintyFraction: s.captureUncertainty } : null,
   t: s.t, socWh: s.socWh, capacityWh: s.capacityWh, genW: generatedPowerW(s), loadW: electricalLoadW(s), sunlit: s.sunlit, inContact: s.inContact,
   storedMB: s.storedMB, storageMB: s.storageMB, downlinkedMB: s.downlinkedMB, doseUGyH: s.doseUGyH, mode: s.mode, safe: s.safe,
-  lightTimeSec: s.mars ? lightTime(s.t, s.epochUTC) : s.design.definition.environment.commLightTime ? stationRangeKm(s) / CONSTANTS.c.v : null, queued: s.queue.reduce((n, q) => n + (q.status === 'WAITING_CONTACT' || q.status === 'IN_TRANSIT' ? 1 : 0), 0),
+  lightTimeSec: signalDelaySec(s), queued: s.queue.reduce((n, q) => n + (q.status === 'WAITING_CONTACT' || q.status === 'IN_TRANSIT' ? 1 : 0), 0),
   objective: ((p) => ({ metricKey: p.metricKey, value: p.value, target: p.target }))(primaryObjective(s)),
-  flight: flightTelemetry(s), evidence: evidenceOf(s), outcome: s.ended ? (s.firstFailure || s.sessionEnded || !allRequiredMet(s) ? 'FAILURE' : 'SUCCESS') : 'PROVISIONAL', definition: { id: s.design.missionId, digest: s.design.definitionDigest, revision: s.design.definition.revision, origin: s.design.definition.origin },
+  // The patched-conic flight view is Earth/Moon framed; a Sun-centred craft reports its state through positionKm and sunDir instead.
+  flight: heliocentric(s) ? null : flightTelemetry(s), evidence: evidenceOf(s), outcome: s.ended ? (s.firstFailure || s.sessionEnded || !allRequiredMet(s) ? 'FAILURE' : 'SUCCESS') : 'PROVISIONAL', definition: { id: s.design.missionId, digest: s.design.definitionDigest, revision: s.design.definition.revision, origin: s.design.definition.origin },
   positionKm: [...s.positionKm], sunDir: [...s.sunDir], stationPosKm: s.stationPosKm ? [...s.stationPosKm] : null,
   instruments: s.instruments.map(i => ({ partId: i.partId, on: i.on, lost: i.lost, dutyFraction: i.dutyFraction })), commandQueue: s.queue.map(q => ({ ...q, command: q.command.kind === 'ATTITUDE_TARGET' ? { ...q.command, q: [...q.command.q] as const } : { ...q.command } })),
   downlinkRequested: s.downlinkRequested, downlinkActive: rate > 0 && s.storedMB > 0,

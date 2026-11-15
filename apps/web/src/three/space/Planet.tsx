@@ -22,7 +22,7 @@ export interface PlanetProps {
  * Earth RGB + Black Marble grayscale alpha share one 4k allocation. LOW keeps the
  * existing 1k daytime map and omits night lights. There is no weather/cloud layer.
  */
-export const Planet = forwardRef<Group, PlanetProps>(function Planet({
+const RockyPlanet = forwardRef<Group, PlanetProps>(function RockyPlanet({
  body, radiusKm = CONSTANTS[body].radius.v, sunDirection, rotationRad = 0, lowResolution = false,
 }, ref) {
  const tier = useQuality();
@@ -88,4 +88,21 @@ export const Planet = forwardRef<Group, PlanetProps>(function Planet({
    />
   </mesh>
  </group>;
+});
+
+/** STEREO + SDO 304 Å archive map, unlit and emissive: no atmosphere shell and no night side. */
+const SunPlanet = forwardRef<Group, PlanetProps>(function SunPlanet({ radiusKm = CONSTANTS.SUN.radius.v, rotationRad = 0 }, ref) {
+ const quality = useQualityProfile();
+ const image = useSpaceTexture('sun-stereo-sdo-304-1024.jpg');
+ return <group ref={ref} name="planet-sun" scale={radiusKm} rotation-y={rotationRad}>
+  <mesh>
+   <sphereGeometry args={[1, quality.gridDensity * 8, quality.gridDensity * 4]}/>
+   {/* A new key recompiles the material when the map arrives. */}
+   <meshBasicMaterial key={image ? 'mapped' : 'plain'} map={image?.texture ?? null} color={image ? '#ffffff' : '#ffce76'} toneMapped={false}/>
+  </mesh>
+ </group>;
+});
+
+export const Planet = forwardRef<Group, PlanetProps>(function Planet(props, ref) {
+ return props.body === 'SUN' ? <SunPlanet {...props} ref={ref}/> : <RockyPlanet {...props} ref={ref}/>;
 });

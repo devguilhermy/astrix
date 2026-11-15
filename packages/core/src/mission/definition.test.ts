@@ -9,9 +9,9 @@ const copy = (id = 'FIRST_LIGHT', unique = 'a') => editAsCopy(missionById(id as 
 const clone = (value: unknown): Record<string, any> => structuredClone(value) as Record<string, any>;
 
 describe('built-in definitions', () => {
- test('twelve missions: the four legacy presets keep their identity and the learning ladder follows', () => {
-  expect(listMissions().map(d => d.id)).toEqual(['FIRST_LIGHT', 'STORM_WATCH', 'RED_RELAY', 'CREW_PATHFINDER', 'FIRST_SIGNAL', 'UP_AND_BACK', 'STAY_IN_ORBIT', 'RAISE_YOUR_ORBIT', 'LEAVE_ORBIT_SAFELY', 'PAST_EARTH', 'MEET_THE_MOON', 'EARTH_TO_MOON']);
-  expect(listMissions({ origin: 'BUILTIN' }).length + listMissions({ origin: 'LEARNING' }).length).toBe(12);
+ test('thirteen missions: the four legacy presets keep their identity, the Sun preset follows them and then the learning ladder', () => {
+  expect(listMissions().map(d => d.id)).toEqual(['FIRST_LIGHT', 'STORM_WATCH', 'RED_RELAY', 'CREW_PATHFINDER', 'SUN_SENTINEL', 'FIRST_SIGNAL', 'UP_AND_BACK', 'STAY_IN_ORBIT', 'RAISE_YOUR_ORBIT', 'LEAVE_ORBIT_SAFELY', 'PAST_EARTH', 'MEET_THE_MOON', 'EARTH_TO_MOON']);
+  expect(listMissions({ origin: 'BUILTIN' }).length + listMissions({ origin: 'LEARNING' }).length).toBe(13);
  });
  test('each is frozen, self-consistent and validates to itself', () => {
   for (const d of BUILTIN_DEFINITIONS) {

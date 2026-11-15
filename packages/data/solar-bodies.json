@@ -1,0 +1,270 @@
+{
+  "retrieved": "2026-11-15",
+  "sources": [
+    {
+      "id": "nssdca-planetary-metric",
+      "title": "NASA NSSDCA Planetary Fact Sheet",
+      "url": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/",
+      "publisher": "NASA Goddard Space Flight Center, NSSDCA",
+      "retrieved": "2026-11-15",
+      "lastUpdated": "2026-11-13",
+      "use": "Mercury to Neptune and the Moon: mass, diameter, gravity, escape velocity, length of day, distance from the Sun (the Moon: from Earth), orbital period, mean temperature, number of moons, ring system and global magnetic field, transcribed as printed."
+    },
+    {
+      "id": "nssdca-sun",
+      "title": "NASA NSSDCA Sun Fact Sheet",
+      "url": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/sunfact.html",
+      "publisher": "NASA Goddard Space Flight Center, NSSDCA",
+      "retrieved": "2026-11-15",
+      "lastUpdated": "2024-05-09",
+      "use": "Sun: mass 1,988,400 × 10^24 kg; diameter = 2 × volumetric mean radius 695,700 km; surface gravity (eq.) 274.0 m/s²; escape velocity 617.6 km/s; sidereal rotation period 609.12 h (adopted at 16° latitude); effective temperature 5772 K = 5498.85 °C; magnetic field from the listed polar field of 1-2 gauss. Rings are not listed for a star."
+    }
+  ],
+  "bodies": {
+    "SUN": {
+      "kind": "STAR",
+      "massE24Kg": 1988400,
+      "diameterKm": 1391400,
+      "gravityMs2": 274.0,
+      "escapeKms": 617.6,
+      "dayHours": 609.12,
+      "distanceE6Km": null,
+      "distanceFrom": "SUN",
+      "orbitDays": null,
+      "meanTempC": 5498.85,
+      "moons": null,
+      "rings": false,
+      "magneticField": true,
+      "sentence": {
+        "en": "The star at the centre of the Solar System; its light powers every solar panel in ASTRIX11.",
+        "pt": "A estrela no centro do Sistema Solar; sua luz alimenta todos os painéis solares do ASTRIX11."
+      },
+      "exploredBy": [
+        { "name": "Parker Solar Probe", "url": "https://science.nasa.gov/sun/" },
+        { "name": "SDO", "url": "https://science.nasa.gov/sun/" },
+        { "name": "STEREO", "url": "https://science.nasa.gov/sun/" }
+      ],
+      "factSheetUrl": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/sunfact.html"
+    },
+    "MERCURY": {
+      "kind": "TERRESTRIAL_PLANET",
+      "massE24Kg": 0.330,
+      "diameterKm": 4879,
+      "gravityMs2": 3.7,
+      "escapeKms": 4.3,
+      "dayHours": 4222.6,
+      "distanceE6Km": 57.9,
+      "distanceFrom": "SUN",
+      "orbitDays": 88.0,
+      "meanTempC": 167,
+      "moons": 0,
+      "rings": false,
+      "magneticField": true,
+      "sentence": {
+        "en": "The smallest planet and the closest to the Sun, with almost no atmosphere to hold heat.",
+        "pt": "O menor planeta e o mais próximo do Sol, quase sem atmosfera para reter calor."
+      },
+      "exploredBy": [
+        { "name": "Mariner 10", "url": "https://science.nasa.gov/mercury/" },
+        { "name": "MESSENGER", "url": "https://science.nasa.gov/mercury/" }
+      ],
+      "factSheetUrl": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/"
+    },
+    "VENUS": {
+      "kind": "TERRESTRIAL_PLANET",
+      "massE24Kg": 4.87,
+      "diameterKm": 12104,
+      "gravityMs2": 8.9,
+      "escapeKms": 10.4,
+      "dayHours": 2802.0,
+      "distanceE6Km": 108.2,
+      "distanceFrom": "SUN",
+      "orbitDays": 224.7,
+      "meanTempC": 464,
+      "moons": 0,
+      "rings": false,
+      "magneticField": false,
+      "sentence": {
+        "en": "Nearly Earth's size, wrapped in a dense atmosphere that makes it the hottest planet.",
+        "pt": "Quase do tamanho da Terra, envolto em uma atmosfera densa que o torna o planeta mais quente."
+      },
+      "exploredBy": [
+        { "name": "Mariner 2", "url": "https://science.nasa.gov/venus/" },
+        { "name": "Magellan", "url": "https://science.nasa.gov/venus/" }
+      ],
+      "factSheetUrl": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/"
+    },
+    "EARTH": {
+      "kind": "TERRESTRIAL_PLANET",
+      "massE24Kg": 5.97,
+      "diameterKm": 12756,
+      "gravityMs2": 9.8,
+      "escapeKms": 11.2,
+      "dayHours": 24.0,
+      "distanceE6Km": 149.6,
+      "distanceFrom": "SUN",
+      "orbitDays": 365.2,
+      "meanTempC": 15,
+      "moons": 1,
+      "rings": false,
+      "magneticField": true,
+      "sentence": {
+        "en": "The only world known to have liquid water on its surface and life.",
+        "pt": "O único mundo conhecido com água líquida na superfície e vida."
+      },
+      "exploredBy": [
+        { "name": "Landsat", "url": "https://science.nasa.gov/earth/" },
+        { "name": "Terra", "url": "https://science.nasa.gov/earth/" },
+        { "name": "International Space Station", "url": "https://science.nasa.gov/earth/" }
+      ],
+      "factSheetUrl": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/"
+    },
+    "MOON": {
+      "kind": "NATURAL_SATELLITE",
+      "massE24Kg": 0.073,
+      "diameterKm": 3475,
+      "gravityMs2": 1.6,
+      "escapeKms": 2.4,
+      "dayHours": 708.7,
+      "distanceE6Km": 0.384,
+      "distanceFrom": "EARTH",
+      "orbitDays": 27.3,
+      "meanTempC": -20,
+      "moons": 0,
+      "rings": false,
+      "magneticField": false,
+      "sentence": {
+        "en": "Earth's only natural satellite and the only other world people have walked on.",
+        "pt": "O único satélite natural da Terra e o único outro mundo onde pessoas já caminharam."
+      },
+      "exploredBy": [
+        { "name": "Apollo", "url": "https://science.nasa.gov/moon/" },
+        { "name": "Lunar Reconnaissance Orbiter", "url": "https://science.nasa.gov/moon/" },
+        { "name": "Artemis", "url": "https://science.nasa.gov/moon/" }
+      ],
+      "factSheetUrl": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/"
+    },
+    "MARS": {
+      "kind": "TERRESTRIAL_PLANET",
+      "massE24Kg": 0.642,
+      "diameterKm": 6792,
+      "gravityMs2": 3.7,
+      "escapeKms": 5.0,
+      "dayHours": 24.7,
+      "distanceE6Km": 228.0,
+      "distanceFrom": "SUN",
+      "orbitDays": 687.0,
+      "meanTempC": -65,
+      "moons": 2,
+      "rings": false,
+      "magneticField": false,
+      "sentence": {
+        "en": "A cold desert world with a thin atmosphere and signs of ancient water.",
+        "pt": "Um mundo desértico e frio, com atmosfera fina e sinais de água antiga."
+      },
+      "exploredBy": [
+        { "name": "Viking", "url": "https://science.nasa.gov/mars/" },
+        { "name": "Mars Odyssey", "url": "https://science.nasa.gov/mars/" },
+        { "name": "Mars Reconnaissance Orbiter", "url": "https://science.nasa.gov/mars/" },
+        { "name": "Perseverance", "url": "https://science.nasa.gov/mars/" }
+      ],
+      "factSheetUrl": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/"
+    },
+    "JUPITER": {
+      "kind": "GAS_GIANT",
+      "massE24Kg": 1898,
+      "diameterKm": 142984,
+      "gravityMs2": 23.1,
+      "escapeKms": 59.5,
+      "dayHours": 9.9,
+      "distanceE6Km": 778.5,
+      "distanceFrom": "SUN",
+      "orbitDays": 4331,
+      "meanTempC": -110,
+      "moons": 95,
+      "rings": true,
+      "magneticField": true,
+      "sentence": {
+        "en": "The largest planet, more than twice as massive as all the others combined.",
+        "pt": "O maior planeta, com mais que o dobro da massa de todos os outros juntos."
+      },
+      "exploredBy": [
+        { "name": "Voyager", "url": "https://science.nasa.gov/jupiter/" },
+        { "name": "Galileo", "url": "https://science.nasa.gov/jupiter/" },
+        { "name": "Juno", "url": "https://science.nasa.gov/jupiter/" }
+      ],
+      "factSheetUrl": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/"
+    },
+    "SATURN": {
+      "kind": "GAS_GIANT",
+      "massE24Kg": 568,
+      "diameterKm": 120536,
+      "gravityMs2": 9.0,
+      "escapeKms": 35.5,
+      "dayHours": 10.7,
+      "distanceE6Km": 1432.0,
+      "distanceFrom": "SUN",
+      "orbitDays": 10747,
+      "meanTempC": -140,
+      "moons": 274,
+      "rings": true,
+      "magneticField": true,
+      "sentence": {
+        "en": "A gas giant circled by the most extensive ring system in the Solar System.",
+        "pt": "Um gigante gasoso cercado pelo sistema de anéis mais extenso do Sistema Solar."
+      },
+      "exploredBy": [
+        { "name": "Pioneer 11", "url": "https://science.nasa.gov/saturn/" },
+        { "name": "Voyager", "url": "https://science.nasa.gov/saturn/" },
+        { "name": "Cassini", "url": "https://science.nasa.gov/saturn/" }
+      ],
+      "factSheetUrl": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/"
+    },
+    "URANUS": {
+      "kind": "ICE_GIANT",
+      "massE24Kg": 86.8,
+      "diameterKm": 51118,
+      "gravityMs2": 8.7,
+      "escapeKms": 21.3,
+      "dayHours": 17.2,
+      "distanceE6Km": 2867.0,
+      "distanceFrom": "SUN",
+      "orbitDays": 30589,
+      "meanTempC": -195,
+      "moons": 28,
+      "rings": true,
+      "magneticField": true,
+      "sentence": {
+        "en": "An ice giant that rotates on its side.",
+        "pt": "Um gigante de gelo que gira deitado de lado."
+      },
+      "exploredBy": [
+        { "name": "Voyager 2", "url": "https://science.nasa.gov/uranus/" }
+      ],
+      "factSheetUrl": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/"
+    },
+    "NEPTUNE": {
+      "kind": "ICE_GIANT",
+      "massE24Kg": 102,
+      "diameterKm": 49528,
+      "gravityMs2": 11.0,
+      "escapeKms": 23.5,
+      "dayHours": 16.1,
+      "distanceE6Km": 4515.0,
+      "distanceFrom": "SUN",
+      "orbitDays": 59800,
+      "meanTempC": -200,
+      "moons": 16,
+      "rings": true,
+      "magneticField": true,
+      "sentence": {
+        "en": "The most distant planet, dark, cold and whipped by supersonic winds.",
+        "pt": "O planeta mais distante, escuro, frio e açoitado por ventos supersônicos."
+      },
+      "exploredBy": [
+        { "name": "Voyager 2", "url": "https://science.nasa.gov/neptune/" }
+      ],
+      "factSheetUrl": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/"
+    }
+  }
+}

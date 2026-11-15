@@ -2,7 +2,7 @@ import type { BodyId, Q, RefusalCode, RoleId } from '../contracts';
 import type { BurnSpec, ObjectiveKind } from '../mission/types';
 import type { Vec3 } from '../physics';
 
-export type Frame = 'EARTH_J2000EQ' | 'MOON_J2000EQ' | 'MARS_J2000EQ';
+export type Frame = 'EARTH_J2000EQ' | 'MOON_J2000EQ' | 'MARS_J2000EQ' | 'SUN_J2000EQ';
 export interface StateVector { body: BodyId; frame: Frame; epochSec: number; epochUTC: string; rKm: Vec3; vKms: Vec3 }
 export interface FlightStateView { central: StateVector; earth: StateVector; moon: StateVector | null; moonEphemeris: StateVector | null; altitudeKm: number; speedKms: number }
 export interface OrbitTelemetry {

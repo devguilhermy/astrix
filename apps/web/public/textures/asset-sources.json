@@ -32,6 +32,19 @@
       "processing": "Existing 1024x512 historical surface retained unchanged; used for Earth in the explorable solar overview and mission context. Not current weather."
     },
     {
+      "files": ["earth-blue-marble-2048.jpg"],
+      "title": "Blue Marble Next Generation base map, January 2004",
+      "sourcePage": "https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/base-map/",
+      "original": "https://assets.science.nasa.gov/content/dam/science/esd/eo/images/bmng/bmng-base/january/world.200401.3x5400x2700.jpg",
+      "originalSha256": "99f5faad74efe985fbf1714c8be7296ca9999759a1215b65f99b7f1df278dde5",
+      "retrieved": "2026-11-15",
+      "credit": "NASA Earth Observatory / NASA Goddard Space Flight Center. Blue Marble Next Generation: Reto Stockli.",
+      "epoch": "January 2004 monthly cloud-free composite of MODIS observations; not current weather or cloud cover.",
+      "coordinates": "Equirectangular longitude/latitude; west -180 to east +180, north at top, 2:1. Longitude 0 at image centre.",
+      "limitations": "Cloud-free daytime composite; seasonal snow and ice are those of January 2004. Used only as the source of simulated observation frames drawn in a 2D canvas, never presented as a new observation.",
+      "processing": "ImageMagick: NASA 5400x2700 JPEG resized to 2048x1024, metadata stripped, JPEG quality 88. Colors and orientation preserved. Decoded on demand into a 2D canvas for the turn feedback frame, outside the WebGL globe texture budget."
+    },
+    {
       "files": ["mars-viking-1024.jpg"],
       "sourcePage": "https://astrogeology.usgs.gov/search/map/mars_viking_global_color_mosaic_925m",
       "original": "https://astrogeology.usgs.gov/ckan/dataset/dfdc2242-52dc-4126-bc89-03af8253ae79/resource/0d7b31dc-0b2e-4ca6-89dc-e3c1404c0232/download/mars_viking_clrmosaic_global_1024.jpg",

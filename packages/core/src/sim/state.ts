@@ -3,11 +3,11 @@ import type { AuditEntry, BodyId, CommandQueueEntry, ComputerTelemetry, Design, 
 import { MODEL, PART_BY_ID } from '../catalog';
 import { computeBudgets, launchReadiness, ROLES } from '../design';
 import { ENGINEERING, RULES_VERSION, THERMAL_MODELS, isTechnical, stationAllocated } from '../models';
-import { CONSTANTS, DAY, hohmann, inStationContact, linkRateKbps, marsLineOfSight, solarFactor, stationPosition, type Vec3 } from '../physics';
+import { CONSTANTS, DAY, hohmann, inStationContact, lightTime, linkRateKbps, marsLineOfSight, solarInput, stationPosition, sunLineOfSight, type Vec3 } from '../physics';
 import { conicAtDt, len } from '../flight/conic';
 import { moonState, segmentHitsSphere } from '../flight/moon';
 import { initObjectives, type ObjectiveRuntime } from './objectives';
-import { armBurns, ascentActive, initTrajectory, missionPhase, moonModelled, totalMassKg, type TrajState } from './trajectory';
+import { armBurns, ascentActive, heliocentric, initTrajectory, missionPhase, moonModelled, totalMassKg, type TrajState } from './trajectory';
 import { next } from '../rng';
 import { initialCrew, type CrewState } from './crew';
 import type { DeploymentStatus } from '../contracts';
@@ -58,7 +58,7 @@ export function createSim(design: Design, seed: number): SimState {
  const ready = launchReadiness(design, Object.fromEntries(ROLES.map(r => [r, true])) as Record<typeof ROLES[number], boolean>);
  if (ready.length) throw new RangeError(`Cannot launch invalid design: ${ready.map(r => r.code).join(', ')}`);
  const d: Design = Object.freeze({ ...design, orbit: design.orbit ? Object.freeze({ ...design.orbit }) : null, launch: design.launch ? Object.freeze({ launcherId: design.launch.launcherId, program: Object.freeze({ ...design.launch.program }) }) : null, burns: Object.freeze(design.burns.map(burn => Object.freeze({ ...burn }))), parts: Object.freeze(design.parts.map(p => Object.freeze({ ...p }))) });
- const b = computeBudgets(d), def = d.definition, mars = def.trajectory.model === 'MARS_ANALYTIC_CRUISE', technical = isTechnical(d.levelId), faults = def.environment.scheduledFaults;
+ const b = computeBudgets(d), def = d.definition, mars = def.trajectory.model === 'MARS_ANALYTIC_CRUISE', sun = def.trajectory.model === 'HELIOCENTRIC_CONIC', technical = isTechnical(d.levelId), faults = def.environment.scheduledFaults;
  const cruise=mars&&!(def.start.kind==='PROVIDED_ORBIT'&&def.start.initialPhase==='OPERATIONS');
  let capacity = 0, solar = 0, baseLoad = 0, storage = 0, isp = 0, heater = 0, extraRadiatorM2 = 0;
  const instruments: InstrumentState[] = [];
@@ -79,7 +79,7 @@ export function createSim(design: Design, seed: number): SimState {
  const s: FlightState = {
   audit: [], auditDecimated: false, crew: def.support.crew ? initialCrew() : null, deployment: { wings: d.parts.some(p => p.partId === 'SOLAR_WINGS') ? 'STOWED' : 'NOT_APPLICABLE', antenna: d.busId === 'CUBESAT_3U' ? 'STOWED' : 'NOT_APPLICABLE' }, launchMassKg: b.massKg.used, sessionEnded: false,
   version: 5, attitude: { q: [0,0,0,1], target: [0,0,0,1], rateRadSec: 0, hold: 'SUN', panelSunDeg: 0, instrumentTargetDeg: 0, antennaEarthDeg: 0 }, t: 0, design: d, seed: seed >>> 0, rng, assisted: false, remainderSec: 0, elapsed: 0, arrivalT: cruise ? hohmann().transferSec : 0, cruise, capturePending: false, captured: !cruise, ended: false, finePointing: d.parts.some(i => PART_BY_ID[i.partId].finePointing),
-  epochUTC: def.environment.epochUTC, mars, flightHistory: def.start.kind === 'SURFACE_LAUNCH' || def.trajectory.model === 'PATCHED_CONICS' && def.trajectory.maneuvers.allowed, traj: undefined as never, objectives: initObjectives(def.objectives), centralBody: mars ? 'MARS' : 'EARTH', earthPosKm: [0, 0, 0], velocityKms: [0, 0, 0],
+  epochUTC: def.environment.epochUTC, mars, flightHistory: def.start.kind === 'SURFACE_LAUNCH' || def.trajectory.model === 'PATCHED_CONICS' && def.trajectory.maneuvers.allowed, traj: undefined as never, objectives: initObjectives(def.objectives), centralBody: mars ? 'MARS' : sun ? 'SUN' : 'EARTH', earthPosKm: [0, 0, 0], velocityKms: [0, 0, 0],
   capacityWh: capacity, nominalCapacityWh: capacity, arrayFactor: 1, batteryFactor: 1, capacityLostWh: 0, capacityClampNotified: false, socWh: capacity, genW: 0, loadW: baseLoad, ratedSolarW: solar, baseLoadW: baseLoad,
   mode: 'SUN', safe: false, downlinkRequested: false, downlinkActive: false,
   storedMB: 0, missionStoredMB: 0, storageMB: storage, downlinkedMB: 0, missionDownlinkedMB: 0, dataLostMB: 0, radiationHours: 0,
@@ -87,7 +87,7 @@ export function createSim(design: Design, seed: number): SimState {
   instruments, queue: [], nextCommandId: 1,
   propellantKg: loadedPropellant, dryMassKg: b.massKg.used - loadedPropellant, ispSec: isp, captureRequiredKms: nominalCapture * (1 + uncertainty), captureNominalKms: nominalCapture, capturePlanningKms: nominalCapture * (technical ? 1 + ENGINEERING.captureHigh.v : MODEL.captureMargin.v), captureUncertainty: uncertainty, captureAvailableKms: b.deltaV?.availableKms ?? 0,
   stormActive: false, stormStarted: false, stormEnded: false, agingAt: faults ? duration * (MODEL.agingDayFraction.v + (agingRoll - .5) * .2) : Number.MAX_SAFE_INTEGER, aged: false,
-  outageAt: faults && !mars ? DAY * (1 + outageRoll * Math.max(1, duration / DAY - 2)) : Number.MAX_SAFE_INTEGER, outageStarted: false, outageActive: false,
+  outageAt: faults && !mars && !sun ? DAY * (1 + outageRoll * Math.max(1, duration / DAY - 2)) : Number.MAX_SAFE_INTEGER, outageStarted: false, outageActive: false,
   firstPassSeen: false, lowLatched: false, emptyLatched: false, storageLatched: false,
   depletedSec: 0, healthySec: 0, marginBadSec: 0,
   temperatureK: THERMAL_MODELS[d.busId].initialK.v, heaterMode: 'AUTO', heaterOn: false, ratedHeaterW: heater, heaterW: 0, externalHeatW: 0, internalHeatW: 0, radiatedW: 0, thermalTrend: 0, thermalBadSec: 0, thermalSurvivalSec: 0, thermalInhibited: false,
@@ -106,21 +106,31 @@ export function createSim(design: Design, seed: number): SimState {
  return s;
 }
 export function stormBounds(s: Pick<FlightState, 'design'>): readonly [number, number] { const storm = s.design.definition.environment.storm; return storm ? [storm.startSec, storm.endSec] : [Infinity, Infinity]; }
+/** Mars and Sun-centred craft: Deep Space Network allocation, no scripted ground outage, line of sight to Earth. */
+export const deepSpace = (s: FlightState): boolean => s.mars || heliocentric(s);
+/** One-way signal time to Earth in seconds, or null where the mission does not model it. */
+export function signalDelaySec(s: FlightState): number | null {
+ if (s.mars) return lightTime(s.t, s.epochUTC);
+ if (heliocentric(s)) return len(s.earthPosKm) / CONSTANTS.c.v;
+ return s.design.definition.environment.commLightTime ? stationRangeKm(s) / CONSTANTS.c.v : null;
+}
 /** Is the craft in contact with the Earth station at tt? `dtc` is seconds along the current conic. */
 function passContact(s: FlightState, tt: number, dtc: number): boolean {
  const c = s.traj.conic!, x = conicAtDt(c, dtc);
  if (s.mars) return marsLineOfSight(x.r, tt, s.epochUTC);
+ if (c.body === 'SUN') return sunLineOfSight(x.r, tt, s.epochUTC);
  const station = stationPosition(tt, 'EARTH', MODEL.stationLat.v, MODEL.stationLon.v, undefined, s.epochUTC);
  if (c.body !== 'MOON') return inStationContact(x.r, station, MODEL.minElevation.v);
  const m = moonState(tt, s.epochUTC), earth: Vec3 = [x.r[0] + m.r[0], x.r[1] + m.r[1], x.r[2] + m.r[2]];
  return inStationContact(earth, station, MODEL.minElevation.v) && !segmentHitsSphere(station, earth, m.r, CONSTANTS.MOON.radius.v);
 }
 export function updateEnvironment(s: FlightState): void {
- const technical = isTechnical(s.design.levelId), def = s.design.definition;
+ const technical = isTechnical(s.design.levelId), def = s.design.definition, deep = deepSpace(s);
  Object.assign(s,environmentAt(s,s.t));
  const [start, end] = stormBounds(s);
  s.stormActive = s.elapsed >= start && s.elapsed < end;
  if (s.mars) s.doseUGyH = s.stormActive ? MODEL.marsStormDose.v : MODEL.marsBackground.v;
+ else if (heliocentric(s)) s.doseUGyH = MODEL.sunBackground.v;
  else if (def.environment.storm?.dose === 'RADLAB_HOURLY' && s.stormActive) {
   const hour = Math.min(RADLAB_PROFILE.hourly.length - 1, Math.floor((s.elapsed - start) / 3600));
   s.doseUGyH = RADLAB_PROFILE.hourly[hour].meanUGyH;
@@ -131,8 +141,8 @@ export function updateEnvironment(s: FlightState): void {
   if (s.crew && s.outageActive) s.nextPassAt = s.arrivalT + s.outageAt + MODEL.outageHours.v * 3600;
   const localT = s.captured ? s.t - s.traj.conic!.t0 : 0;
   for (let dt = 60; !s.crew && dt <= DAY; dt += 60) {
-   if (!s.mars && s.outageStarted && s.elapsed + dt >= s.outageAt && s.elapsed + dt < s.outageAt + MODEL.outageHours.v * 3600) continue;
-   if ((technical || s.mars) && !stationAllocated(s.t + dt, def.environment.stationAllocationStartSec)) continue;
+   if (!deep && s.outageStarted && s.elapsed + dt >= s.outageAt && s.elapsed + dt < s.outageAt + MODEL.outageHours.v * 3600) continue;
+   if ((technical || deep) && !stationAllocated(s.t + dt, def.environment.stationAllocationStartSec)) continue;
    if (passContact(s, s.t + dt, localT + dt)) { s.nextPassAt = s.t + dt; break; }
   }
  }
@@ -140,9 +150,10 @@ export function updateEnvironment(s: FlightState): void {
  refreshAttitude(s);
 }
 export function sample(s: FlightState, eventBoundary = false): HistorySample { return { attitude: copyAttitude(s.attitude), t: s.t, eventBoundary, phase: ascentActive(s) ? 'ASCENT' : s.cruise ? 'CRUISE' : s.capturePending ? 'CAPTURE' : s.crew?.phase ?? (s.ended ? 'COMPLETE' : 'OPERATE'), positionKm: [...s.positionKm], sunDir: [...s.sunDir], stationPosKm: s.stationPosKm ? [...s.stationPosKm] : null, retainedKg: s.dryMassKg + s.propellantKg - (s.crew?.ventedKg ?? 0), socPct: s.capacityWh ? s.socWh / s.capacityWh * 100 : 0, storedPct: s.storageMB ? s.storedMB / s.storageMB * 100 : 0, downlinkedMB: s.downlinkedMB, doseUGyH: s.doseUGyH, inContact: s.inContact ? 1 : 0, temperatureK: isTechnical(s.design.levelId) ? s.temperatureK : null, arrayFactor: s.arrayFactor, capacityWh: s.capacityWh, pointingQuality: s.pointing.quality, linkQuality: s.linkQuality, computerState: s.computerState, ...(s.flightHistory ? { flight: { phase: missionPhase(s), earthRKm: [...s.earthPosKm] as Vec3, moonRKm: moonModelled(s) ? moonState(s.t, s.epochUTC).r : null, centralBody: s.centralBody, altitudeKm: len(s.positionKm) - CONSTANTS[s.centralBody].radius.v, speedKms: len(s.velocityKms), massKg: totalMassKg(s) } } : {}) }; }
-/** Lunar links scale authored rates by (mean lunar distance / slant range)^2, capped like the Mars law. */
+/** Lunar links scale authored rates by (mean lunar distance / slant range)^2, capped like the Mars law; Sun-centred links use the craft-Earth range against 1 AU. */
 export function linkRate(s: FlightState, referenceKbps: number): number {
  if (s.design.definition.environment.commLightTime && !s.mars) return Math.min(6000, referenceKbps * (CONSTANTS.MOON.distanceKm.v / Math.max(2000, stationRangeKm(s))) ** 2);
+ if (heliocentric(s)) return linkRateKbps(referenceKbps, 'SUN', s.t, s.epochUTC, len(s.earthPosKm));
  return linkRateKbps(referenceKbps, s.mars ? 'MARS' : 'EARTH', s.t, s.epochUTC);
 }
 export const stationRangeKm = (s: FlightState): number => s.stationPosKm ? len([s.earthPosKm[0] - s.stationPosKm[0], s.earthPosKm[1] - s.stationPosKm[1], s.earthPosKm[2] - s.stationPosKm[2]]) : 0;
@@ -181,7 +192,7 @@ export function heaterDemandW(s: FlightState): number {
 export function generatedPowerW(s: FlightState): number {
  const factor = Math.max(0, Math.cos(s.attitude.panelSunDeg * Math.PI / 180));
  const stowedW = s.deployment.wings === 'STOWED' || s.deployment.wings === 'ANOMALOUS' ? s.design.parts.filter(i => i.partId === 'SOLAR_WINGS').reduce((n, i) => n + (PART_BY_ID[i.partId].generationW?.v ?? 0) * i.qty, 0) : 0;
- return s.sunlit ? (s.ratedSolarW - stowedW) * solarFactor(s.centralBody) * factor * s.arrayFactor : 0;
+ return s.sunlit ? (s.ratedSolarW - stowedW) * solarInput(s.centralBody, s.positionKm) * factor * s.arrayFactor : 0;
 }
 export function electricalLoadW(s: FlightState): number {
  let load = s.baseLoadW + heaterDemandW(s);

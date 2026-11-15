@@ -1,6 +1,6 @@
 import type { ActorRole, BodyId, Budgets, Command, Design, OrbitChoice, Quote, Refusal, RefusalCode, RoleId } from './contracts';
 import { BUSES, MODEL, PART_BY_ID, RIDES, listOrbitPresets, rideCost, rideOffersOrbit } from './catalog';
-import { CONSTANTS, DAY, captureDeltaV, cylinderEclipse, elementsForOrbit, inStationContact, linkRateKbps, marsLineOfSight, orbitPosition, orbitalPeriod, propellantNeeded, rocketDeltaV, solarFactor, stationPosition, sunDirection, hohmann, orbitAltitudes, planetPosition, makeOrbit } from './physics';
+import { CONSTANTS, DAY, captureDeltaV, cylinderEclipse, earthFromSunCraft, elementsForOrbit, inStationContact, linkRateKbps, marsLineOfSight, orbitPosition, orbitalPeriod, propellantNeeded, rocketDeltaV, solarFactor, solarInput, stationPosition, sunDirectionAt, sunLineOfSight, hohmann, orbitAltitudes, planetPosition, makeOrbit } from './physics';
 import { crewReturnFuel } from './return';
 import { ENGINEERING, LEVELS, RULES_VERSION, THERMAL_MODELS, isTechnical, stationAllocated, thermalEquilibriumK } from './models';
 import { antennaGain } from './attitude';
@@ -20,7 +20,8 @@ export function orbitOffered(design: Design, orbit: OrbitChoice, rideId = design
  const start = design.definition.start;
  return start.kind === 'PROVIDED_ORBIT' && design.definition.vehicle.allowedRideIds.includes(rideId ?? '') && rideOffersOrbit(rideId, design.busId, start.body, orbit);
 }
-interface Forecast { periodMin: number; eclipseFrac: number; maxEclipseSec: number; contactMinPerDay: number; targetSolar: number; earthSolar: number }
+/** solarScale and earthRangeKm are day means used only for Sun-centred orbits (solar input and link range vary with heliocentric position). */
+interface Forecast { periodMin: number; eclipseFrac: number; maxEclipseSec: number; contactMinPerDay: number; targetSolar: number; earthSolar: number; solarScale: number; earthRangeKm: number }
 const forecasts = new Map<string, Forecast>();
 /** Mass of the spacecraft as designed (structure, parts, propellant); the launcher payload. */
 export function designMassKg(design: Design): number {
@@ -52,25 +53,27 @@ function estimate(design: Design): Forecast | null {
  const key = `${def.digest}|${design.levelId}|${design.rulesVersion}|${design.stationId}|${JSON.stringify(o)}`;
  const cached = forecasts.get(key);
  if (cached) return cached;
- const epoch = o.body === 'MARS' && !(def.start.kind==='PROVIDED_ORBIT'&&def.start.initialPhase==='OPERATIONS') ? hohmann().transferSec : 0, dt = MODEL.forecastStepSec.v, crew = def.support.crew, allocation = def.environment.stationAllocationStartSec;
- let eclipseSec = 0, contactSec = 0, run = 0, longest = 0, initialRun = 0, stillInitial = true, targetSolar = 0, earthSolar = 0;
+ const epoch = o.body === 'MARS' && !(def.start.kind==='PROVIDED_ORBIT'&&def.start.initialPhase==='OPERATIONS') ? hohmann().transferSec : 0, dt = MODEL.forecastStepSec.v, crew = def.support.crew, allocation = def.environment.stationAllocationStartSec, sunCentred = o.body === 'SUN';
+ let eclipseSec = 0, contactSec = 0, run = 0, longest = 0, initialRun = 0, stillInitial = true, targetSolar = 0, earthSolar = 0, solarSum = 0, rangeSum = 0;
  for (let t = 0; t < DAY; t += dt) {
-  const p = orbitPosition(o, t), sun = sunDirection(o.body, epoch + t, undefined, o.epochUTC);
+  const p = orbitPosition(o, t), sun = sunDirectionAt(o.body, p, epoch + t, o.epochUTC);
   const radius = Math.hypot(...p), targetCos = -(p[0]*sun[0]+p[1]*sun[1]+p[2]*sun[2])/radius;
-  const station = o.body !== 'MARS' ? stationPosition(t,'EARTH',MODEL.stationLat.v,MODEL.stationLon.v,undefined,o.epochUTC) : null;
+  const station = o.body !== 'MARS' && !sunCentred ? stationPosition(t,'EARTH',MODEL.stationLat.v,MODEL.stationLon.v,undefined,o.epochUTC) : null;
   const moon = o.body === 'MOON' ? moonState(t, o.epochUTC) : null, earthPos = moon ? add(p, moon.r) : p;
   const earthPlanet = o.body === 'MARS' ? planetPosition('EARTH',epoch+t,o.epochUTC) : null, marsPlanet = o.body === 'MARS' ? planetPosition('MARS',epoch+t,o.epochUTC) : null;
-  const earth = o.body === 'MARS' ? [earthPlanet![0]-marsPlanet![0]-p[0],earthPlanet![1]-marsPlanet![1]-p[1],earthPlanet![2]-marsPlanet![2]-p[2]] : !crew ? [station![0]-earthPos[0],station![1]-earthPos[1],station![2]-earthPos[2]] : [-earthPos[0],-earthPos[1],-earthPos[2]];
+  const earth = o.body === 'MARS' ? [earthPlanet![0]-marsPlanet![0]-p[0],earthPlanet![1]-marsPlanet![1]-p[1],earthPlanet![2]-marsPlanet![2]-p[2]] : sunCentred ? earthFromSunCraft(p, epoch + t, o.epochUTC) : !crew ? [station![0]-earthPos[0],station![1]-earthPos[1],station![2]-earthPos[2]] : [-earthPos[0],-earthPos[1],-earthPos[2]];
   const earthCos = (earth[0]*sun[0]+earth[1]*sun[1]+earth[2]*sun[2])/Math.hypot(...earth);
-  if (!cylinderEclipse(p,sun,CONSTANTS[o.body].radius.v)) { targetSolar += Math.sqrt(Math.max(0,1-targetCos**2))*dt; earthSolar += Math.sqrt(Math.max(0,1-earthCos**2))*dt; }
-  const shadow = cylinderEclipse(p, sun, CONSTANTS[o.body].radius.v);
+  // Nothing eclipses a Sun-centred craft.
+  const shadow = !sunCentred && cylinderEclipse(p, sun, CONSTANTS[o.body].radius.v);
+  if (!shadow) { targetSolar += Math.sqrt(Math.max(0,1-targetCos**2))*dt; earthSolar += Math.sqrt(Math.max(0,1-earthCos**2))*dt; }
   if (shadow) { eclipseSec += dt; run += dt; if (stillInitial) initialRun += dt; longest = Math.max(longest, run); }
   else { run = 0; stillInitial = false; }
-  const contact = crew ? true : o.body === 'MARS' ? marsLineOfSight(p, epoch + t, o.epochUTC) : inStationContact(earthPos, station!, MODEL.minElevation.v) && !(moon && segmentHitsSphere(station!, earthPos, moon.r, CONSTANTS.MOON.radius.v));
-  if (contact && (crew || !isTechnical(design.levelId) && o.body !== 'MARS' || stationAllocated(epoch + t, allocation))) contactSec += dt;
+  if (sunCentred) { solarSum += solarInput('SUN', p) * dt; rangeSum += Math.hypot(...earth) * dt; }
+  const contact = crew ? true : o.body === 'MARS' ? marsLineOfSight(p, epoch + t, o.epochUTC) : sunCentred ? sunLineOfSight(p, epoch + t, o.epochUTC) : inStationContact(earthPos, station!, MODEL.minElevation.v) && !(moon && segmentHitsSphere(station!, earthPos, moon.r, CONSTANTS.MOON.radius.v));
+  if (contact && (crew || !isTechnical(design.levelId) && o.body !== 'MARS' && !sunCentred || stationAllocated(epoch + t, allocation))) contactSec += dt;
  }
  longest = Math.max(longest, stillInitial ? run : run + initialRun);
- const value = { periodMin: orbitalPeriod(elementsForOrbit(o).a, CONSTANTS[o.body].mu.v) / 60, eclipseFrac: eclipseSec / DAY, maxEclipseSec: longest, contactMinPerDay: contactSec / 60, targetSolar: targetSolar/DAY, earthSolar: earthSolar/DAY };
+ const value = { periodMin: orbitalPeriod(elementsForOrbit(o).a, CONSTANTS[o.body].mu.v) / 60, eclipseFrac: eclipseSec / DAY, maxEclipseSec: longest, contactMinPerDay: contactSec / 60, targetSolar: targetSolar/DAY, earthSolar: earthSolar/DAY, solarScale: sunCentred ? solarSum / DAY : solarFactor(o.body), earthRangeKm: rangeSum / DAY };
  if (forecasts.size >= 64) forecasts.delete(forecasts.keys().next().value!);
  forecasts.set(key, value);
  return value;
@@ -115,8 +118,11 @@ export function computeBudgets(design: Design): Budgets {
  if (ride) cost += rideCost(ride, design.busId);
  const launcher = design.launch ? LAUNCHER_BY_ID[design.launch.launcherId] : undefined;
  if (launcher) cost += launcher.cost.v;
- const avgGen = solar * solarFactor(body) * (sunlight * MODEL.sunDuty.v + MODEL.targetDuty.v * (forecast?.targetSolar ?? 0) + MODEL.earthDuty.v * (forecast?.earthSolar ?? 0)) * Math.max(0,Math.cos(accuracy*Math.PI/180));
- const technical = isTechnical(design.levelId), m = THERMAL_MODELS[design.busId];
+ // Sun-centred orbits: day-mean (1 AU / r)² for generation, perihelion (1 AU / rp)² for the hot case, no planetary infrared, and the forecast craft-Earth range for the link.
+ const sunCentred = body === 'SUN', genSolar = sunCentred ? forecast?.solarScale ?? 0 : solarFactor(body);
+ const hotSolar = sunCentred && design.orbit ? (CONSTANTS.EARTH.distanceKm.v / (design.orbit.smaKm * (1 - design.orbit.ecc))) ** 2 : solarFactor(body), linkRangeKm = sunCentred ? forecast?.earthRangeKm : undefined;
+ const avgGen = solar * genSolar * (sunlight * MODEL.sunDuty.v + MODEL.targetDuty.v * (forecast?.targetSolar ?? 0) + MODEL.earthDuty.v * (forecast?.earthSolar ?? 0)) * Math.max(0,Math.cos(accuracy*Math.PI/180));
+ const technical = isTechnical(design.levelId), m = THERMAL_MODELS[design.busId], bodyHeatW = sunCentred ? 0 : m.bodyHeatW.v;
  const eolGen = avgGen * (technical ? ENGINEERING.arrayEol.v : 1), eolBattery = battery * (technical ? ENGINEERING.batteryEol.v : 1);
  // The declared forecast duty includes 30% automatic-heater use. Eclipse reserve
  // conservatively carries the entire installed heater rating throughout shadow.
@@ -130,9 +136,9 @@ export function computeBudgets(design: Design): Budgets {
   massKg: { used: mass, limit: bus.massKg.v }, volume: { used: volume, limit: bus.volume.v, unit: design.busId === 'CUBESAT_3U' ? 'U' : 'BAY' }, cost: { used: cost, limit: def.vehicle.budget * (LEVELS[design.levelId]?.budgetFactor.v ?? 1) },
   orbit: forecast ? { periodMin: forecast.periodMin, eclipseFrac: forecast.eclipseFrac, contactMinPerDay: forecast.contactMinPerDay } : null,
   power: forecast ? { avgGenW: eolGen, avgLoadW: plannedLoad, marginPct: plannedLoad ? (eolGen - plannedLoad) / plannedLoad * 100 : eolGen ? 100 : 0, eclipseWh, usableBatteryWh: eolBattery * MODEL.usableDepth.v } : null,
-  data: forecast ? { genMBPerDay: generationRate * DAY / 8000, downMBPerDay: linkRateKbps(radioRate, body,planningTimeSec, design.orbit?.epochUTC) * forecast.contactMinPerDay * 60 / 8000, storageMB: storage } : null,
+  data: forecast ? { genMBPerDay: generationRate * DAY / 8000, downMBPerDay: linkRateKbps(radioRate, body,planningTimeSec, design.orbit?.epochUTC, linkRangeKm) * forecast.contactMinPerDay * 60 / 8000, storageMB: storage } : null,
   deltaV: body === 'MARS' && design.orbit ? { requiredKms:nominalCapture, availableKms: rocketDeltaV(mass - propellant, propellant, isp), propellantKg: propellant } : def.trajectory.model === 'PATCHED_CONICS' && def.trajectory.maneuvers.allowed ? { requiredKms: plannedDv, availableKms: rocketDeltaV(mass - propellant, propellant, isp), propellantKg: propellant } : null,
-  technical: technical && forecast ? { bolGenerationW: avgGen, eolGenerationW: eolGen, eolCapacityWh: eolBattery, eolUsableBatteryWh: eolBattery * MODEL.usableDepth.v, eclipseRequiredWh: eclipseWh, nominalCaptureKms: nominalCapture, planningCaptureKms: nominalCapture * (1 + ENGINEERING.captureHigh.v), thermalColdEquilibriumK: thermalEquilibriumK(design.busId, baseLoad + m.bodyHeatW.v + heater + (design.busId === 'CREW_CAPSULE' ? 4 * 12.426e6 / DAY : 0),extraRadiatorM2), thermalHotEquilibriumK: thermalEquilibriumK(design.busId, peakLoad + m.bodyHeatW.v + (design.busId === 'CREW_CAPSULE' ? 4 * 12.426e6 / DAY : 0) + ENGINEERING.solarFlux.v * solarFactor(body) * m.absorbingM2.v,extraRadiatorM2), recordingRequiredMB: def.vehicle.minRecordingMB, minimumLinkKbps: linkRateKbps(fullRadioRate, body,planningTimeSec, design.orbit?.epochUTC) } : null,
+  technical: technical && forecast ? { bolGenerationW: avgGen, eolGenerationW: eolGen, eolCapacityWh: eolBattery, eolUsableBatteryWh: eolBattery * MODEL.usableDepth.v, eclipseRequiredWh: eclipseWh, nominalCaptureKms: nominalCapture, planningCaptureKms: nominalCapture * (1 + ENGINEERING.captureHigh.v), thermalColdEquilibriumK: thermalEquilibriumK(design.busId, baseLoad + bodyHeatW + heater + (design.busId === 'CREW_CAPSULE' ? 4 * 12.426e6 / DAY : 0),extraRadiatorM2), thermalHotEquilibriumK: thermalEquilibriumK(design.busId, peakLoad + bodyHeatW + (design.busId === 'CREW_CAPSULE' ? 4 * 12.426e6 / DAY : 0) + ENGINEERING.solarFlux.v * hotSolar * m.absorbingM2.v,extraRadiatorM2), recordingRequiredMB: def.vehicle.minRecordingMB, minimumLinkKbps: linkRateKbps(fullRadioRate, body,planningTimeSec, design.orbit?.epochUTC, linkRangeKm) } : null,
  };
 }
 function limits(design: Design): Refusal | null {

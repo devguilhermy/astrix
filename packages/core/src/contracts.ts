@@ -3,7 +3,7 @@ import type { BurnSpec, AscentProgram, Digest, MissionId, MissionOrigin, Resolve
 import type { AscentPreview, BurnPreview, TrajectoryForecast, FlightSample, FlightTelemetry, MissionOutcome, ObjectiveEvidence, TrajectoryEvent } from './flight/types';
 export type * from './mission/types';
 export type * from './flight/types';
-export type BodyId = 'EARTH' | 'MARS' | 'MOON';
+export type BodyId = 'EARTH' | 'MARS' | 'MOON' | 'SUN';
 export type BusId = 'CUBESAT_3U' | 'SMALLSAT' | 'CREW_CAPSULE';
 export type RoleId = 'SCIENCE' | 'SPACECRAFT' | 'LAUNCH_ORBIT' | 'GROUND_COMMS';
 export type ActorRole = RoleId | 'ALL';

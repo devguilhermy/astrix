@@ -29,6 +29,8 @@ const blankTraj = (): TrajState => ({ conic: null, ascent: null, stage: null, bu
 
 export const patchedConics = (s: Pick<FlightState, 'design'>): boolean => s.design.definition.trajectory.model === 'PATCHED_CONICS';
 export const moonModelled = (s: Pick<FlightState, 'design'>): boolean => { const t = s.design.definition.trajectory; return t.model === 'PATCHED_CONICS' && t.bodies.includes('MOON'); };
+/** Sun-centred operation: deep-space contact, light time and solar input follow the craft's heliocentric position. */
+export const heliocentric = (s: Pick<FlightState, 'design'>): boolean => s.design.definition.trajectory.model === 'HELIOCENTRIC_CONIC';
 const watchAltitudes = (s: Pick<FlightState, 'design'>): number[] => s.design.definition.objectives.flatMap(o => o.spec.kind === 'ENTRY_INTERFACE' || o.spec.kind === 'RETURN_BOUNDARY' ? [o.spec.altitudeKm] : []);
 const needsApsis = (s: Pick<FlightState, 'design'>): boolean => s.design.definition.objectives.some(o => o.spec.kind === 'APOGEE_BAND' || o.spec.kind === 'ENCOUNTER_DISTANCE' || o.spec.kind === 'BOUND_ORBIT' && o.spec.body === 'MOON');
 
@@ -74,7 +76,7 @@ export function earthStateAt(s: Pick<FlightState, 'traj' | 'captured' | 'epochUT
  return { r: add(c.r, m.r), v: add(c.v, m.v) };
 }
 
-const FRAME: Readonly<Record<BodyId, StateVector['frame']>> = { EARTH: 'EARTH_J2000EQ', MOON: 'MOON_J2000EQ', MARS: 'MARS_J2000EQ' };
+const FRAME: Readonly<Record<BodyId, StateVector['frame']>> = { EARTH: 'EARTH_J2000EQ', MOON: 'MOON_J2000EQ', MARS: 'MARS_J2000EQ', SUN: 'SUN_J2000EQ' };
 const vec = (body: BodyId, t: number, epochUTC: string, r: Vec3, v: Vec3): StateVector => ({ body, frame: FRAME[body], epochSec: t, epochUTC: new Date(Date.parse(epochUTC) + t * 1000).toISOString(), rKm: [r[0], r[1], r[2]], vKms: [v[0], v[1], v[2]] });
 export function stateView(s: Pick<FlightState, 'traj' | 'captured' | 'epochUTC'>, t: number): FlightStateView {
  const c = centralStateAt(s, t), e = earthStateAt(s, t);
@@ -108,7 +110,7 @@ export function missionPhase(s: FlightState): MissionPhase {
  if (s.capturePending) return 'ENCOUNTER';
  const c = centralStateAt(s, s.t), info = orbitInfo(c.r, c.v, muOf(c.body));
  if (c.body === 'MOON') return info.kind === 'ELLIPSE' ? 'CAPTURED' : 'ENCOUNTER';
- if (c.body === 'MARS') return 'OPERATE';
+ if (c.body === 'MARS' || c.body === 'SUN') return 'OPERATE';
  return info.kind === 'ELLIPSE' && info.rpKm - radiusOf('EARTH') >= ATMOSPHERE_TOP_KM ? 'OPERATE' : 'COAST';
 }
 

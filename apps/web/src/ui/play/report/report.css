@@ -1,0 +1,126 @@
+/* Mission report on the turn workspace grid: result | scene | detail, timeline docked below (176 px). */
+.mission-report { grid-template-rows:minmax(0,1fr) 176px; }
+.mission-report>.report-result { grid-column:1; grid-row:1; }
+.mission-report>.report-detail { grid-column:3; grid-row:1; }
+.mission-report>.report-timeline { grid-column:1 / -1; grid-row:2; min-width:0; height:176px; overflow:hidden; pointer-events:auto; background:#0c1924f5; border:1px solid #49616e; border-radius:12px; }
+.play-main[data-panels-open=false] .report-timeline { display:none; }
+.play-main[data-panels-open=false] .mission-report { grid-template-rows:minmax(0,1fr); background:transparent; border:0; pointer-events:none; }
+
+/* Result panel: designed to fit 1920×940 without scrolling. */
+.report-result>.panel-scroll { display:flex; flex-direction:column; gap:.55rem; padding:.9rem 1.1rem; }
+.report-heading { display:flex; flex-direction:column; gap:.15rem; }
+.report-eyebrow { margin:0; font-size:.74rem; letter-spacing:.06em; text-transform:uppercase; color:var(--play-quiet,#b7c9df); }
+.play-app .report-heading h1 { margin:0; font-size:1.15rem; line-height:1.25; letter-spacing:0; }
+.report-outcome-met { color:#9de4c4; }
+.report-outcome-missed { color:#ffcf9f; }
+.report-meta { display:flex; flex-wrap:wrap; align-items:center; gap:.15rem .7rem; margin:0; font-size:.84rem; color:var(--play-quiet,#b7c9df); }
+.report-meta strong { color:#e3edf8; }
+.report-badge { padding:0 .5rem; border:1px solid #997953; border-radius:999px; color:#f6d8b6; font-size:.74rem; line-height:1.5; }
+
+.report-score { display:flex; flex-direction:column; gap:.5rem; padding:.6rem 0; border-top:1px solid var(--play-line,#314b6c); border-bottom:1px solid var(--play-line,#314b6c); }
+.report-score-head { display:flex; align-items:center; gap:.9rem; }
+.report-score-ring { flex:none; width:84px; height:84px; }
+.report-score-track { fill:none; stroke:#1b3146; stroke-width:8; }
+.report-score-fill { fill:none; stroke:#f6a047; stroke-width:8; stroke-linecap:round; }
+.report-score-total { fill:#e3edf8; font-size:26px; font-weight:700; font-variant-numeric:tabular-nums; }
+.report-score-max { fill:#b7c9df; font-size:11px; }
+.report-score-text { display:flex; flex-direction:column; align-items:flex-start; gap:.25rem; min-width:0; }
+.play-app .report-score-text h2 { margin:0; font-size:1rem; }
+.report-score-cap { margin:0; font-size:.78rem; line-height:1.35; color:#f6d8b6; }
+.report-score-cap>span { color:var(--play-quiet,#b7c9df); }
+.report-components { display:flex; flex-direction:column; gap:.2rem; margin:0; padding:0; list-style:none; }
+.report-components li { display:grid; grid-template-columns:minmax(0,11.5rem) minmax(0,1fr) 5.6rem; align-items:center; gap:.6rem; font-size:.8rem; line-height:1.3; }
+.report-component-label { overflow-wrap:anywhere; }
+.report-component-bar { display:block; height:6px; border-radius:3px; background:#1b3146; overflow:hidden; }
+.report-component-bar>span { display:block; height:100%; background:#72dce5; border-radius:3px; }
+.report-components output { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; color:var(--play-quiet,#b7c9df); }
+.report-score-note { margin:0; font-size:.74rem; line-height:1.35; color:var(--play-quiet,#b7c9df); }
+
+.play-app .report-subhead { margin:.1rem 0 0; font-size:.92rem; }
+.report-result .play-evidence { margin:0; }
+.report-result .play-evidence li { padding:.35rem 0; font-size:.84rem; }
+.report-discovery { display:flex; align-items:flex-start; gap:.45rem; margin:0; font-size:.84rem; line-height:1.35; color:#9de4c4; }
+.report-discovery>svg { flex:none; margin-top:.15rem; }
+.report-cause { margin:0; font-size:.84rem; color:#ffc4a5; }
+.report-advice { margin:0; padding-left:1.1rem; font-size:.82rem; color:#c0d3dc; }
+.report-actions { display:flex; flex-wrap:wrap; align-items:center; gap:.6rem; }
+.report-actions>.text-button { min-height:44px; margin-left:auto; }
+
+/* Detail panel */
+.report-tabs { flex:none; display:flex; gap:.2rem; padding:.35rem .8rem 0; border-bottom:1px solid var(--play-line,#314b6c); }
+.report-tabs>button { min-height:44px; padding:.4rem .75rem; color:#c1d4dd; font-size:.9rem; border-bottom:2px solid transparent; }
+.report-tabs>button:hover { color:#e3edf8; }
+.report-tabs>button[aria-selected=true] { color:#ffb767; border-bottom-color:#f6a047; }
+.report-detail>.panel-scroll { padding:1rem 1.1rem; }
+.report-receipts { margin-top:1rem; padding-top:.3rem; border-top:1px solid var(--play-line,#314b6c); }
+.report-receipts>summary { min-height:44px; display:flex; align-items:center; cursor:pointer; color:#c1d4dd; }
+.report-receipt { padding:.8rem 0; border-top:1px solid var(--play-line,#314b6c); }
+.report-note { margin:.4rem 0; font-size:.86rem; color:var(--play-quiet,#b7c9df); }
+.play-app .report-compare>h2 { margin:0; font-size:1.05rem; }
+.report-compare table { width:100%; border-collapse:collapse; font-size:.86rem; }
+.report-compare th,.report-compare td { text-align:left; vertical-align:top; padding:.55rem .55rem .55rem 0; border-bottom:1px solid var(--play-line,#314b6c); }
+.report-detail .science-connection:first-child { margin-top:0; padding-top:0; border-top:0; }
+
+/* Flight timeline */
+.report-timeline-body { display:flex; flex-direction:column; height:100%; min-height:0; }
+.report-timeline-empty { margin:auto; padding:1rem; color:var(--play-quiet,#b7c9df); }
+.report-timeline-track { flex:1; min-height:0; overflow-x:auto; overflow-y:hidden; overscroll-behavior:contain; scroll-snap-type:x proximity; padding:.5rem .6rem; scrollbar-width:thin; }
+.report-timeline-lane { display:flex; flex-direction:column; gap:4px; height:100%; width:max(100%, calc(var(--report-turns) * 128px)); max-width:calc(var(--report-turns) * 200px); }
+.report-band { position:relative; flex:none; height:48px; padding:0 3px; }
+.report-band>svg { display:block; width:100%; height:100%; overflow:visible; }
+.report-band-selected { fill:#f6a04724; }
+.report-band-grid { stroke:#24394f; stroke-width:1; }
+.report-band-progress { fill:none; stroke:#f6a047; stroke-width:2; stroke-linejoin:round; }
+.report-band-battery { fill:none; stroke:#72dce5; stroke-width:1.5; stroke-dasharray:4 3; }
+.report-band-legend { position:absolute; top:0; left:3px; display:flex; gap:.8rem; margin:0; padding:0 .4rem; border-radius:4px; background:#0c1924d9; font-size:.7rem; line-height:1.5; color:var(--play-quiet,#b7c9df); pointer-events:none; }
+.report-legend-progress::before,.report-legend-battery::before { content:''; display:inline-block; width:12px; margin-right:.3rem; vertical-align:middle; border-top:2px solid #f6a047; }
+.report-legend-battery::before { border-top:2px dashed #72dce5; }
+.report-chips { flex:1; min-height:0; display:grid; grid-template-columns:repeat(var(--report-turns), minmax(0,1fr)); margin:0; padding:0; list-style:none; }
+.report-chips>li { min-width:0; padding:0 3px; scroll-snap-align:start; animation:report-chip-in .24s ease-out both; animation-delay:calc(var(--report-chip-index, 0) * 40ms); }
+@keyframes report-chip-in { from { opacity:0; transform:translateY(4px); } }
+.report-chip { width:100%; height:100%; min-height:44px; display:flex; flex-direction:column; align-items:flex-start; gap:.2rem; padding:.35rem .5rem; overflow:hidden; text-align:left; color:#e3edf8; background:#0f2130; border:1px solid var(--play-line,#314b6c); border-radius:8px; }
+.report-chip:hover { border-color:#5d7891; }
+.report-chip[aria-pressed=true] { border-color:#f6a047; background:#2a2418; box-shadow:inset 0 0 0 1px #f6a047; }
+.report-chip-top { display:flex; align-items:center; gap:.35rem; width:100%; min-width:0; font-size:.84rem; font-weight:600; }
+.report-chip-top>svg { flex:none; color:#ffb767; }
+.report-chip-number { flex:none; display:grid; place-items:center; min-width:20px; height:20px; padding:0 4px; border-radius:10px; background:#1b3146; font-size:.74rem; font-variant-numeric:tabular-nums; }
+.report-chip[aria-pressed=true] .report-chip-number { background:#f6a047; color:#101b2e; }
+.report-chip-name { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.report-chip-alert { flex:none; display:inline-flex; margin-left:auto; color:#ffc4a5; }
+.report-chip-duration { font-size:.76rem; color:var(--play-quiet,#b7c9df); }
+.report-chip-badges { display:flex; flex-wrap:wrap; gap:3px; }
+.report-chip-badge { display:inline-flex; align-items:center; gap:3px; padding:1px 5px; border-radius:4px; background:#16304a; font-size:.72rem; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.report-chip-badge-data { color:#ffb767; }
+.report-chip-badge-stored { color:#9de4c4; }
+.report-chip-badge-fuel { color:#ffcf9f; }
+.report-chip-badge-energy { color:#72dce5; }
+
+@media (min-width:901px) and (max-width:1279px) {
+  .mission-report>.report-detail { grid-column:2; }
+  .mission-report>.report-timeline { grid-column:1 / span 2; }
+  .report-components li { grid-template-columns:minmax(0,9rem) minmax(0,1fr) 5.4rem; }
+}
+
+@media (max-width:900px) {
+  .mission-report.active-result>.report-detail,.mission-report.active-result>.report-timeline,
+  .mission-report.active-turns>.report-result,
+  .mission-report.active-science>.report-result,.mission-report.active-science>.report-timeline { display:none; }
+  .mission-report>.report-timeline { flex:0 1 auto; height:auto; max-height:45%; overflow:auto; overscroll-behavior:contain; background:transparent; border:0; border-bottom:1px solid var(--play-line,#314b6c); border-radius:0; }
+  .report-timeline-body { height:auto; }
+  .report-timeline-track { overflow:visible; padding:.6rem .8rem; }
+  .report-timeline-lane { width:100%; max-width:none; height:auto; }
+  .report-band { display:none; }
+  .report-chips { grid-template-columns:minmax(0,1fr); gap:6px; }
+  .report-chips>li { padding:0; }
+  .report-chip { flex-direction:row; flex-wrap:wrap; align-items:center; gap:.25rem .7rem; }
+  .report-chip-top { flex:1 1 11rem; width:auto; }
+  .report-components li { grid-template-columns:minmax(0,1fr) auto; gap:.15rem .6rem; }
+  .report-component-bar { grid-column:1 / -1; grid-row:2; }
+  .report-actions { flex-direction:column; align-items:stretch; }
+  .report-actions>.text-button { justify-content:center; margin-left:0; }
+  .report-tabs { padding:.25rem .5rem 0; }
+  .report-tabs>button { flex:1; min-width:0; padding:.4rem .3rem; }
+}
+
+@media (prefers-reduced-motion:reduce) { .report-chips>li { animation:none; } }
+html[data-reduced-motion=true] .report-chips>li { animation:none; }

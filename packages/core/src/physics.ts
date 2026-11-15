@@ -8,6 +8,7 @@ export const CONSTANTS = {
  EARTH: { mu: sourced(398600, 'nssdc-earth'), radius: sourced(6378.137, 'nssdc-earth'), rotationSec: sourced(23.9345 * 3600, 'nssdc-earth'), distanceKm: sourced(149598000, 'nssdc-earth'), yearSec: sourced(365.256 * DAY, 'nssdc-earth'), irradiance: sourced(1361, 'nssdc-earth') },
  MARS: { mu: sourced(42828, 'nssdc-mars'), radius: sourced(3396.2, 'nssdc-mars'), rotationSec: sourced(24.6229 * 3600, 'nssdc-mars'), distanceKm: sourced(227956000, 'nssdc-mars'), yearSec: sourced(686.980 * DAY, 'nssdc-mars'), irradiance: sourced(586.2, 'nssdc-mars') },
  MOON: { mu: sourced(4902.8, 'nssdc-moon'), radius: sourced(1737.4, 'nssdc-moon'), rotationSec: sourced(27.321661 * DAY, 'nssdc-moon'), distanceKm: sourced(384400, 'nssdc-moon'), yearSec: sourced(27.321661 * DAY, 'nssdc-moon'), irradiance: sourced(1361, 'nssdc-earth') },
+ SUN: { mu: sourced(132712e6, 'nssdc-sun'), radius: sourced(695700, 'nssdc-sun', 'Volumetric mean radius'), rotationSec: sourced(25.38 * DAY, 'nssdc-sun', 'Sidereal rotation period'), distanceKm: assumed(0, 'The Sun is the origin of the heliocentric frame.'), irradiance: sourced(1361, 'nssdc-earth', 'Irradiance at 1 AU; Sun-centred craft scale it by (1 AU / r)².') },
  sunMu: sourced(132712e6, 'nssdc-sun'), c: sourced(299792.458, 'si-c'), g0: sourced(9.80665, 'si-gn'),
 } as const;
 export type Vec3 = [number, number, number];
@@ -128,8 +129,9 @@ function equatorialPosition(longitude: number, radius: number): Vec3 {
  const obliquity = radians(23.439);
  return [radius*Math.cos(longitude), radius*Math.sin(longitude)*Math.cos(obliquity), radius*Math.sin(longitude)*Math.sin(obliquity)];
 }
-/** Circular Mars path is phased for an ideal transfer at the supplied departure epoch. */
+/** Circular Mars path is phased for an ideal transfer at the supplied departure epoch. The Sun is the heliocentric origin. */
 export function planetPosition(body: BodyId, t: number, epochUTC?: string): Vec3 {
+ if (body === 'SUN') return [0, 0, 0];
  const longitude = body !== 'MARS' ? solarLongitude(t, epochUTC) + Math.PI : solarLongitude(0, epochUTC) + Math.PI + TRANSFER.leadAngleRad + TAU*t/CONSTANTS.MARS.yearSec.v;
  return equatorialPosition(longitude, CONSTANTS[body].distanceKm.v);
 }
@@ -142,10 +144,33 @@ export function transferPosition(t: number, epochUTC: string): readonly [number,
  const ey = x*s+y*c;
  return [x*c-y*s, ey*Math.cos(obliquity), ey*Math.sin(obliquity)];
 }
+/** Planet-centred frames neglect the craft offset; a Sun-centred direction needs the craft position (sunDirectionAt). */
 export function sunDirection(body: BodyId, t: number, out: Vec3 = [0, 0, 0], epochUTC?: string): Vec3 {
+ if (body === 'SUN') throw new RangeError('The Sun direction in the Sun-centred frame depends on the craft position');
  const p = planetPosition(body,t,epochUTC), r = CONSTANTS[body === 'MOON' ? 'EARTH' : body].distanceKm.v;
  out[0] = -p[0]/r; out[1] = -p[1]/r; out[2] = -p[2]/r;
  return out;
+}
+/** Unit craft-to-Sun direction for a central-body-relative craft position. */
+export function sunDirectionAt(body: BodyId, positionKm: Vec3, t: number, epochUTC?: string): Vec3 {
+ if (body !== 'SUN') return sunDirection(body, t, undefined, epochUTC);
+ const r = norm(positionKm);
+ return [-positionKm[0]/r, -positionKm[1]/r, -positionKm[2]/r];
+}
+/** Solar input relative to 1 AU: (1 AU / r)² about the Sun, the fixed mean irradiance ratio about a planet or the Moon. */
+export function solarInput(body: BodyId, positionKm: Vec3): number {
+ return body === 'SUN' ? (CONSTANTS.EARTH.distanceKm.v / Math.max(CONSTANTS.SUN.radius.v, norm(positionKm))) ** 2 : solarFactor(body);
+}
+/** Earth's centre relative to a Sun-centred craft position (km, MJ2000Eq axes). */
+export function earthFromSunCraft(positionKm: Vec3, t: number, epochUTC?: string): Vec3 {
+ const e = planetPosition('EARTH', t, epochUTC);
+ return [e[0]-positionKm[0], e[1]-positionKm[1], e[2]-positionKm[2]];
+}
+/** Geometric Deep Space Network visibility for a Sun-centred craft: the craft-Earth segment must miss the solar disc. */
+export function sunLineOfSight(positionKm: Vec3, t: number, epochUTC?: string): boolean {
+ const d = earthFromSunCraft(positionKm, t, epochUTC), dd = dot(d, d);
+ const s = dd > 0 ? clamp(-dot(positionKm, d) / dd, 0, 1) : 0;
+ return Math.hypot(positionKm[0]+s*d[0], positionKm[1]+s*d[1], positionKm[2]+s*d[2]) >= CONSTANTS.SUN.radius.v;
 }
 export function earthMarsDistance(t: number, epochUTC?: string): number {
  const e = planetPosition('EARTH',t,epochUTC), m = planetPosition('MARS',t,epochUTC);
@@ -161,10 +186,11 @@ export function marsLineOfSight(position: Vec3, t: number, epochUTC?: string): b
  return !(along < 0 && dot(position,position)-along*along < CONSTANTS.MARS.radius.v**2);
 }
 export function marsContact(position: Vec3, t: number, epochUTC?: string): boolean { return (((t % DAY) + DAY) % DAY < DAY / 3) && marsLineOfSight(position, t, epochUTC); }
-/** Authored rates are quoted at the mission's reference range: LEO (no scaling), 1 AU for Mars, mean Earth-Moon distance for lunar missions. */
+/** Authored rates are quoted at the mission's reference range: LEO (no scaling), 1 AU for Mars and Sun-centred craft, mean Earth-Moon distance for lunar missions. */
 export function linkRateKbps(referenceKbps: number, body: BodyId, t: number, epochUTC?: string, rangeKm?: number): number {
  if (body === 'EARTH') return referenceKbps;
  if (body === 'MOON') return rangeKm !== undefined && rangeKm > 0 ? Math.min(6000, referenceKbps * (CONSTANTS.MOON.distanceKm.v / rangeKm) ** 2) : referenceKbps;
+ if (body === 'SUN') return rangeKm !== undefined && rangeKm > 0 ? Math.min(6000, referenceKbps * (CONSTANTS.EARTH.distanceKm.v / rangeKm) ** 2) : referenceKbps;
  return Math.min(6000, referenceKbps * (CONSTANTS.EARTH.distanceKm.v / earthMarsDistance(t, epochUTC)) ** 2);
 }
 /** Seconds from J2000 for a UTC epoch string (reduced astronomical model reference). */

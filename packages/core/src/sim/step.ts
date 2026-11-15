@@ -1,11 +1,11 @@
 import type { SimEvent, SimEventKind, SimState } from '../contracts';
 import { MODEL, PART_BY_ID } from '../catalog';
 import { ENGINEERING, THERMAL_MODELS, isTechnical, lifeFactor, thermalStepK } from '../models';
-import { DAY, clamp, solarFactor } from '../physics';
+import { DAY, clamp, solarInput } from '../physics';
 import { applyDueCommands, bootPowerW } from './commands';
 import { fail } from './failure';
 import { advanceCrew, CREW_MODEL } from './crew';
-import { cloneFlight, electricalLoadW, enterSafe, flight, generatedPowerW, heaterDemandW, recordAudit, sample, stormBounds, transmittingRate, updateEnvironment, type FlightState } from './state';
+import { cloneFlight, deepSpace, electricalLoadW, enterSafe, flight, generatedPowerW, heaterDemandW, recordAudit, sample, stormBounds, transmittingRate, updateEnvironment, type FlightState } from './state';
 import { allRequiredMet, anyRequiredFailed, objectiveValue, primaryObjective, updateObjectives } from './objectives';
 import { advanceAscentTo, applyTrajectory, ascentActive, handoffAscent, nextAscentTime, nextTrajectoryBoundary } from './trajectory';
 import { advanceAttitude, attitudeHardware, refreshAttitude } from './attitude';
@@ -21,7 +21,7 @@ function scheduled(s: FlightState, events: SimEvent[]): void {
   if (!technical) { s.capacityWh *= 1 - MODEL.batteryAgingFraction.v; s.batteryFactor = s.capacityWh / s.nominalCapacityWh; s.socWh = Math.min(s.socWh, s.capacityWh); }
   emit(s, events, 'BATTERY_AGING', true, { capacityWh: s.capacityWh, arrayFactor: s.arrayFactor, batteryFactor: s.batteryFactor, continuous: technical ? 1 : 0 });
  }
- if (!s.mars && !s.outageStarted && s.elapsed >= s.outageAt) {
+ if (!deepSpace(s) && !s.outageStarted && s.elapsed >= s.outageAt) {
   s.outageStarted = true; s.outageActive = true; s.stationAvailable = false; s.inContact = false; s.downlinkActive = false; s.nextPassAt = null; s.nextPassCheckedAt = -DAY;
   emit(s, events, 'GROUND_OUTAGE', true, { durationHours: MODEL.outageHours.v });
  }
@@ -61,14 +61,14 @@ function nextBoundary(s: FlightState): number {
  if (!s.stormStarted && start > s.elapsed + 1e-8) target = Math.min(target, s.arrivalT + start);
  if (!s.stormEnded && stop > s.elapsed + 1e-8) target = Math.min(target, s.arrivalT + stop);
  if (!s.aged && s.agingAt > s.elapsed + 1e-8) target = Math.min(target, s.arrivalT + s.agingAt);
- if (!s.outageStarted && !s.mars && s.outageAt > s.elapsed + 1e-8) target = Math.min(target, s.arrivalT + s.outageAt);
+ if (!s.outageStarted && !deepSpace(s) && s.outageAt > s.elapsed + 1e-8) target = Math.min(target, s.arrivalT + s.outageAt);
  if (technical) {
   if (!s.pointingFaultSeen && s.pointingFaultAt > s.elapsed + 1e-8) target = Math.min(target, s.arrivalT + s.pointingFaultAt);
   if (!s.resetSeen && s.resetAt > s.elapsed + 1e-8) target = Math.min(target, s.arrivalT + s.resetAt);
   if (!s.linkDegradeSeen && s.linkDegradeAt > s.elapsed + 1e-8) target = Math.min(target, s.arrivalT + s.linkDegradeAt);
   if (!s.linkRestoreSeen && s.linkRestoreAt > s.elapsed + 1e-8) target = Math.min(target, s.arrivalT + s.linkRestoreAt);
  }
- if (technical || s.mars) {
+ if (technical || deepSpace(s)) {
   const offset = s.design.definition.environment.stationAllocationStartSec, dayStart = Math.floor((s.t - offset) / DAY) * DAY + offset, allocationEnd = dayStart + ENGINEERING.allocationHours.v * 3600;
   target = Math.min(target, allocationEnd > s.t + 1e-8 ? allocationEnd : dayStart + DAY);
  }
@@ -89,7 +89,8 @@ function nextBoundary(s: FlightState): number {
 function integrateThermal(s: FlightState, dt: number, events: SimEvent[]): void {
  if (!isTechnical(s.design.levelId)) return;
  const m = THERMAL_MODELS[s.design.busId], body = s.centralBody;
- s.externalHeatW = m.bodyHeatW.v + (s.sunlit ? ENGINEERING.solarFlux.v * solarFactor(body) * m.absorbingM2.v : 0);
+ // A Sun-centred craft has no planet below it: the body-infrared term is a planetary contribution, and solar input already carries the Sun.
+ s.externalHeatW = (body === 'SUN' ? 0 : m.bodyHeatW.v) + (s.sunlit ? ENGINEERING.solarFlux.v * solarInput(body, s.positionKm) * m.absorbingM2.v : 0);
  // All modeled electrical draw ends as heat in this one-bus approximation.
  const suppliedW = Math.min(s.loadW, Math.max(0, s.genW + s.socWh * 3600 / dt));
  s.heaterW = Math.min(s.heaterW, suppliedW); s.internalHeatW = Math.max(0, suppliedW - s.heaterW);

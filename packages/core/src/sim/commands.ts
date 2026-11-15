@@ -2,9 +2,9 @@ import type { ActorRole, ActorContext, Command, Quote, Refusal, SimEvent, SimSta
 import { PART_BY_ID } from '../catalog';
 import { commandRole, ownsRole, refusal } from '../design';
 import { ENGINEERING, isTechnical } from '../models';
-import { CONSTANTS, lightTime } from '../physics';
+import { CONSTANTS } from '../physics';
 import { addBurn, ascentActive, burnCapacityRefusal, burnSpecValid, cancelBurn, separateStage } from './trajectory';
-import { cloneFlight, enterSafe, flight, recordAudit, stationRangeKm, type FlightState, transmittingRate, updateEnvironment, uplinkAvailable } from './state';
+import { cloneFlight, enterSafe, flight, recordAudit, signalDelaySec, type FlightState, transmittingRate, updateEnvironment, uplinkAvailable } from './state';
 import { fail } from './failure';
 import { crewReturnFuel, crewReturnWindow, CREW_DEORBIT_BURN_SEC } from '../return';
 import { normalizeAttitude } from '../attitude';
@@ -196,7 +196,7 @@ export function applyDueCommands(s: FlightState, events: SimEvent[]): void {
   }
   if (entry.status === 'WAITING_CONTACT') {
    if (!uplinkAvailable(s)) continue;
-   entry = { ...entry, transmittedAt: s.t, applyAt: s.t + (s.mars ? lightTime(s.t, s.epochUTC) : s.design.definition.environment.commLightTime ? stationRangeKm(s) / CONSTANTS.c.v : 0), status: 'IN_TRANSIT' };
+   entry = { ...entry, transmittedAt: s.t, applyAt: s.t + (signalDelaySec(s) ?? 0), status: 'IN_TRANSIT' };
    s.queue[i] = entry;
   }
   if (entry.applyAt === null || entry.applyAt > s.t + 1e-8) continue;

@@ -9,7 +9,7 @@ export const MAX_DEFINITION_FRAME_BYTES = 40960;
 export type Digest = `sha256:${string}`;
 export type MissionOrigin = 'BUILTIN' | 'LEARNING' | 'CUSTOM';
 export type MissionId = string;
-export type BuiltinMissionId = 'FIRST_LIGHT' | 'STORM_WATCH' | 'RED_RELAY' | 'CREW_PATHFINDER' | 'FIRST_SIGNAL' | 'UP_AND_BACK' | 'STAY_IN_ORBIT' | 'RAISE_YOUR_ORBIT' | 'LEAVE_ORBIT_SAFELY' | 'PAST_EARTH' | 'MEET_THE_MOON' | 'EARTH_TO_MOON';
+export type BuiltinMissionId = 'FIRST_LIGHT' | 'STORM_WATCH' | 'RED_RELAY' | 'CREW_PATHFINDER' | 'SUN_SENTINEL' | 'FIRST_SIGNAL' | 'UP_AND_BACK' | 'STAY_IN_ORBIT' | 'RAISE_YOUR_ORBIT' | 'LEAVE_ORBIT_SAFELY' | 'PAST_EARTH' | 'MEET_THE_MOON' | 'EARTH_TO_MOON';
 export interface Label { readonly key?: string; readonly text?: string }
 export interface Range { readonly min: number; readonly max: number }
 export type FailureCause = 'BATTERY_DEPLETED' | 'CAPTURE_FAILED' | 'OBJECTIVE_MISSED' | 'THERMAL_SURVIVAL' | 'CREW_SUPPORT_LOST' | 'SURFACE_IMPACT' | 'ASCENT_FAILED' | 'DEADLINE_MISSED';
@@ -29,10 +29,11 @@ export type ObjectiveSpec =
  | { readonly kind: 'CREW_ORBIT_HOURS'; readonly hours: number };
 export interface ObjectiveDef { readonly id: string; readonly label: Label; readonly required: boolean; readonly owner: RoleId; readonly deadlineSec: number | null; readonly dwellSec: number; readonly spec: ObjectiveSpec }
 /** OPERATIONS means the supplied orbit is the actual state at the mission epoch,
- * not the target orbit of an earlier analytical delivery/capture segment. */
-export interface ProvidedOrbitStart { readonly kind: 'PROVIDED_ORBIT'; readonly body: 'EARTH' | 'MARS'; readonly orbit: OrbitChoice; readonly orbitOptions: 'RIDE'; readonly initialPhase?: 'OPERATIONS'; readonly stage?: { readonly launcherId: string; readonly propellantKg: number } }
+ * not the target orbit of an earlier analytical delivery/capture segment. A Sun start is a heliocentric orbit already reached by an Earth-escape launch. */
+export interface ProvidedOrbitStart { readonly kind: 'PROVIDED_ORBIT'; readonly body: 'EARTH' | 'MARS' | 'SUN'; readonly orbit: OrbitChoice; readonly orbitOptions: 'RIDE'; readonly initialPhase?: 'OPERATIONS'; readonly stage?: { readonly launcherId: string; readonly propellantKg: number } }
 export interface SurfaceLaunchStart { readonly kind: 'SURFACE_LAUNCH'; readonly site: { readonly name: Label; readonly latDeg: number; readonly lonDeg: number }; readonly launcherIds: readonly string[] }
-export type TrajectorySpec = { readonly model: 'PATCHED_CONICS'; readonly bodies: readonly ('EARTH' | 'MOON')[]; readonly maneuvers: { readonly allowed: boolean; readonly maxBurns: number } } | { readonly model: 'MARS_ANALYTIC_CRUISE' };
+/** HELIOCENTRIC_CONIC: two-body conic about the Sun with no manoeuvres; the craft never leaves the Sun's frame. */
+export type TrajectorySpec = { readonly model: 'PATCHED_CONICS'; readonly bodies: readonly ('EARTH' | 'MOON')[]; readonly maneuvers: { readonly allowed: boolean; readonly maxBurns: number } } | { readonly model: 'MARS_ANALYTIC_CRUISE' } | { readonly model: 'HELIOCENTRIC_CONIC' };
 export interface AscentProgram { readonly azimuthDeg: number; readonly verticalSec: number; readonly kickDeg: number; readonly kickSec: number; readonly stage1LoadFraction: number; readonly stage2CoastSec: number; readonly insertionAltKm: number; readonly holdUpperStage: boolean }
 export type BurnTrigger = { readonly kind: 'AT_TIME'; readonly tSec: number } | { readonly kind: 'AT_APSIS'; readonly apsis: 'PERIAPSIS' | 'APOAPSIS'; readonly notBeforeSec: number; readonly body?: BodyId } | { readonly kind: 'AT_SOI_ENTRY'; readonly body: 'MOON'; readonly delaySec: number };
 export interface BurnSpec { readonly id: string; readonly source: 'SPACECRAFT' | 'UPPER_STAGE'; readonly trigger: BurnTrigger; readonly frame: 'VNR' | 'INERTIAL'; readonly dv: readonly [number, number, number]; readonly model: 'IMPULSIVE' }

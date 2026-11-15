@@ -4,6 +4,7 @@ import { assumed, DAY, sourced, makeOrbit, orbitAltitudes } from './physics';
 import { ENGINEERING, LEVELS, THERMAL_MODELS } from './models';
 import { BUILTIN_DEFINITIONS } from './mission/builtins';
 import { LAUNCHERS } from './flight/launchers';
+import { SOLAR_ORBIT_PRESETS } from './mission/solarOrbits';
 
 const a = (v: number): Q => assumed(v, 'Authored gameplay hardware abstraction, not a flight-qualified manufacturer specification; units follow the catalogue.');
 export const BUSES = {
@@ -22,6 +23,7 @@ export const MODEL = {
  upsetThreshold: assumed(50, 'Teaching alert threshold in µGy/h; no instrument-loss probability is inferred from dose.'),
  marsStormDose: assumed(120, 'Assumed orbital µGy/h during the Mars storm; the NASA Curiosity surface total is not used as an orbital rate.'),
  marsBackground: assumed(10, 'Assumed Mars-orbit background µGy/h; no calibrated orbital dataset is claimed.'),
+ sunBackground: assumed(20, 'Assumed interplanetary background µGy/h for a Sun-centred craft, the order of cruise-phase dosimeter readings; held constant with distance from the Sun, and no calibrated dataset is claimed.'),
  marsStormDay: assumed(10, 'Mars storm begins ten operational days after capture; historical CME is narrative context only.'), marsStormHours: assumed(24, 'Assumed Mars storm duration.'),
  batteryAgingFraction: assumed(0.1, 'Scheduled capacity loss is 10%, an engineering-game event, not a fitted aging law.'), agingDayFraction: assumed(0.6, 'Aging event at 60% of mission duration, with seeded ±10 percentage points.'), outageHours: assumed(6, 'One scripted six-hour ground outage for Earth missions.'),
  brownoutFatalHours: assumed(12, 'A continuous depleted-battery interval of twelve hours is fatal.'), batteryLowPct: assumed(20, 'Auto-pause on downward crossing of 20% remaining charge.'), storageWarningPct: assumed(90, 'Auto-pause on upward crossing of 90% storage occupancy.'),
@@ -85,6 +87,7 @@ export const RIDES: readonly RideDef[] = [
  { id: 'RIDE_SMALL_LAUNCHER', nameKey: 'ride.RIDE_SMALL_LAUNCHER.name', descKey: 'ride.RIDE_SMALL_LAUNCHER.desc', busIds: ['CUBESAT_3U', 'SMALLSAT'], body: 'EARTH', cost: a(60) },
  { id: 'RIDE_LEO_STAGE', nameKey: 'ride.RIDE_LEO_STAGE.name', descKey: 'ride.RIDE_LEO_STAGE.desc', busIds: ['CUBESAT_3U', 'SMALLSAT'], body: 'EARTH', cost: a(50), fixedOrbits: [makeOrbit('EARTH', 200, 200, 28.5, EARTH_EPOCH)] },
  { id: 'RIDE_MARS_TRANSFER', nameKey: 'ride.RIDE_MARS_TRANSFER.name', descKey: 'ride.RIDE_MARS_TRANSFER.desc', busIds: ['SMALLSAT'], body: 'MARS', cost: a(300), fixedOrbits: CAPTURE_ORBITS },
+ { id: 'RIDE_SOLAR_ORBIT', nameKey: 'ride.RIDE_SOLAR_ORBIT.name', descKey: 'ride.RIDE_SOLAR_ORBIT.desc', busIds: ['SMALLSAT'], body: 'SUN', cost: a(300), fixedOrbits: SOLAR_ORBIT_PRESETS.map(p => p.orbit) },
 ];
 export const STATIONS = [{ id: 'GS_MIDLAT', latitudeDeg: MODEL.stationLat, longitudeDeg: MODEL.stationLon, minElevationDeg: MODEL.minElevation }, { id: 'DSN', hoursPerDay: MODEL.dsnHours }] as const;
 export function rideCost(ride: RideDef, bus: BusId): number { return ride.id === 'RIDE_SMALL_LAUNCHER' && bus === 'SMALLSAT' ? 250 : ride.cost.v; }
@@ -96,6 +99,8 @@ export function listOrbitPresets(design: Design): readonly OrbitPreset[] {
  const start = design.definition.start, epoch = design.orbit?.epochUTC ?? design.definition.environment.epochUTC;
  if (start.kind !== 'PROVIDED_ORBIT') return [];
  if (start.body === 'MARS') return CAPTURE_ORBITS.map((orbit, i) => ({ id: ['MARS_CLOSE', 'MARS_INTERMEDIATE', 'MARS_BALANCED', 'MARS_WIDE'][i], titleKey: `orbit.${['MARS_CLOSE', 'MARS_INTERMEDIATE', 'MARS_BALANCED', 'MARS_WIDE'][i]}`, orbit: { ...orbit, epochUTC: epoch } }));
+ // A mission's own heliocentric phase replaces the preset of the same shape, like the parking orbits below.
+ if (start.body === 'SUN') return SOLAR_ORBIT_PRESETS.map(({ id, orbit }) => ({ id, titleKey: `orbit.${id}`, orbit: { ...(sameOrbit(orbit, start.orbit) ? start.orbit : orbit), epochUTC: epoch } }));
  const ride = RIDES.find(r => r.id === design.rideId), options = ride?.fixedOrbits ?? LEO_ORBITS;
  // A mission-specific parking orbit (plane, phase) replaces the ride's generic orbit of the same shape.
  const shaped = options.map(orbit => Math.abs(orbit.smaKm - start.orbit.smaKm) < 1e-6 && Math.abs(orbit.ecc - start.orbit.ecc) < 1e-9 && Math.abs(orbit.inclinationDeg - start.orbit.inclinationDeg) < 1e-6 ? start.orbit : orbit);

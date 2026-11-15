@@ -96,6 +96,11 @@ function snapToAnchor(): PointingMode | null {
   const earth = planetPosition('EARTH', telemetry.t, state.design.orbit.epochUTC), mars = planetPosition('MARS', telemetry.t, state.design.orbit.epochUTC);
   compare('EARTH', earth[0] - mars[0], earth[1] - mars[1], earth[2] - mars[2]);
  }
+ else if (state.design.orbit?.body === 'SUN') {
+  // Sun-centred positions are heliocentric; the Earth direction is Earth's heliocentric position minus the craft's.
+  const earth = planetPosition('EARTH', telemetry.t, state.design.orbit.epochUTC);
+  compare('EARTH', earth[0] - telemetry.positionKm[0], earth[1] - telemetry.positionKm[1], earth[2] - telemetry.positionKm[2]);
+ }
  return best;
 }
 

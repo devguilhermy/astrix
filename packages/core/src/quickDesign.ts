@@ -17,7 +17,7 @@ const configFields = ['missionId','levelId','ambition','kit','approach','seed','
 function validOrbit(value: unknown): value is OrbitChoice {
  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
  const o = value as OrbitChoice;
- return Object.keys(o).every(k => ['body','epochUTC','frame','smaKm','ecc','inclinationDeg','raanDeg','argPeriapsisDeg','trueAnomalyDeg'].includes(k)) && ['EARTH','MARS'].includes(o.body) && o.frame === 'MJ2000Eq' && typeof o.epochUTC === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(o.epochUTC) && Number.isFinite(Date.parse(o.epochUTC)) && new Date(o.epochUTC).toISOString()===(o.epochUTC.includes('.')?o.epochUTC:o.epochUTC.replace(/Z$/,'.000Z')) && [o.smaKm,o.ecc,o.inclinationDeg,o.raanDeg,o.argPeriapsisDeg,o.trueAnomalyDeg].every(Number.isFinite) && o.smaKm > 0 && o.ecc >= 0 && o.ecc < 1 && o.inclinationDeg >= 0 && o.inclinationDeg <= 180 && [o.raanDeg,o.argPeriapsisDeg,o.trueAnomalyDeg].every(n => n >= 0 && n <= 360);
+ return Object.keys(o).every(k => ['body','epochUTC','frame','smaKm','ecc','inclinationDeg','raanDeg','argPeriapsisDeg','trueAnomalyDeg'].includes(k)) && ['EARTH','MARS','SUN'].includes(o.body) && o.frame === 'MJ2000Eq' && typeof o.epochUTC === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(o.epochUTC) && Number.isFinite(Date.parse(o.epochUTC)) && new Date(o.epochUTC).toISOString()===(o.epochUTC.includes('.')?o.epochUTC:o.epochUTC.replace(/Z$/,'.000Z')) && [o.smaKm,o.ecc,o.inclinationDeg,o.raanDeg,o.argPeriapsisDeg,o.trueAnomalyDeg].every(Number.isFinite) && o.smaKm > 0 && o.ecc >= 0 && o.ecc < 1 && o.inclinationDeg >= 0 && o.inclinationDeg <= 180 && [o.raanDeg,o.argPeriapsisDeg,o.trueAnomalyDeg].every(n => n >= 0 && n <= 360);
 }
 export function validateQuickDesignConfig(value: unknown): value is QuickDesignConfig {
  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
@@ -30,8 +30,8 @@ export function defaultQuickDesign(missionId: BuiltinMissionId = 'FIRST_SIGNAL',
 }
 export function missionOffers(destination?: BodyId, levelId: LevelId = 'ASPIRING'): MissionOffer[] {
  return listMissions().map(d => {
-  const destination: BodyId = d.trajectory.model === 'MARS_ANALYTIC_CRUISE' ? 'MARS' : d.trajectory.bodies.includes('MOON') ? 'MOON' : 'EARTH';
-  const estimatedTurns:readonly[number,number]=d.id==='FIRST_SIGNAL'?[4,6]:d.id==='UP_AND_BACK'?[1,2]:d.id==='STAY_IN_ORBIT'?[3,6]:d.id==='RAISE_YOUR_ORBIT'||d.id==='LEAVE_ORBIT_SAFELY'?[3,5]:d.id==='PAST_EARTH'?[2,4]:d.id==='MEET_THE_MOON'?[4,8]:d.id==='EARTH_TO_MOON'?[8,14]:[8,24];
+  const destination: BodyId = d.start.kind === 'PROVIDED_ORBIT' && d.start.body === 'SUN' ? 'SUN' : d.trajectory.model === 'MARS_ANALYTIC_CRUISE' ? 'MARS' : d.trajectory.model === 'PATCHED_CONICS' && d.trajectory.bodies.includes('MOON') ? 'MOON' : 'EARTH';
+  const estimatedTurns:readonly[number,number]=d.id==='FIRST_SIGNAL'?[4,6]:d.id==='UP_AND_BACK'?[1,2]:d.id==='STAY_IN_ORBIT'?[3,6]:d.id==='RAISE_YOUR_ORBIT'||d.id==='LEAVE_ORBIT_SAFELY'?[3,5]:d.id==='PAST_EARTH'?[2,4]:d.id==='MEET_THE_MOON'?[4,8]:d.id==='EARTH_TO_MOON'?[8,14]:d.id==='SUN_SENTINEL'?[6,14]:[8,24];
   return { missionId: d.id as BuiltinMissionId,destination,titleKey: d.name.key!,descriptionKey: d.description.key!,goalKey: d.objectiveSummary.key!,estimatedTurns,config: defaultQuickDesign(d.id as BuiltinMissionId,levelId) };
  }).filter(o => !destination || o.destination === destination).sort((a,b)=>(a.missionId==='FIRST_SIGNAL'?-2:a.missionId==='UP_AND_BACK'||a.missionId==='STAY_IN_ORBIT'?-1:0)-(b.missionId==='FIRST_SIGNAL'?-2:b.missionId==='UP_AND_BACK'||b.missionId==='STAY_IN_ORBIT'?-1:0));
 }
@@ -69,6 +69,8 @@ function makeParts(d: Design, c: QuickDesignConfig): DesignPart[] {
   }
   if (c.kit === 'SCIENCE' && science) { const mapper = p.find(i => i.partId === 'SS_MAPPER'); if (mapper) mapper.qty = 2; }
   if (c.levelId === 'EXPERT') { add('SS_HEATER_60'); if(c.missionId!=='RED_RELAY')add('SS_RADIATOR'); }
+  // Full sunlight with no eclipse at about 1 AU: the second radiator keeps the hot case inside the payload limit.
+  if (c.levelId === 'EXPERT' && d.definition.start.kind === 'PROVIDED_ORBIT' && d.definition.start.body === 'SUN') { const radiator = p.find(i => i.partId === 'SS_RADIATOR'); if (radiator) radiator.qty = 2; }
  } else if (c.kit === 'ENDURANCE') { const battery = p.find(i => i.partId === 'CREW_BATTERY'); if (battery) battery.qty = 2; }
  // Fuel is tangible inventory. Endurance carries more; lighter/science packages pay less mass/cost.
  p = p.map(i => i.propellantKg && i.partId !== 'CREW_PROPULSION' ? { ...i,propellantKg: Math.min(PART_BY_ID[i.partId].tankKg?.v ?? 0,i.propellantKg*(c.kit === 'LIGHT' ? .8 : c.kit === 'ENDURANCE' ? 1.1 : 1)) } : i);

@@ -7,7 +7,7 @@ const buses=['CUBESAT_3U','SMALLSAT','CREW_CAPSULE'] as const;
 const parts=new Set(buses.flatMap(bus=>listParts(bus).map(p=>p.id)));
 const builtinIds=new Set<string>(BUILTIN_DEFINITIONS.map(d=>d.id));
 const launchers=new Set(listLaunchers().map(l=>l.id));
-const rides=new Set(buses.flatMap(bus=>(['EARTH','MARS'] as const).flatMap(body=>listRides(bus,body).map(r=>r.id))));
+const rides=new Set(buses.flatMap(bus=>(['EARTH','MARS','SUN'] as const).flatMap(body=>listRides(bus,body).map(r=>r.id))));
 function record(value:unknown):value is Record<string,unknown>{return typeof value==='object'&&value!==null&&!Array.isArray(value)&&Object.getPrototypeOf(value)===Object.prototype;}
 function shape(value:unknown,required:readonly string[],optional:readonly string[]=[]):value is Record<string,unknown>{return record(value)&&required.every(key=>Object.hasOwn(value,key))&&Object.keys(value).every(key=>required.includes(key)||optional.includes(key));}
 function text(value:unknown,max=128):value is string{return typeof value==='string'&&value.length>0&&value.length<=max;}
@@ -15,14 +15,14 @@ function integer(value:unknown):value is number{return typeof value==='number'&&
 function finite(value:unknown,min=-1e12,max=1e12):value is number{return typeof value==='number'&&Number.isFinite(value)&&value>=min&&value<=max;}
 function member<T extends string>(value:unknown,values:readonly T[]):value is T{return typeof value==='string'&&values.some(item=>item===value);}
 function orbit(value:unknown):OrbitChoice|null {
- if(!shape(value,['body','epochUTC','frame','smaKm','ecc','inclinationDeg','raanDeg','argPeriapsisDeg','trueAnomalyDeg'])||!member(value.body,['EARTH','MARS','MOON'])||!text(value.epochUTC,40)||!Number.isFinite(Date.parse(value.epochUTC))||value.frame!=='MJ2000Eq'||!finite(value.smaKm,1,1e9)||!finite(value.ecc,0,.999999999)||!finite(value.inclinationDeg,0,180)||!finite(value.raanDeg,0,360)||!finite(value.argPeriapsisDeg,0,360)||!finite(value.trueAnomalyDeg,0,360))return null;
+ if(!shape(value,['body','epochUTC','frame','smaKm','ecc','inclinationDeg','raanDeg','argPeriapsisDeg','trueAnomalyDeg'])||!member(value.body,['EARTH','MARS','MOON','SUN'])||!text(value.epochUTC,40)||!Number.isFinite(Date.parse(value.epochUTC))||value.frame!=='MJ2000Eq'||!finite(value.smaKm,1,1e9)||!finite(value.ecc,0,.999999999)||!finite(value.inclinationDeg,0,180)||!finite(value.raanDeg,0,360)||!finite(value.argPeriapsisDeg,0,360)||!finite(value.trueAnomalyDeg,0,360))return null;
  return {body:value.body,epochUTC:value.epochUTC,frame:'MJ2000Eq',smaKm:value.smaKm,ecc:value.ecc,inclinationDeg:value.inclinationDeg,raanDeg:value.raanDeg,argPeriapsisDeg:value.argPeriapsisDeg,trueAnomalyDeg:value.trueAnomalyDeg};
 }
 function trigger(value:unknown):BurnTrigger|null {
  if(!record(value))return null;
  switch(value.kind){
  case 'AT_TIME':return shape(value,['kind','tSec'])&&finite(value.tSec,0,1e9)?{kind:'AT_TIME',tSec:value.tSec}:null;
- case 'AT_APSIS':return shape(value,['kind','apsis','notBeforeSec'],['body'])&&member(value.apsis,['PERIAPSIS','APOAPSIS'])&&finite(value.notBeforeSec,0,1e9)&&(value.body===undefined||member(value.body,['EARTH','MARS','MOON']))?{kind:'AT_APSIS',apsis:value.apsis,notBeforeSec:value.notBeforeSec,...(typeof value.body==='string'?{body:value.body}:{})}:null;
+ case 'AT_APSIS':return shape(value,['kind','apsis','notBeforeSec'],['body'])&&member(value.apsis,['PERIAPSIS','APOAPSIS'])&&finite(value.notBeforeSec,0,1e9)&&(value.body===undefined||member(value.body,['EARTH','MARS','MOON','SUN']))?{kind:'AT_APSIS',apsis:value.apsis,notBeforeSec:value.notBeforeSec,...(typeof value.body==='string'?{body:value.body}:{})}:null;
  case 'AT_SOI_ENTRY':return shape(value,['kind','body','delaySec'])&&value.body==='MOON'&&finite(value.delaySec,0,1e9)?{kind:'AT_SOI_ENTRY',body:'MOON',delaySec:value.delaySec}:null;
  default:return null;
  }

@@ -26,7 +26,7 @@ export { RULES_VERSION, LEVELS, isTechnical, ENGINEERING, THERMAL_MODELS } from 
 export type { ModelParameter, ThermalModel } from './models';
 
 export * from './journey';
-export { CONSTANTS, orbitPosition, orbitalPeriod, sunDirection, makeOrbit, orbitAltitudes, withOrbitAltitudes, orbitEpochSeconds, bodyRotationAngle } from './physics';
+export { CONSTANTS, orbitPosition, orbitalPeriod, sunDirection, sunDirectionAt, solarInput, sunLineOfSight, makeOrbit, orbitAltitudes, withOrbitAltitudes, orbitEpochSeconds, bodyRotationAngle } from './physics';
 export * from './interop';
 export * from './disposal';
 export { crewReturnWindow, crewReturnFuel } from './return';

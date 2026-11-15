@@ -4,7 +4,7 @@ import { DAY } from '../physics';
 import { isTechnical } from '../models';
 import { issueCommand } from './commands';
 import { environmentAt } from './environment';
-import { cloneFlight, createSim, flight, stormBounds } from './state';
+import { cloneFlight, createSim, deepSpace, flight, stormBounds } from './state';
 import { allRequiredMet, evidenceOf, objectiveValue, primaryObjective } from './objectives';
 import { ascentActive, nextTrajectoryBoundary } from './trajectory';
 import { skipCruise, stepSim } from './step';
@@ -49,7 +49,7 @@ export function forecastTimeline(state: SimState, horizonSec: number): TimelineF
   const [stormStart,stormEnd] = stormBounds(s), a = Math.max(startSec,s.arrivalT+stormStart), b = Math.min(endSec,s.arrivalT+stormEnd);
   if (b > a) windows.push({ kind: 'STORM',startSec: a,endSec: b,labelKey: 'event.SOLAR_STORM_START.title' });
   if (!s.aged) point(s.arrivalT+s.agingAt,'event.BATTERY_AGING.title');
-  if (!s.outageStarted && !s.mars) point(s.arrivalT+s.outageAt,'event.GROUND_OUTAGE.title');
+  if (!s.outageStarted && !deepSpace(s)) point(s.arrivalT+s.outageAt,'event.GROUND_OUTAGE.title');
   if (isTechnical(s.design.levelId)) {
    if (!s.pointingFaultSeen) point(s.arrivalT+s.pointingFaultAt,'event.POINTING_DEGRADED.title');
    if (!s.resetSeen) point(s.arrivalT+s.resetAt,'event.COMPUTER_RESET.title');

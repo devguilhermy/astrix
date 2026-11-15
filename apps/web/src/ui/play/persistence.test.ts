@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { certifyQuickDesign, defaultQuickDesign, turnDebrief, turnDecision } from '@astrix/core';
 import { createSession, reduceSession, type SessionState } from '@astrix/session';
 import { attemptRecord, comparable, parseSave, readSave, recordAttempt, writeSave, type StorageLike } from './persistence';
+import { missionScore } from './turnMoments';
 
 class MemoryStorage implements StorageLike {
   values=new Map<string,string>();
@@ -75,6 +76,16 @@ describe('versioned decision-boundary persistence',()=>{
     expect(()=>parseSave(JSON.stringify({format:'astrix-turn-save',version:90,game:initial,journal:[]}))).toThrow('version');
     const tampered=JSON.parse(JSON.stringify({format:'astrix-turn-save',version:1,game:later,journal:[]}));tampered.game.sim.socWh+=1;
     expect(()=>parseSave(JSON.stringify(tampered))).toThrow('deterministic');
+  });
+  test('attempt records carry score, stars and turns; records saved without them still load',()=>{
+    const storage=new MemoryStorage(),game=commit(start(),'observe').game!,record=attemptRecord(game),score=missionScore(game);
+    expect(record).toMatchObject({score:score.total,stars:score.stars,turns:game.receipts.length});
+    const old:Record<string,unknown>={...record};delete old.score;delete old.stars;delete old.turns;
+    const raw=(journal:readonly unknown[])=>JSON.stringify({format:'astrix-turn-save',version:1,game,journal});
+    expect(parseSave(raw([old])).journal as readonly unknown[]).toEqual([old]);
+    expect(parseSave(raw([record])).journal).toEqual([record]);
+    expect(writeSave(game,[record],storage)).toBeNull();expect(readSave(storage).document!.journal).toEqual([record]);
+    for(const bad of [{...record,score:null},{...record,stars:'5'},{...record,turns:Number.NaN},{...record,score:Number.POSITIVE_INFINITY}])expect(()=>parseSave(raw([bad]))).toThrow('journal');
   });
   test('older saved mission library is discoverable for export, never relabelled as a new-rules flight',()=>{
     const storage=new MemoryStorage(),legacy='{"format":"astrix.mission-library","version":1}';storage.setItem('astrix.missions.v1',legacy);

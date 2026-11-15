@@ -2,10 +2,12 @@ import { describe, expect, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createInstance } from 'i18next';
 import { I18nextProvider } from 'react-i18next';
-import { computeBudgets, createTurnGame, defaultQuickDesign, missionById, missionOffers, telemetry, turnDecision } from '@astrix/core';
+import { commitTurn, computeBudgets, createTurnGame, defaultQuickDesign, missionById, missionOffers, telemetry, turnDecision, type TurnGameState } from '@astrix/core';
 import { english, portuguese } from '../../i18n/resources';
 import { MissionBoard, Preparation } from './Preparation';
 import { TurnWorkspace } from './TurnWorkspace';
+import { LevelToggle } from './LevelToggle';
+import { turnMoments } from './turnMoments';
 import { ScienceConnection } from './ScienceConnection';
 import { Duration } from './Evidence';
 import { SolarWelcome } from './SolarWelcome';
@@ -20,6 +22,11 @@ async function render(language:'en'|'pt-BR',children:ReactNode) {
   return renderToStaticMarkup(<I18nextProvider i18n={i18n}>{children}</I18nextProvider>);
 }
 const ignore=()=>{};
+function committed(game:TurnGameState,planId:string):TurnGameState {
+  const result=commitTurn(game,{decisionId:turnDecision(game).id,baseRevision:game.revision,planId,idempotencyKey:`turn-${game.revision}`});
+  if(!result.ok)throw new Error(`${result.code}: ${result.message}`);
+  return result.value.state;
+}
 describe('one bilingual Design & Play surface',()=>{
   test('free exploration offers mission entry without presenting or selecting a mission',async()=>{
     for(const language of ['en','pt-BR'] as const){
@@ -74,7 +81,30 @@ describe('one bilingual Design & Play surface',()=>{
       const html=await render(language,<MissionBoard offers={offers} onChoose={ignore} onDesign={ignore}/>);
       expect(html).toContain(language==='en'?'Design &amp; Play':'Projetar e jogar');
       expect(html).not.toContain('MISSION STUDIO');expect(html).not.toContain('play.');
+      expect(html.match(/<div class="mission-board">/g)).toHaveLength(1);
+      expect(html.match(/<article class="mission-offer">/g)).toHaveLength(Math.min(3,offers.length));
+      expect(html.match(/class="mission-illustration"/g)).toHaveLength(Math.min(3,offers.length));
+      expect(html).toContain('data-tour="mission-board"');expect(html).toContain('aria-expanded="false"');
     }
+  });
+  test('the challenge level is two pressed-state buttons with one description line, never a native select',async()=>{
+    for(const language of ['en','pt-BR'] as const){
+      for(const level of ['ASPIRING','EXPERT'] as const){
+        const html=await render(language,<LevelToggle value={level} onChange={ignore}/>);
+        expect(html).toContain('role="group"');expect(html).not.toContain('<select');
+        expect(html.match(/<button\b[^>]*aria-pressed=/g)).toHaveLength(2);
+        expect(html.match(/aria-pressed="true"/g)).toHaveLength(1);
+        expect(html).toContain(language==='en'?'Challenge level':'Nível de desafio');
+        expect(html).toContain(language==='en'?(level==='ASPIRING'?'Guided choices':'tighter constraints'):(level==='ASPIRING'?'Escolhas orientadas':'limites mais apertados'));
+        expect(html).not.toContain('play.');
+      }
+    }
+    expect(await Bun.file(new URL('./PlayApp.tsx',import.meta.url)).text()).not.toContain('<select');
+  });
+  test('destination tabs and copy name the Sun alongside Earth, the Moon and Mars',()=>{
+    expect(english['play.SUN']).toBe('Sun');expect(portuguese['play.SUN']).toBe('Sol');
+    expect(english['play.solarMissionNote']).toContain('the Sun, Earth, the Moon and Mars');
+    expect(portuguese['play.solarMissionNote']).toContain('no Sol, na Terra, na Lua e em Marte');
   });
   test('preparation starts from actual catalogue constraints and cannot start before certification',async()=>{
     for(const language of ['en','pt-BR'] as const){
@@ -83,10 +113,25 @@ describe('one bilingual Design & Play surface',()=>{
       expect(html).not.toContain('ui.volume');expect(html).not.toContain('NEED_GOALS');expect(html).not.toContain('Sign off');
     }
   });
+  test('after a committed turn the preview panel leads with a live "Last turn" result card',async()=>{
+    const game=committed(createTurnGame(defaultQuickDesign()),'observe'),moments=turnMoments(game);
+    expect(moments).toHaveLength(1);
+    for(const language of ['en','pt-BR'] as const){
+      const html=await render(language,<TurnWorkspace game={game} onCommit={ignore} onCheckpoint={ignore} onRetry={ignore} onRedesign={ignore} onTools={ignore} busy={false} disabled={false} host journal={[]} hints moments={moments} selectedTurn={null} onSelectTurn={ignore}/>);
+      const panel=html.slice(html.indexOf('id="turn-preview-panel"'));
+      expect(panel).toMatch(/^[^]*?<section class="last-turn"[^>]*aria-live="polite"/);
+      expect(panel.indexOf('class="last-turn"')).toBeLessThan(panel.indexOf(`</h2>`));
+      expect(panel).toContain(language==='en'?'Last turn':'Último turno');
+      expect(panel).toContain('<article class="fb-card"');expect(panel).not.toContain('fb-card-compact');
+      expect(html).not.toContain('mission-fuel');expect(html).not.toContain('play.lastTurn');
+    }
+    const fresh=await render('en',<TurnWorkspace game={createTurnGame(defaultQuickDesign())} onCommit={ignore} onCheckpoint={ignore} onRetry={ignore} onRedesign={ignore} onTools={ignore} busy={false} disabled={false} host journal={[]} hints moments={[]} selectedTurn={null} onSelectTurn={ignore}/>);
+    expect(fresh).not.toContain('class="last-turn"');
+  });
   test('both levels use actual plans and one disabled-until-preview commit instead of time controls',async()=>{
     for(const level of ['ASPIRING','EXPERT'] as const){
       const game=createTurnGame(defaultQuickDesign('FIRST_SIGNAL',level));
-      const html=await render('en',<TurnWorkspace game={game} onCommit={ignore} onCheckpoint={ignore} onRetry={ignore} onRedesign={ignore} onTools={ignore} busy={false} disabled={false} host journal={[]} hints/>);
+      const html=await render('en',<TurnWorkspace game={game} onCommit={ignore} onCheckpoint={ignore} onRetry={ignore} onRedesign={ignore} onTools={ignore} busy={false} disabled={false} host journal={[]} hints moments={[]} selectedTurn={null} onSelectTurn={ignore}/>);
       expect(html).toContain('name="turn-plan"');expect(html).toContain('Consequence preview');expect(html).toContain('disabled=""');
       expect(html).not.toContain('SET_WARP');expect(html).not.toContain('Pause');expect(html).not.toContain('Sign off');
     }
@@ -96,7 +141,7 @@ describe('one bilingual Design & Play surface',()=>{
     for(const language of ['en','pt-BR'] as const){
       for(const surface of [
         <Preparation config={defaultQuickDesign()} onChange={ignore} onPlay={ignore}/>,
-        <TurnWorkspace game={game} onCommit={ignore} onCheckpoint={ignore} onRetry={ignore} onRedesign={ignore} onTools={ignore} busy={false} disabled={false} host journal={[]} hints/>,
+        <TurnWorkspace game={game} onCommit={ignore} onCheckpoint={ignore} onRetry={ignore} onRedesign={ignore} onTools={ignore} busy={false} disabled={false} host journal={[]} hints moments={[]} selectedTurn={null} onSelectTurn={ignore}/>,
       ]){
         const html=await render(language,surface);
         const controls=[...html.matchAll(/<button\b[^>]*aria-controls="([^"]+)"/g)];
@@ -112,7 +157,7 @@ describe('one bilingual Design & Play surface',()=>{
     const game=createTurnGame(defaultQuickDesign()),plans=turnDecision(game).plans;
     for(const language of ['en','pt-BR'] as const){
       for(const busy of [false,true]){
-        const html=await render(language,<TurnWorkspace game={game} onCommit={ignore} onCheckpoint={ignore} onRetry={ignore} onRedesign={ignore} onTools={ignore} busy={busy} disabled={false} host journal={[]} hints/>);
+        const html=await render(language,<TurnWorkspace game={game} onCommit={ignore} onCheckpoint={ignore} onRetry={ignore} onRedesign={ignore} onTools={ignore} busy={busy} disabled={false} host journal={[]} hints moments={[]} selectedTurn={null} onSelectTurn={ignore}/>);
         const radios=[...html.matchAll(/<input\b[^>]*name="turn-plan"[^>]*>/g)].map(match=>match[0]);
         expect(radios).toHaveLength(plans.length);
         for(const plan of plans)expect(radios.filter(radio=>radio.includes(`value="${plan.id}"`))).toHaveLength(1);

@@ -48,12 +48,13 @@ function numeric(value: string): number {
 function assign(target: Record<string,string>, key: string, value: string): void {
  if (key in target) throw new Error(`Duplicate metadata: ${key}`); target[key] = value.trim();
 }
-/** Interop is limited to the Earth and Mars frames it can state exactly; a Moon-centred state is refused rather than relabelled. */
+/** Interop is limited to the Earth, Mars and Sun frames it can state exactly; a Moon-centred state is refused rather than relabelled. */
 export class InteropError extends Error { constructor(readonly code: 'MOON_UNSUPPORTED_FOR_IMPORT', message: string) { super(message); this.name = 'InteropError'; } }
 function bodyOf(value: string): BodyId {
  if (value.toUpperCase() === 'MOON' || value.toUpperCase() === 'LUNA') throw new InteropError('MOON_UNSUPPORTED_FOR_IMPORT', 'Moon-centred states are not supported by this interchange');
  if (value.toUpperCase() === 'EARTH') return 'EARTH';
  if (value.toUpperCase() === 'MARS') return 'MARS';
+ if (value.toUpperCase() === 'SUN') return 'SUN';
  throw new Error(`Unsupported center: ${value}`);
 }
 function addSample(samples: TrajectorySample[], sample: TrajectorySample): void {
@@ -162,6 +163,6 @@ export function exportInitialOrbit(o: OrbitChoice): string {
  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
  const epoch = `${String(date.getUTCDate()).padStart(2,'0')} ${months[date.getUTCMonth()]} ${date.getUTCFullYear()} ${date.toISOString().slice(11,23)}`;
  if (o.body === 'MOON') throw new InteropError('MOON_UNSUPPORTED_FOR_IMPORT', 'Moon-centred states are not supported by this interchange');
- const frame = o.body === 'EARTH' ? 'EarthMJ2000Eq' : 'AstrixMarsFrame';
- return [`% ASTRIX initial conditions only; no force model or maneuver dynamics.`, ...(o.body === 'MARS' ? ['Create CoordinateSystem AstrixMarsFrame;', 'GMAT AstrixMarsFrame.Origin = Mars;', 'GMAT AstrixMarsFrame.Axes = MJ2000Eq;'] : []), 'Create Spacecraft Astrix;', 'GMAT Astrix.DateFormat = UTCGregorian;', `GMAT Astrix.Epoch = '${epoch}';`, `GMAT Astrix.CoordinateSystem = ${frame};`, 'GMAT Astrix.DisplayStateType = Keplerian;', ...Object.entries({SMA:o.smaKm,ECC:o.ecc,INC:o.inclinationDeg,RAAN:o.raanDeg,AOP:o.argPeriapsisDeg,TA:o.trueAnomalyDeg}).map(([k,v]) => `GMAT Astrix.${k} = ${v};`), ''].join('\n');
+ const frame = o.body === 'EARTH' ? 'EarthMJ2000Eq' : o.body === 'MARS' ? 'AstrixMarsFrame' : 'AstrixSunFrame', origin = o.body === 'MARS' ? 'Mars' : 'Sun';
+ return [`% ASTRIX initial conditions only; no force model or maneuver dynamics.`, ...(o.body !== 'EARTH' ? [`Create CoordinateSystem ${frame};`, `GMAT ${frame}.Origin = ${origin};`, `GMAT ${frame}.Axes = MJ2000Eq;`] : []), 'Create Spacecraft Astrix;', 'GMAT Astrix.DateFormat = UTCGregorian;', `GMAT Astrix.Epoch = '${epoch}';`, `GMAT Astrix.CoordinateSystem = ${frame};`, 'GMAT Astrix.DisplayStateType = Keplerian;', ...Object.entries({SMA:o.smaKm,ECC:o.ecc,INC:o.inclinationDeg,RAAN:o.raanDeg,AOP:o.argPeriapsisDeg,TA:o.trueAnomalyDeg}).map(([k,v]) => `GMAT Astrix.${k} = ${v};`), ''].join('\n');
 }

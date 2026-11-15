@@ -163,7 +163,8 @@ const explicit = {
   'preset.LEO_420': ['orbit-height', 'inclination', 'coverage'], 'preset.LEO_500': ['orbit-height', 'inclination', 'coverage'],
   'preset.LEO_550': ['orbit-height', 'inclination', 'coverage'], 'preset.LEO_CUSTOM': ['orbit-height', 'inclination', 'kepler-orbits'],
   'preset.MARS_CLOSE': ['orbit-shape', 'capture-burn'], 'preset.MARS_INTERMEDIATE': ['orbit-shape', 'capture-burn'],
-  'preset.MARS_BALANCED': ['orbit-shape', 'capture-burn'], 'preset.MARS_WIDE': ['orbit-shape', 'capture-burn']
+  'preset.MARS_BALANCED': ['orbit-shape', 'capture-burn'], 'preset.MARS_WIDE': ['orbit-shape', 'capture-burn'],
+  'mission.SUN_SENTINEL': ['mission-goal', 'solar-distance', 'light-time', 'ground-contact'], 'preset.SUN_AHEAD': ['orbit-shape', 'solar-distance']
 } as const satisfies Readonly<Record<string, readonly ScienceTopicId[]>>;
 
 // UI and glossary identifiers share the closed registry vocabulary; no generic help fallback.
@@ -186,4 +187,5 @@ bindings['part.CREW_SUPPORT'] = ['crew-inventories', 'crew-atmosphere', 'energy-
 bindings['part.CREW_PROPULSION'] = ['crew-return', 'propulsion'];
 bindings['part.DEPLOY_MITIGATION'] = ['deployment', 'mass-volume'];
 bindings['ride.RIDE_CREW'] = ['launch-rides', 'crew-return'];
+bindings['ride.RIDE_SOLAR_ORBIT'] = ['launch-rides', 'solar-distance'];
 export const SCIENCE_BINDINGS: Readonly<Record<string, readonly ScienceTopicId[]>> = Object.freeze(bindings);

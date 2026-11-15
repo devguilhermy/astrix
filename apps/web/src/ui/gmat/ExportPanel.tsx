@@ -7,12 +7,12 @@ import './gmat.css';
 const copy = {
   en: {
     title: 'Export initial conditions', intro: 'Writes a GMAT script with one spacecraft, a UTCGregorian epoch and a Keplerian state. No force model, maneuver or propagation is included.',
-    body: 'Central body', epoch: 'Epoch (UTC)', periapsis: 'Periapsis altitude', apoapsis: 'Apoapsis altitude', script: 'GMAT script', download: 'Download script',
+    body: 'Central body', sun: 'Sun', epoch: 'Epoch (UTC)', periapsis: 'Periapsis altitude', apoapsis: 'Apoapsis altitude', script: 'GMAT script', download: 'Download script',
     exact: 'Re-imported through the same parser: every element matches exactly.', mismatch: 'Re-imported through the same parser: elements differ. Do not use this file.', invalid: 'Cannot export',
   },
   pt: {
     title: 'Exportar condições iniciais', intro: 'Gera um script GMAT com uma espaçonave, época UTCGregorian e estado kepleriano. Sem modelo de forças, manobras ou propagação.',
-    body: 'Corpo central', epoch: 'Época (UTC)', periapsis: 'Altitude do periapse', apoapsis: 'Altitude do apoapse', script: 'Script GMAT', download: 'Baixar script',
+    body: 'Corpo central', sun: 'Sol', epoch: 'Época (UTC)', periapsis: 'Altitude do periapse', apoapsis: 'Altitude do apoapse', script: 'Script GMAT', download: 'Baixar script',
     exact: 'Reimportado pelo mesmo leitor: todos os elementos coincidem exatamente.', mismatch: 'Reimportado pelo mesmo leitor: os elementos diferem. Não use este arquivo.', invalid: 'Não é possível exportar',
   },
 } as const;
@@ -38,7 +38,7 @@ export function ExportPanel({ initial }: { initial?: OrbitChoice | null }) {
     <h2 id="gmat-export-title">{c.title}</h2>
     <p>{c.intro}</p>
     <div className="gmat-export-grid">
-      <label>{c.body}<select value={draft.body} onChange={event => set({ body: event.target.value as ExportBody })}><option value="EARTH">Earth · EarthMJ2000Eq</option><option value="MARS">Mars · AstrixMarsFrame (MJ2000Eq)</option></select></label>
+      <label>{c.body}<select value={draft.body} onChange={event => set({ body: event.target.value as ExportBody })}><option value="EARTH">Earth · EarthMJ2000Eq</option><option value="MARS">Mars · AstrixMarsFrame (MJ2000Eq)</option><option value="SUN">{c.sun} · AstrixSunFrame (MJ2000Eq)</option></select></label>
       <label>{c.epoch}<input type="text" value={draft.epochUTC} spellCheck={false} onChange={event => set({ epochUTC: event.target.value })}/></label>
       {fields.map(field => <label key={field.key}><span>{field.label}{field.unit && <span className="muted"> ({field.unit})</span>}</span><input type="text" inputMode="decimal" value={draft[field.key]} spellCheck={false} onChange={event => set({ [field.key]: event.target.value })}/></label>)}
     </div>

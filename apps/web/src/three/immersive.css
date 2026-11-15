@@ -10,7 +10,8 @@
   background: #030812;
   pointer-events: none;
 }
-.immersive-scene[data-view='play']:not([data-debrief='true']), .immersive-scene[data-view='prepare'] {
+/* The mission report keeps the 510 px result panel and the 480 px detail panel, like play. */
+.immersive-scene[data-view='play'], .immersive-scene[data-view='prepare'] {
   --scene-left: calc(var(--mission-panel-left, 510px) + 16px);
   --scene-right: calc(var(--mission-panel-right, 480px) + 16px);
 }
@@ -25,7 +26,7 @@
   pointer-events: auto;
 }
 .immersive-scene-caption {
-  top: 92px;
+  top: 68px;
   display: grid;
   gap: 5px;
   text-align: center;
@@ -84,13 +85,14 @@
 }
 .immersive-scene-fallback p { margin: 10px 0 16px; color: #b5cbd7; }
 @media (min-width: 901px) and (max-width: 1279px) {
-  .immersive-scene[data-view='play']:not([data-debrief='true']), .immersive-scene[data-view='prepare'] { --scene-left: calc(var(--mission-panel-left, min(510px, 40vw)) + var(--mission-panel-right, min(480px, 36vw)) + 28px); --scene-right: 0px; }
-  .immersive-scene-caption { top: 88px; }
+  .immersive-scene[data-view='play'], .immersive-scene[data-view='prepare'] { --scene-left: calc(var(--mission-panel-left, min(510px, 40vw)) + var(--mission-panel-right, min(480px, 36vw)) + 28px); --scene-right: 0px; }
+  .immersive-scene-caption { top: 68px; }
   .immersive-scene-controls { bottom: 18px; }
 }
 @media (max-width: 900px) {
-  .immersive-scene, .immersive-scene[data-view='play']:not([data-debrief='true']), .immersive-scene[data-view='prepare'] { --scene-left: 0px; --scene-right: 0px; }
-  .immersive-scene-caption { top: 77px; width: calc(100vw - 32px); gap: 1px; font-size: 10px; }
+  .immersive-scene, .immersive-scene[data-view='play'], .immersive-scene[data-view='prepare'] { --scene-left: 0px; --scene-right: 0px; }
+  /* Below the wrapped header, at least 100 px tall without the resource grid. */
+  .immersive-scene-caption { top: 104px; width: calc(100vw - 32px); gap: 1px; font-size: 10px; }
   .immersive-scene-caption > strong { font-size: 12px; }
   .immersive-scene-caption summary { font-size: 10px; }
   .immersive-scene-caption details[open] { margin: 0 auto; max-width: 420px; max-height: calc(42svh - 102px); font-size: 12px; }
@@ -158,7 +160,7 @@
   .immersive-component-select { width: 124px; min-height: 28px; }
   .immersive-component-panel { max-height: max(90px, calc(42svh - 100px)); padding: 12px; }
   .immersive-component-panel h2 { font-size: 15px; }
-  .immersive-component-fallback { top: 82px; left: 12px; }
+  .immersive-component-fallback { top: 104px; left: 12px; }
 }
 .immersive-scene { --scene-focus: #ffb16b; }
 .immersive-camera-modes button[aria-pressed='true'] { color: #fff; background: #185ca2; border-color: #5993cc; }
@@ -172,16 +174,17 @@
 .solar-body-label[data-selected='true'] { color: #ffc28c; }
 @media (max-width: 900px) {
   .immersive-scene[data-view='solar'] .immersive-scene-controls { top: auto; bottom: 110px; right: 12px; width: calc(100vw - 24px); }
-  .immersive-scene[data-view='solar'] .immersive-scene-caption { top: 77px; }
+  .immersive-scene[data-view='solar'] .immersive-scene-caption { top: 104px; }
   .immersive-scene[data-view='solar'] .immersive-scene-caption details[open] { max-height: min(48svh, 370px); }
   .solar-body-label { font-size: 10px; }
 }
-.immersive-scene[data-view='play'][data-hardware='true'] .immersive-scene-caption { top: calc(var(--mission-resource-bottom, 180px) + 10px); }
+.immersive-scene[data-view='play'][data-hardware='true'] .immersive-scene-caption { top: calc(var(--mission-resource-bottom, 132px) + 10px); }
 .immersive-scene[data-view='play'][data-hardware='true'] .immersive-scene-fallback,
-.immersive-scene[data-view='play'][data-hardware='true'] .immersive-component-fallback { top: calc(var(--mission-resource-bottom, 180px) + 8px); }
+.immersive-scene[data-view='play'][data-hardware='true'] .immersive-component-fallback { top: calc(var(--mission-resource-bottom, 132px) + 8px); }
 @media (max-width: 900px) {
   .immersive-scene[data-view='play'][data-hardware='true'] .immersive-scene-caption {
-    top: calc(var(--mission-resource-bottom, 180px) + 4px);
+    /* The mobile resource grid spans 68-180 px under a 64 px header. */
+    top: 184px;
     left: 12px;
     transform: none;
     width: calc(50vw - 18px);
@@ -194,7 +197,80 @@
   .immersive-scene[data-view='play'][data-hardware='true'] .immersive-component-panel,
   .immersive-scene[data-view='play'][data-hardware='true'] .immersive-scene-fallback,
   .immersive-scene[data-view='play'][data-hardware='true'] .immersive-scene-caption details[open] {
-    max-height: max(90px, calc(var(--mission-scene-bottom, max(42svh, 308px)) - var(--mission-resource-bottom, 180px) - 16px));
+    max-height: max(90px, calc(var(--mission-scene-bottom, max(42svh, 308px)) - 196px));
     overflow: auto;
   }
+}
+/* Turn feedback, replay transport and turn markers. */
+.scene-fb-camera { display: grid; justify-items: center; gap: 9px; }
+.scene-fb-event { margin: 0; color: #ffd2a3; font-variant-numeric: tabular-nums; }
+.scene-fb-label { color: #dce9f0; font-size: 11px; font-weight: 500; text-shadow: 0 2px 7px #000; white-space: nowrap; }
+.scene-fb-transport {
+  box-sizing: border-box;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #49616e;
+  border-radius: 12px;
+  background: #0c1924e6;
+}
+.scene-fb-transport-row, .scene-fb-speeds { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 5px; }
+.immersive-scene-controls .scene-fb-transport button { gap: 6px; min-width: 44px; min-height: 44px; padding: 6px 10px; }
+.immersive-scene-controls .scene-fb-speeds button[aria-pressed='true'] { color: #fff; background: #185ca2; border-color: #5993cc; }
+.scene-fb-progress { display: flex; align-items: center; gap: 10px; width: 100%; }
+.scene-fb-bar { flex: 1; height: 6px; overflow: hidden; border-radius: 3px; background: #1d3348; }
+.scene-fb-bar > span { display: block; height: 100%; background: #ffb164; }
+.scene-fb-time { min-width: 9ch; color: #d9e9f0; font-size: 12px; font-variant-numeric: tabular-nums; text-align: right; }
+.scene-fb-transport-status { min-height: 1.2em; margin: 0; color: #b5cbd7; font-size: 12px; text-align: center; }
+.scene-fb-marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  pointer-events: auto;
+}
+.scene-fb-marker > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border: 1px solid #6f8ea3;
+  border-radius: 10px;
+  background: #0b1825e6;
+  color: #e8f2f5;
+  font-size: 11px;
+  font-weight: 600;
+  transform: translateY(-16px);
+}
+.scene-fb-marker[data-selected='true'] > span { min-width: 26px; height: 26px; border-color: #ffb767; border-radius: 13px; background: #f6a047; color: #10202d; font-size: 13px; }
+.scene-fb-marker:hover:not(:disabled) > span { border-color: #ffb767; }
+.scene-fb-marker:focus-visible { outline: 2px solid var(--scene-focus, #ffb16b); outline-offset: -4px; border-radius: 50%; }
+.scene-fb-marker:disabled { cursor: default; }
+@media (min-width: 901px) {
+  /* Clear of the 176 px report timeline at mission end, unless the panels are hidden. */
+  .immersive-scene[data-view='play'][data-debrief='true'] .immersive-scene-controls { bottom: 200px; }
+  .play-app:has(.play-main[data-panels-open='false']) .immersive-scene[data-debrief='true'] .immersive-scene-controls { bottom: 26px; }
+  /* A selected body's fact panel fills the right panel slot. */
+  .immersive-scene[data-view='solar'][data-solar-body='true'] { --scene-right: calc(var(--mission-panel-right, 480px) + 16px); }
+  .immersive-scene[data-view='solar'][data-solar-body='true'] .immersive-scene-controls { right: calc(var(--mission-panel-right, 480px) + 32px); }
+}
+@media (max-width: 900px) {
+  .scene-fb-camera { gap: 4px; }
+  .scene-fb-transport { gap: 3px; padding: 4px 6px; }
+  .scene-fb-time { font-size: 11px; }
+  .scene-fb-transport-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .immersive-scene[data-view='play'][data-hardware='true'] .immersive-component-fallback { top: 188px; }
+  /* Above the fact panel's bottom sheet over the lower 55 %. */
+  .immersive-scene[data-view='solar'][data-solar-body='true'] .immersive-scene-controls { bottom: calc(55svh + 8px); }
 }

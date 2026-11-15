@@ -1,0 +1,17 @@
+/* True-scale Explore (WP-F). Locator dots keep sub-pixel worlds findable; they hide once the globe itself is visible. */
+.solar-scale-dot {
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--solar-scale-dot, #dce9f0);
+  box-shadow: 0 0 0 1.5px rgb(3 8 18 / .85), 0 0 6px rgb(0 0 0 / .7);
+  transition: opacity .15s ease, transform .15s ease, box-shadow .15s ease;
+}
+.solar-scale-dot[data-hovered='true'] { transform: scale(1.4); box-shadow: 0 0 0 1.5px #e8f2f5, 0 0 6px rgb(0 0 0 / .7); }
+.solar-scale-dot[data-selected='true'] { box-shadow: 0 0 0 2px #ffc28c, 0 0 8px rgb(255 194 140 / .55); }
+.solar-scale-label[data-hovered='true']:not([data-selected='true']) { color: #ffffff; }
+.solar-scale-fraction { color: #e8f2f5; }
+@media (prefers-reduced-motion: reduce) {
+  .solar-scale-dot { transition: none; }
+}

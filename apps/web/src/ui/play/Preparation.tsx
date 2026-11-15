@@ -43,13 +43,13 @@ export function Preparation({config,onChange,onPlay,disabled=false,busy=false}:{
   const chooseGoal=(missionId:string)=>onChange({...defaultQuickDesign(missionId as QuickDesignConfig['missionId'],config.levelId),ambition:config.ambition,kit:config.kit,approach:config.approach});
   return <section className={`preparation contextual-workspace active-${panel}`} aria-label={c('designPlay')}>
     <div className="context-panel-switch" aria-label={c('missionPanels')}><button aria-pressed={panel==='choices'} aria-controls="preparation-choices-panel" onClick={()=>setPanel('choices')}>{c('designPlay')}</button><button aria-pressed={panel==='preview'} aria-controls="preparation-brief-panel" onClick={()=>setPanel('preview')}>{c('constraints')}</button></div>
-    <div id="preparation-choices-panel" data-tour="preparation-config" className="context-panel choices-panel"><div className="panel-scroll preparation-choices"><header className="play-page-heading"><h1><Satellite size={24} aria-hidden="true"/>{c('designPlay')}</h1><p>{c('designIntro')}</p></header>
-    <label className="play-goal-label"><span><Target size={18} aria-hidden="true"/>{c('mission')}</span><select value={config.missionId} onChange={event=>chooseGoal(event.target.value)}>{(['EARTH','MOON','MARS'] as const).map(body=><optgroup key={body} label={c(body)}>{offers.filter(item=>item.destination===body).map(item=><option key={item.missionId} value={item.missionId}>{t(item.titleKey)}</option>)}</optgroup>)}</select></label>
+    <div id="preparation-choices-panel" data-tour="preparation-config" className="context-panel choices-panel"><div className="panel-scroll preparation-choices"><header className="play-page-heading"><h1><Satellite size={24} aria-hidden="true"/>{c('designPlay')}</h1></header>
+    <label className="play-goal-label"><span><Target size={18} aria-hidden="true"/>{c('mission')}</span><select value={config.missionId} onChange={event=>chooseGoal(event.target.value)}>{(['SUN','EARTH','MOON','MARS'] as const).map(body=><optgroup key={body} label={c(body)}>{offers.filter(item=>item.destination===body).map(item=><option key={item.missionId} value={item.missionId}>{t(item.titleKey)}</option>)}</optgroup>)}</select></label>
     {offer&&<h2 className="preparation-selected-title">{t(offer.titleKey)}</h2>}
     {offer&&<p className="preparation-goal">{t(offer.descriptionKey)}</p>}
     <fieldset><legend>{c('ambition')}</legend><div className="preparation-options">{(['SHORT','STANDARD','AMBITIOUS'] as const).map(value=><label key={value}><input type="radio" name="ambition" checked={config.ambition===value} onChange={()=>onChange({...config,ambition:value})}/><span>{c(value)}</span></label>)}</div></fieldset>
-    <fieldset><legend>{c('kit')}</legend>{kits.length===1?<p>{c('fixedKit')}</p>:<div className="preparation-options vertical">{kits.map(value=><label key={value}><input type="radio" name="kit" checked={config.kit===value} onChange={()=>onChange({...config,kit:value})}/><span><strong>{c(value)}</strong><small>{c(`${value}_KIT`)}</small></span></label>)}</div>}</fieldset>
-    <fieldset><legend>{c('approach')}</legend><div className="preparation-options vertical">{(['CAUTIOUS','BALANCED','FAST'] as const).map(value=><label key={value}><input type="radio" name="approach" checked={config.approach===value} onChange={()=>onChange({...config,approach:value})}/><span><strong>{c(value)}</strong><small>{c(`${value}_APPROACH`)}</small></span></label>)}</div></fieldset>
+    <fieldset><legend>{c('kit')}</legend>{kits.length===1?<p>{c('fixedKit')}</p>:<div className="preparation-options described">{kits.map(value=><label key={value}><input type="radio" name="kit" checked={config.kit===value} onChange={()=>onChange({...config,kit:value})}/><span><strong>{c(value)}</strong><small>{c(`${value}_KIT`)}</small></span></label>)}</div>}</fieldset>
+    <fieldset><legend>{c('approach')}</legend><div className="preparation-options described">{(['CAUTIOUS','BALANCED','FAST'] as const).map(value=><label key={value}><input type="radio" name="approach" checked={config.approach===value} onChange={()=>onChange({...config,approach:value})}/><span><strong>{c(value)}</strong><small>{c(`${value}_APPROACH`)}</small></span></label>)}</div></fieldset>
     <p className="muted">{c('constraintNote')}</p>
   </div></div><aside id="preparation-brief-panel" data-tour="preparation-brief" className="context-panel preview-panel" aria-label={c('constraints')}><div className="panel-scroll preparation-brief"><h2><Scale size={22} aria-hidden="true"/>{c('constraints')}</h2>
     {brief&&<><h3>{labelText(t,brief.design.definition.name)}</h3><Evidence items={brief.target} definition={brief.design.definition}/><dl className="brief-limits"><dt>{c('cost')}</dt><dd className={brief.budgets.cost.used>brief.budgets.cost.limit?'danger-text':''}>{number.format(brief.budgets.cost.used)} / {number.format(brief.budgets.cost.limit)}</dd><dt>{c('fit')}</dt><dd>{number.format(brief.budgets.massKg.used)} / {number.format(brief.budgets.massKg.limit)} kg</dd><dt>{c('volume')}</dt><dd>{number.format(brief.budgets.volume.used)} / {number.format(brief.budgets.volume.limit)} {brief.budgets.volume.unit}</dd><dt>{c('deadline')}</dt><dd><Duration seconds={brief.deadlineSec}/></dd></dl></>}
@@ -77,15 +77,15 @@ function PreparationDetails({brief,certificate}:{brief:QuickDesignBrief;certific
 
 export function MissionBoard({offers,onChoose,onDesign}:{offers:readonly MissionOffer[];onChoose:(offer:MissionOffer)=>void;onDesign:()=>void}) {
   const c=usePlayCopy(),{t}=useTranslation(),[more,setMore]=useState(false),primary=offers.slice(0,3),remaining=offers.slice(3);
-  const card=(offer:MissionOffer,recommended=false)=><article key={offer.missionId} className="mission-offer">
-    <MissionIllustration mission={offer.missionId}/>
+  const card=(offer:MissionOffer,{recommended=false,compact=false}={})=><article key={offer.missionId} className={`mission-offer${compact?' compact':''}`}>
+    {!compact&&<MissionIllustration mission={offer.missionId}/>}
     {recommended&&<p className="mission-recommendation">{c('recommended')}</p>}
-    <h2>{t(offer.titleKey)}</h2><p>{t(offer.descriptionKey)}</p><p className="offer-goal">{t(offer.goalKey)}</p>
-    <p className="muted">{offer.estimatedTurns[0]}–{offer.estimatedTurns[1]} {c('turns')}</p>
-    <button className="button" onClick={()=>onChoose(offer)}><ArrowRight size={18} aria-hidden="true"/>{c('offer')}</button>
+    <h2>{t(offer.titleKey)}</h2><p className="offer-goal">{t(offer.goalKey)}</p>
+    <div className="offer-footer"><p className="muted">{offer.estimatedTurns[0]}–{offer.estimatedTurns[1]} {c('turns')}</p>
+    <button className="button" onClick={()=>onChoose(offer)}><ArrowRight size={18} aria-hidden="true"/>{c('offer')}</button></div>
   </article>;
-  return <><div className="board-title"><h1><Compass size={26} aria-hidden="true"/>{c('welcome')}</h1><p>{c('intro')}</p><button data-tour="mission-board" className="button primary" onClick={onDesign}><Satellite size={20} aria-hidden="true"/>{c('designPlay')}</button></div>
-    <div className="mission-board">{primary.map((offer,index)=>card(offer,index===0&&offer.missionId==='FIRST_SIGNAL'))}</div>
-    {remaining.length>0&&<section className="more-missions"><button className="text-button" aria-expanded={more} onClick={()=>setMore(!more)}>{c('moreMissions')} ({remaining.length})</button>{more&&<div className="mission-board">{remaining.map(offer=>card(offer))}</div>}</section>}
+  return <><div className="board-title"><h1><Compass size={24} aria-hidden="true"/>{c('welcome')}</h1><p>{c('intro')}</p><button data-tour="mission-board" className="button primary" onClick={onDesign}><Satellite size={20} aria-hidden="true"/>{c('designPlay')}</button></div>
+    <div className="mission-board">{primary.map((offer,index)=>card(offer,{recommended:index===0&&offer.missionId==='FIRST_SIGNAL'}))}</div>
+    {remaining.length>0&&<section className="more-missions"><button className="text-button" aria-expanded={more} onClick={()=>setMore(!more)}>{c('moreMissions')} ({remaining.length})</button>{more&&<div className="mission-board compact">{remaining.map(offer=>card(offer,{compact:true}))}</div>}</section>}
   </>;
 }

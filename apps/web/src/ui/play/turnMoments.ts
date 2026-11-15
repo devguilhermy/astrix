@@ -108,7 +108,7 @@ export function turnMoments(game: TurnGameState): readonly TurnMoment[] {
       capturedMB: Math.max(0, receipt.delta.storedMB + receipt.delta.deliveredMB), deliveredMB: Math.max(0, receipt.delta.deliveredMB),
       progress: progressOf(receipt), body, positionKm,
       frame: middle && framePosition ? subpoint(frameBody, framePosition, middle.sunDir, middle.t, epoch) : null,
-      stationKm: end?.stationPosKm && body !== 'MARS' ? relative(end, body, end.stationPosKm) : null,
+      stationKm: end?.stationPosKm && (body === 'EARTH' || body === 'MOON') ? relative(end, body, end.stationPosKm) : null,
       inContact: end?.inContact === 1, doseUGyH: dose, socPct: end ? end.socPct : null,
     };
   });

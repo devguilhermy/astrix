@@ -10,6 +10,10 @@ export const MISSION_COPY_EN: Readonly<Record<string, string>> = {
  ...scenario('PAST_EARTH', 'Earth Escape: Depart Using a Fueled Upper Stage', 'Your upper stage is already in a parking orbit. Burn to speed up until Earth cannot pull you back.', 'Leave Earth on an escape trajectory with speed to spare.'),
  ...scenario('MEET_THE_MOON', 'Lunar Flyby: Time a Close Approach to the Moon', 'Choose when and how hard to fire the translunar burn, then watch the Moon move to meet you days later.', 'Pass the Moon between 3,000 and 30,000 km.'),
  ...scenario('EARTH_TO_MOON', 'Lunar Orbiter: Launch, Capture and Return Map Data', 'The full trip: launch from the ground, park in orbit, leave for the Moon, brake into lunar orbit and map the surface.', 'Hold a stable lunar orbit and return 200 MB of map data to Earth.'),
+ ...scenario('SUN_SENTINEL', 'Sun Sentinel: Watch the Side of the Sun That Earth Cannot See', 'Like NASA’s STEREO-A, your SmallSat already circles the Sun on a path just inside Earth’s, 120° ahead of Earth. Map the Sun and return the images through the Deep Space Network.', 'Send 6,000 MB of solar maps home within 30 days.'),
+ 'objective.SUN_SENTINEL.primary': 'Return the required solar map data',
+ 'ride.RIDE_SOLAR_ORBIT.name': 'Solar orbit ride', 'ride.RIDE_SOLAR_ORBIT.desc': 'An Earth-escape launch has already placed the spacecraft on its path around the Sun; there is no cruise and no capture burn.',
+ 'orbit.SUN_AHEAD': '0.96 AU path · 120° ahead of Earth',
  'objective.FIRST_LIGHT.primary': 'Return the required Earth images', 'objective.STORM_WATCH.primary': 'Record radiation hours during the storm window', 'objective.RED_RELAY.primary': 'Return the required Mars map data',
  'objective.CREW_PATHFINDER.primary': 'Return the required crew observation data', 'objective.CREW_PATHFINDER.crew-orbit': 'Stay on orbit for at least 72 hours', 'objective.CREW_PATHFINDER.crew-support': 'Keep crew support running through recovery',
  'objective.FIRST_SIGNAL.product': 'Return one picture to the ground', 'objective.UP_AND_BACK.apogee': 'Peak between 80 and 120 km', 'objective.UP_AND_BACK.return': 'Come back below 20 km',
@@ -50,7 +54,7 @@ export const MISSION_COPY_EN: Readonly<Record<string, string>> = {
  'refusal.BURN_UNKNOWN': 'No such burn to change.', 'refusal.NO_STAGE': 'There is no upper stage or launcher to use here.', 'refusal.LAUNCHER_MISMATCH': 'That launcher is not available for this mission.',
  'refusal.PAYLOAD_OVER_LIMIT': 'The spacecraft weighs {{after}} kg; this launcher lifts at most {{limit}} kg.', 'refusal.ASCENT_PROGRAM_INVALID': 'The ascent setting {{field}} is out of range.',
  'refusal.DEFINITION_STALE': 'The mission changed while you were working. Reload it and try again.', 'refusal.DEFINITION_INVALID': 'The mission definition is not valid.',
- 'refusal.UNSUPPORTED_MODEL': 'This mission uses a model version this build cannot run.', 'refusal.MOON_UNSUPPORTED_FOR_IMPORT': 'Moon-centred files cannot be imported; only Earth and Mars orbits are supported.',
+ 'refusal.UNSUPPORTED_MODEL': 'This mission uses a model version this build cannot run.', 'refusal.MOON_UNSUPPORTED_FOR_IMPORT': 'Moon-centred files cannot be imported; only Earth, Mars and Sun-centred orbits are supported.',
  'refusal.NOT_FOUND': 'Nothing matches that request.', 'refusal.ASCENT_FORECAST_FAILS': 'The rocket cannot lift off with this setup.', 'refusal.NO_PROPULSION': 'This craft has no engine for that burn.',
 };
 const ptScenario = (id: string, name: string, desc: string, objective: string): Record<string, string> => scenario(id, name, desc, objective);
@@ -63,6 +67,10 @@ export const MISSION_COPY_PT_BR: Readonly<Record<string, string>> = {
  ...ptScenario('PAST_EARTH', 'Escape da Terra: parta usando um estágio superior abastecido', 'Seu estágio superior já está em órbita de estacionamento. Queime para acelerar até a Terra não poder puxá-lo de volta.', 'Deixar a Terra em trajetória de escape com velocidade de sobra.'),
  ...ptScenario('MEET_THE_MOON', 'Sobrevoo lunar: planeje uma aproximação da Lua', 'Escolha quando e com que força fazer a queima translunar e veja a Lua se mover ao seu encontro dias depois.', 'Passar pela Lua entre 3.000 e 30.000 km.'),
  ...ptScenario('EARTH_TO_MOON', 'Orbitador lunar: lance, entre em órbita e envie mapas', 'A viagem completa: lance do solo, estacione em órbita, parta para a Lua, freie para órbita lunar e mapeie a superfície.', 'Manter uma órbita lunar estável e devolver 200 MB de mapas à Terra.'),
+ ...ptScenario('SUN_SENTINEL', 'Sentinela Solar: observe o lado do Sol que a Terra não vê', 'Como a STEREO-A da NASA, seu SmallSat já gira em torno do Sol numa trajetória um pouco por dentro da trajetória da Terra, 120° à frente dela. Mapeie o Sol e envie as imagens pela Rede de Espaço Profundo (DSN).', 'Enviar à Terra 6.000 MB de mapas solares em 30 dias.'),
+ 'objective.SUN_SENTINEL.primary': 'Devolver os dados de mapa solar exigidos',
+ 'ride.RIDE_SOLAR_ORBIT.name': 'Lançamento para órbita solar', 'ride.RIDE_SOLAR_ORBIT.desc': 'Um lançamento de escape da Terra já colocou a nave em sua trajetória ao redor do Sol; não há cruzeiro nem queima de captura.',
+ 'orbit.SUN_AHEAD': 'Trajetória a 0,96 UA · 120° à frente da Terra',
  'objective.FIRST_LIGHT.primary': 'Devolver as imagens da Terra exigidas', 'objective.STORM_WATCH.primary': 'Registrar horas de radiação na janela da tempestade', 'objective.RED_RELAY.primary': 'Devolver os dados de mapa de Marte exigidos',
  'objective.CREW_PATHFINDER.primary': 'Devolver os dados de observação da tripulação exigidos', 'objective.CREW_PATHFINDER.crew-orbit': 'Permanecer em órbita por pelo menos 72 horas', 'objective.CREW_PATHFINDER.crew-support': 'Manter o suporte à tripulação até a recuperação',
  'objective.FIRST_SIGNAL.product': 'Devolver uma foto ao solo', 'objective.UP_AND_BACK.apogee': 'Atingir o pico entre 80 e 120 km', 'objective.UP_AND_BACK.return': 'Voltar abaixo de 20 km',
@@ -103,6 +111,6 @@ export const MISSION_COPY_PT_BR: Readonly<Record<string, string>> = {
  'refusal.BURN_UNKNOWN': 'Não existe essa queima para alterar.', 'refusal.NO_STAGE': 'Não há estágio superior ou lançador para usar aqui.', 'refusal.LAUNCHER_MISMATCH': 'Esse lançador não está disponível para esta missão.',
  'refusal.PAYLOAD_OVER_LIMIT': 'A espaçonave pesa {{after}} kg; este lançador levanta no máximo {{limit}} kg.', 'refusal.ASCENT_PROGRAM_INVALID': 'O ajuste de subida {{field}} está fora do intervalo.',
  'refusal.DEFINITION_STALE': 'A missão mudou enquanto você trabalhava. Recarregue e tente de novo.', 'refusal.DEFINITION_INVALID': 'A definição da missão não é válida.',
- 'refusal.UNSUPPORTED_MODEL': 'Esta missão usa uma versão de modelo que esta versão não consegue executar.', 'refusal.MOON_UNSUPPORTED_FOR_IMPORT': 'Arquivos centrados na Lua não podem ser importados; só órbitas da Terra e de Marte são aceitas.',
+ 'refusal.UNSUPPORTED_MODEL': 'Esta missão usa uma versão de modelo que esta versão não consegue executar.', 'refusal.MOON_UNSUPPORTED_FOR_IMPORT': 'Arquivos centrados na Lua não podem ser importados; só órbitas centradas na Terra, em Marte e no Sol são aceitas.',
  'refusal.NOT_FOUND': 'Nada corresponde a esse pedido.', 'refusal.ASCENT_FORECAST_FAILS': 'O foguete não consegue decolar com esta configuração.', 'refusal.NO_PROPULSION': 'Esta nave não tem motor para essa queima.',
 };

@@ -15,10 +15,16 @@
 | R7 | Solar-system orbit lines more visible | §5.7 |
 | R8 | Clicking a planet in Explore opens a NASA information panel | §5.8 |
 | R9 | Aspiring / Expert chosen with toggle buttons, not a dropdown | §5.9 |
+| R10 | Orbit missions replay the movement between turns, with speed control; launches start on the ground | §11.1 |
+| R11 | Missions to the Sun | §11.2 |
+| R12 | Explore shows the planets to scale with the Sun, and the Sun large by default | §11.3 |
+| R13 | Explore lets the player board a ship and fly: camera, ship and dragging | [Explore ship plan](./EXPLORE_SHIP_PLAN.md) |
 
-Work is split into one preparation step by the main agent (§6), four mechanical execution subagents with exclusive file ownership (§7), and one integration and verification pass by the main agent (§8). The open closure items of the turn-based revision §12 (unexplained `removeChild` exception, save/resume walkthrough) are not replaced by this plan; they are re-run on the artifact this plan produces (§8.3).
+R10-R12 were added by the owner on 2026-11-15 after approval. **§11 is authoritative wherever it differs from §1-§10.**
 
-Core rules, saved-game schema, protocol and scoring are **not changed**. Everything here is presentation derived from committed engine state.
+Work is split into one preparation step by the main agent (§6), six execution subagents with exclusive file ownership (§7 and §11.5), and one integration and verification pass by the main agent (§8). The open closure items of the turn-based revision §12 (unexplained `removeChild` exception, save/resume walkthrough) are not replaced by this plan; they are re-run on the artifact this plan produces (§8.3).
+
+Scoring, the save format and the protocol are **not changed**. Existing missions keep their definitions, digests and results. The only core change is additive: the Sun as a fourth body with its own missions (§11.2). Everything else is presentation derived from committed engine state.
 
 ---
 
@@ -239,6 +245,9 @@ Existing structural classes keep their meaning, and B keeps their rules: `.play-
 | B ShellDensity | `ui/play/PlayApp.tsx`, `TurnWorkspace.tsx`, `Preparation.tsx`, `MissionResources.tsx`, `SolarWelcome.tsx`, `QuickTour.tsx`, `quickTour.css`, `play.css`, `copy.ts`, `presentation.test.tsx`, new `ui/play/LevelToggle.tsx`, `ui/missions/missionIllustration.css` |
 | C MissionReport | new `ui/play/feedback/**`, new `ui/play/report/**`, new `ui/play/journal.css`, `ui/play/Journal.tsx`, `ui/play/Comparison.tsx`, `ui/play/persistence.ts`, `ui/play/persistence.test.ts`, `ui/play/Evidence.tsx` |
 | D SolarDossier | `packages/data/**`, new `ui/play/solar/**`, `apps/web/public/**`, `apps/web/index.html`, `apps/web/404.html`, `CREDITS.md` |
+| E SunMissions | `packages/core/**`, `packages/session/**`, and web files outside every other row that switch on body or mission id: `ui/missions/**` (except `missionIllustration.css`), `ui/gmat/**`, `ui/flight/**`, `ui/advanced/**`, `ui/play/ScienceConnection.tsx`, `i18n/locales/**` |
+| F SolarScale | `three/SolarSystemScene.tsx`, new `three/solar/**` (removed from A) |
+| G ExploreShip | new `three/explore/**`, `docs/plans/EXPLORE_SHIP_PLAN.md`; researches, plans and builds in its own folder; the main agent wires its mount components into `AppCanvas.tsx` after A and F hand off |
 
 Rules for every subagent:
 
@@ -619,7 +628,128 @@ Run the open items of the turn-based revision §12 on this same build: trace the
 ## 10. Out of scope
 
 - Real downloaded imagery per observation, live NASA data, or any runtime network request.
-- Core rule, score-weight, save-schema or protocol changes.
-- New missions, new destinations, or missions at the exploration-only planets.
+- Score-weight, save-format or protocol changes; any change to an existing mission's definition or results.
+- Missions at the exploration-only planets; gravity assists and Parker-class perihelia.
 - Replacing the remaining native selects (goal, solar body) with custom pickers.
 - Role-specific phone consoles.
+
+---
+
+## 11. Addendum: turn replay, Sun missions, true-scale Explore
+
+### 11.1 R10 Turn replay (WP-A)
+
+**Evidence.** The scene is static between decisions (`AppCanvas.tsx:146`, "Only React props from accepted decisions change the physical state"). Recorded history is dense enough to replay: launch ≈ 9 s per sample (Stay in Orbit: 46 samples over 422 s, altitude 0 → 198 km), orbit ≈ 200-600 s per sample (First Signal observe: 10 samples over 2040 s; a day of transmit: 159 samples). Some short turns have no sample inside them. Launch missions start in phase `ASCENT` at radius 6378 km, but the fixed clearance floor draws the craft floating at 1.28 radii.
+
+**Decision D7.** The replay is presentation of committed history only. It starts after the engine has resolved the turn, never changes state, and can be skipped. Positions between samples are interpolated for display and are labelled as a replay.
+
+**Design.**
+
+- **Trigger.** A commit in this session (`game.revision` increased for the same `game.identity`) replays that turn. Loading, resuming and reduced motion show the end state immediately. The transport's Replay button replays the latest turn, or the selected turn at mission end; "Replay flight" at mission end plays every turn in order and calls `onSelectTurn` as each begins.
+- **Path** (`three/playback/playbackPath.ts`, pure, tested). Keyframes from `history(game.sim)` between `moment.startSec` and `moment.endSec`, restricted to samples whose central body equals the scene body, plus a first keyframe at the sample nearest before the start and a last keyframe from current telemetry for the latest turn. Each keyframe: time, true position in render units, altitude km, sun direction, attitude quaternion, Moon position when present, flight phase. `sampleAt(path, t)` interpolates direction by spherical interpolation and radius linearly, quaternions by slerp, the Sun direction by normalised lerp.
+- **Clock** (`three/playback/playbackClock.ts`, pure, tested). `orbits = elapsedSec / periodSec` (period from the osculating orbit; launch counts as one). Wall duration at 1× = `clamp(6 + 3 × min(orbits, 6), 6, 24)` seconds. Up to three orbits the time map is linear. Beyond that it is piecewise linear: the first orbit takes the first 35 % of the wall time, the last orbit the last 35 %, and everything between is a time-lapse in the middle 30 %. Speeds 1×, 2×, 4×, 8×; pause; skip. The chosen speed persists in `localStorage` key `astrix.playback.speed`.
+- **What moves.** Cyan marker, tether, hardware (position and attitude), body rotation (`bodyRotationAngle` at the replay time), Sun light direction, Moon, and the trail, which grows to the replay time. Updates are imperative through refs inside `useFrame`; React state changes only for the transport UI, at most ten times a second. The Canvas stays `frameloop="demand"` and is invalidated only while playing.
+- **Camera.** The current mode is kept. In Spacecraft mode the camera target follows the hardware every frame without replacing the user's orbit or zoom.
+- **Altitude-aware clearance (replaces the fixed floor of §5.6 item 3).** `ground = 1 + hullRadius + 0.004`; `floor = shell + hullRadius + 0.06`; displayed radius = `max(trueRadius, ground + (floor − ground) × smoothstep(0 km, 100 km, altitudeKm))`. In orbit the result equals the §5.6 floor. On the pad the hardware stands on the surface, rises continuously through ascent, and comes back down on re-entry. The hull never intersects the surface.
+- **Launch.** While the replay phase is `PRELAUNCH` or `ASCENT`, a schematic launch stack (`three/playback/LaunchStack.tsx`, adapted from the unused `AscentStack` in `FlightScene.tsx`, scaled to twice the hull radius, plume while climbing) stands radially on the launch site and carries the spacecraft; the stack is removed when the phase leaves ascent. Before the first turn of a surface-launch mission the stack is shown on the pad.
+- **Sequence.** Replay first, then the observation footprint or the transmission waves (§5.1-5.2). Skip jumps to the end and shows the static feedback.
+- **Transport** (DOM, `scene-fb-transport`, bottom centre of the open scene area): play/pause, four speed buttons with `aria-pressed`, skip, replay, a progress bar and the mission time `T+`. A `role="status"` line announces "Replaying turn 3: Transmit" and "Replay finished". Every control is a 44 px button. The scale note gains: "Replay interpolates between recorded samples; long turns are time-lapsed."
+
+### 11.2 R11 Missions to the Sun (WP-E; consumers A, B, C, D, F)
+
+**Evidence.** `BodyId` is `'EARTH' | 'MARS' | 'MOON'` (`core/contracts.ts:6`). The Mars mission is an analytic cruise, a capture burn, then orbit operations with deep-space rules selected by a `mars` flag in about thirty places (`sim/state.ts`, `sim/environment.ts`, `physics.ts`). Two-body propagation, objectives, payload data and downlink are body-generic through `CONSTANTS[body]`. `planetPosition` (heliocentric) is already exported.
+
+**Decision D8.** The Sun becomes a fourth body. Sun missions start in a **provided heliocentric orbit**: no cruise phase and no capture burn, because a solar orbit is what a launch to Earth escape already gives (as for STEREO and Helios). Gravity assists and Parker-class perihelia are out of scope. The change is additive: existing definitions, digests, results, `RULES_VERSION` and `FLIGHT_MODEL_VERSION` stay as they are unless an existing result would change, which is not allowed.
+
+**Missions** (names final; numbers tuned by WP-E so the reference policy certifies):
+
+| Id | Title | Model | Objective | Levels |
+|---|---|---|---|---|
+| `SUN_SENTINEL` | Sun Sentinel: watch the side of the Sun that Earth cannot see | SmallSat in a near-circular heliocentric orbit close to 1 AU, placed well ahead of Earth, as NASA's STEREO-A | Return solar images through the Deep Space Network (`DELIVERED_PRODUCT`) | Aspiring, Expert |
+| `SUN_CLOSE_PASS` | Close Pass: ride an inner orbit through perihelion | SmallSat in an elliptical heliocentric orbit, aphelion near 1 AU, perihelion about 0.3 AU, as Helios | Record instrument hours or return data around perihelion while power and heat rise with 1/r² | Expert first; Aspiring only if it certifies |
+
+`SUN_SENTINEL` at both levels is required. `SUN_CLOSE_PASS` ships only if it certifies honestly; otherwise WP-E reports why and it is left out.
+
+**Core contract (WP-E).**
+
+```ts
+export type BodyId = 'EARTH' | 'MARS' | 'MOON' | 'SUN';
+CONSTANTS.SUN: { mu, radius /* 695,700 km */, rotationSec /* 25.38 d sidereal */, ... }   // sourced from the NSSDCA Sun fact sheet
+export type BuiltinMissionId = … | 'SUN_SENTINEL' | 'SUN_CLOSE_PASS';
+missionOffers('SUN', level)        // returns the Sun missions; other destinations unchanged
+```
+
+- In a Sun-centred state: `positionKm` is Sun-relative; `sunDir` points from the spacecraft to the Sun; there is no eclipse; solar input scales with (1 AU / r)²; `stationPosKm` is `null`; contact is a Deep Space Network line of sight to Earth that the solar disc can block; link rate and light time follow the spacecraft-Earth range; `telemetry.flight` is `null` unless WP-E needs it.
+- Radiation dose near the Sun is an assumed model value and is labelled as assumed, like the Mars dose.
+- No new catalogue parts: the missions use existing SmallSat parts, so the 3D part models are untouched.
+- Names, descriptions and objective text ship in English and Portuguese through the existing core key tables.
+- Session validation accepts the new body and missions. Old saves load unchanged.
+- Every file outside A, B, C, D, F that switches on body or mission id handles the Sun (§3.4 row E).
+
+**Consumers.**
+
+- **A.** `Planet` accepts `body="SUN"`: the bundled STEREO + SDO map, unlit and emissive, no atmosphere shell, no night side. Scene name map gains the Sun. In a Sun-centred scene the light comes from the origin, Earth is drawn as a labelled marker at `planetPosition('EARTH', t, epoch)` in solar radii with its orbit ring (marker enlarged, stated in the scale note), and transmission waves travel toward that marker. Clearance uses `shell = 1`.
+- **B.** Destination tabs: Sun, Earth, Moon, Mars. Copy for the Sun in both languages. The solar mission note says missions are available at the Sun, Earth, Moon and Mars.
+- **C.** Frame source for the Sun: `sun-stereo-sdo-304-1024.jpg`, full brightness with no day/night shading, captioned "Simulated frame built from the NASA STEREO + SDO 304 Å archive map. Not a new observation."
+- **D.** The Sun's panel offers "Missions here"; the exploration-only note names the four mission bodies.
+- **F.** The Sun entry carries `destination: 'SUN'`.
+- **Main.** `turnMoments` treats the Sun like any central body; the station is reported only for Earth and Moon scenes.
+
+### 11.3 R12 True-scale Explore (WP-F)
+
+**Evidence.** `SOLAR_BODIES` (`three/SolarSystemScene.tsx:26-37`) uses authored radii: Sun 1.3, Earth 0.3, Jupiter 0.86. The Sun is 4 times Earth's size on screen; the real ratio is 109.
+
+**Decision D9.** Sizes are to scale with the Sun; distances are compressed and stay labelled as such, because at true distance Earth would sit 215 solar radii away and no planet would be visible. The default view frames the Sun and the inner planets, so the Sun is large; zooming out reveals the giant planets.
+
+**Design.**
+
+- `SUN_DISPLAY_RADIUS = 6`. Every radius = `6 × diameterKm / 1,391,400`, from the NSSDCA diameters in §5.8 and the Sun's volumetric mean radius of 695,700 km:
+
+| Sun | Mercury | Venus | Earth | Moon | Mars | Jupiter | Saturn | Uranus | Neptune |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 6 | 0.0210 | 0.0522 | 0.0550 | 0.0150 | 0.0293 | 0.6166 | 0.5198 | 0.2204 | 0.2136 |
+
+- Compressed orbit radii, in order: Mercury 8.5, Venus 10.5, Earth 12.5, Mars 14.5, Jupiter 19, Saturn 24, Uranus 28.5, Neptune 33. Each body keeps its current direction from the Sun. The Moon sits 0.45 from Earth with its own ring.
+- `SOLAR_OVERVIEW.radius = 16`, so the default view runs from the Sun to Mars. The camera can zoom out to Neptune.
+- Small bodies stay findable and clickable: an invisible pick sphere of radius `max(radius, 0.4)`, the existing name label offset by `max(radius, 0.12) + 0.16`, and a screen-space locator dot under the label for bodies with radius below 0.1.
+- Rings per §5.7 (this part of §5.7 moves from A to F): body colour mixed 35 % toward white, opacity 0.55, width 1.6 px; selected or hovered 0.95 and 2.6 px; Moon ring 0.5 and 1.2 px. `SceneLine` (A) supplies `width` and `dashed`.
+- Lighting: the Sun's point light uses `decay={0}` so every planet is lit at any distance. Saturn's ring keeps its proportions.
+- Caption: "Sizes are to scale with the Sun. Distances are compressed. Not an ephemeris." With a body selected: its diameter as a fraction of the Sun's, for example "Earth: 1/109 of the Sun's diameter". The details paragraph is rewritten to match.
+- `solarImageNote(id, pt)` is exported (§3.3); `SolarSystemCaption` keeps the name, the scale lines and the details.
+
+### 11.4 Changes to §3 contracts
+
+- `AppCanvasProps` and `SolarSystemScene` / `SolarSystemCaption` / `SOLAR_BODIES` / `SOLAR_OVERVIEW` keep their names and shapes, so A and F compile against each other. `SolarBodyDefinition.destination` may be `'SUN'`.
+- `SceneLine` (A, `three/ScenePrimitives.tsx`): existing props plus `width?: number` and `dashed?: boolean`.
+- `Planet` (A, `three/space/Planet.tsx`): accepts `body: BodyId` including `'SUN'`.
+- F's new classes use the prefix `solar-scale-` in `three/solar/solarScene.css`; A keeps `immersive.css`.
+- The honesty rule for the solar map now reads: sizes to scale, distances and positions schematic.
+
+### 11.5 Delegation changes
+
+Six subagents in one batch: A, B, C, D as in §7 with the consumer items above, plus:
+
+**WP-E · `SunMissions`.** Solution space: the mission concepts and the contract are fixed; how the deep-space rules are generalised from the Mars path, and the tuned numbers, are open. Acceptance: every existing core and session test passes unmodified in meaning; existing definition digests are unchanged; `createTurnGame(defaultQuickDesign('SUN_SENTINEL', level))` succeeds at both levels and the reference policy reaches success; new tests cover Sun-centred environment (no eclipse, 1/r² input, Earth line of sight, light time), the Sun missions' certification and a played turn sequence. Handoff adds: the final mission numbers, what was generalised, and any existing behaviour that had to move. This package may run core and session tests while working, because nothing else can verify it; it does not run the web build.
+
+**WP-F · `SolarScale`.** Solution space: fixed numbers in §11.3. Files: `three/SolarSystemScene.tsx`, new `three/solar/**`. Acceptance: exports unchanged in name and shape plus `solarImageNote`; every radius equals the table; captions in both languages state the scale rule.
+
+WP-A additions: §11.1 in full (playback path, clock, launch stack, transport, altitude-aware clearance) and the Sun consumer items. WP-A no longer edits `SolarSystemScene.tsx`.
+
+### 11.6 Added acceptance checks
+
+| Check | Pass condition |
+|---|---|
+| Orbit replay | After a commit the craft travels along its recorded path to the new position; 2×, 4×, 8×, pause and skip work; reduced motion shows the end state only |
+| Launch replay | Stay in Orbit starts with the stack on the ground; the launch turn rises continuously into orbit; nothing intersects the surface |
+| Long turn | A one-day turn shows the first and last orbit at normal pace with a time-lapse between |
+| Sun mission | Sun Sentinel can be chosen from the Sun tab, prepared, flown to success at both levels, saved and resumed; the scene shows the Sun, the craft and Earth's marker |
+| True scale | Default Explore view shows a large Sun with the inner planets; Jupiter is about a tenth of the Sun's diameter; Mercury and the Moon can still be found and clicked |
+
+### 11.7 Added risks
+
+| Risk | Mitigation |
+|---|---|
+| Generalising the Mars-only deep-space rules changes an existing mission | Digest and result tests for existing missions must pass unchanged; WP-E may run core tests |
+| A Sun mission cannot be certified at a level | `SUN_SENTINEL` is the minimum; `SUN_CLOSE_PASS` is optional and reported |
+| True-scale planets are a few pixels wide | Pick spheres, labels and locator dots; one click focuses the camera on the body |
+| Replay of sparse samples cuts corners on eccentric orbits | Direction and radius are interpolated separately; the note states that the replay interpolates |

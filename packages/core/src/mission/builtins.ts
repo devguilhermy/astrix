@@ -1,7 +1,8 @@
-// Built-in missions expressed through the common MissionDefinition. The four presets keep their rules-4 numbers.
+// Built-in missions expressed through the common MissionDefinition. The four original presets keep their rules-4 numbers.
 import type { DesignPart, OrbitChoice, RoleId } from '../contracts';
 import { makeOrbit } from '../physics';
 import { deepFreeze, digestOf } from './digest';
+import { SUN_AHEAD } from './solarOrbits';
 import type { AscentProgram, BuiltinMissionId, Label, LearningProfile, MissionDefinition, ObjectiveDef, ObjectiveSpec, ResolvedMissionDefinition } from './types';
 
 const EARTH_EPOCH = '2026-11-14T00:00:00Z';
@@ -18,11 +19,11 @@ const resolve = (base: Base): ResolvedMissionDefinition => {
  const definition: MissionDefinition = { schema: 1, revision: 1, derivedFrom: null, name: key(base.id, 'name'), description: key(base.id, 'desc'), objectiveSummary: key(base.id, 'objective'), ...base };
  return deepFreeze({ ...definition, digest: digestOf(definition) });
 };
-const preset = (id: BuiltinMissionId, body: 'EARTH' | 'MARS', busId: MissionDefinition['vehicle']['busId'], budget: number, durationDays: number, spec: ObjectiveSpec, epoch: string, orbit: OrbitChoice, seed: number, requirement: { requiredPartIds: readonly string[]; minRecordingMB: number; minLinkKbps: number }, rides: readonly string[], opts: { allocationStartHours?: number; storm?: MissionDefinition['environment']['storm']; crew?: boolean; mars?: boolean; stationId: MissionDefinition['environment']['stationId']; extra?: readonly ObjectiveDef[] }): ResolvedMissionDefinition => resolve({
+const preset = (id: BuiltinMissionId, body: 'EARTH' | 'MARS' | 'SUN', busId: MissionDefinition['vehicle']['busId'], budget: number, durationDays: number, spec: ObjectiveSpec, epoch: string, orbit: OrbitChoice, seed: number, requirement: { requiredPartIds: readonly string[]; minRecordingMB: number; minLinkKbps: number }, rides: readonly string[], opts: { allocationStartHours?: number; storm?: MissionDefinition['environment']['storm']; crew?: boolean; mars?: boolean; stationId: MissionDefinition['environment']['stationId']; extra?: readonly ObjectiveDef[] }): ResolvedMissionDefinition => resolve({
  id, origin: 'BUILTIN', vehicle: { busId, budget, ...requirement, allowedRideIds: rides },
  environment: { epochUTC: epoch, seed, durationSec: durationDays * 86400, stationId: opts.stationId, stationAllocationStartSec: (opts.allocationStartHours ?? 0) * 3600, storm: opts.storm ?? null, scheduledFaults: true, commLightTime: false },
  start: { kind: 'PROVIDED_ORBIT', body, orbit: orbitAt(orbit, epoch), orbitOptions: 'RIDE' },
- trajectory: opts.mars ? { model: 'MARS_ANALYTIC_CRUISE' } : { model: 'PATCHED_CONICS', bodies: ['EARTH'], maneuvers: { allowed: false, maxBurns: 0 } },
+ trajectory: opts.mars ? { model: 'MARS_ANALYTIC_CRUISE' } : body === 'SUN' ? { model: 'HELIOCENTRIC_CONIC' } : { model: 'PATCHED_CONICS', bodies: ['EARTH'], maneuvers: { allowed: false, maxBurns: 0 } },
  support: { crew: !!opts.crew }, objectives: [objective(`${id}.primary`, 'SCIENCE', spec), ...(opts.extra ?? [])],
  termination: { endOnSuccess: false, failOn: ['BATTERY_DEPLETED', 'THERMAL_SURVIVAL', ...(opts.mars ? ['CAPTURE_FAILED' as const] : []), ...(opts.crew ? ['CREW_SUPPORT_LOST' as const] : []), 'OBJECTIVE_MISSED'] },
 });
@@ -35,6 +36,8 @@ const CREW_PATHFINDER = preset('CREW_PATHFINDER', 'EARTH', 'CREW_CAPSULE', 3000,
  extra: [objective('CREW_PATHFINDER.crew-orbit', 'LAUNCH_ORBIT', { kind: 'CREW_ORBIT_HOURS', hours: 72 }, { required: false }), objective('CREW_PATHFINDER.crew-support', 'SPACECRAFT', { kind: 'CREW_SUPPORT_THROUGH_RECOVERY' }, { required: false })],
 });
 const RED_RELAY = preset('RED_RELAY', 'MARS', 'SMALLSAT', 900, 60, { kind: 'DELIVERED_PRODUCT', metric: 'MAPS', targetMB: 5000 }, EARTH_EPOCH, MARS_WIDE, 20240520, { requiredPartIds: ['SS_MAPPER'], minRecordingMB: 6500, minLinkKbps: 100 }, ['RIDE_MARS_TRANSFER'], { stationId: 'DSN', mars: true, storm: { startSec: 10 * 86400, endSec: 11 * 86400, dose: 'MARS_ASSUMED' } });
+/** STEREO-A-like solar sentinel: a provided heliocentric orbit 120° ahead of Earth (no cruise, no capture), solar maps returned through the Deep Space Network. */
+const SUN_SENTINEL = preset('SUN_SENTINEL', 'SUN', 'SMALLSAT', 700, 30, { kind: 'DELIVERED_PRODUCT', metric: 'MAPS', targetMB: 6000 }, EARTH_EPOCH, SUN_AHEAD, 20061026, { requiredPartIds: ['SS_MAPPER'], minRecordingMB: 8000, minLinkKbps: 100 }, ['RIDE_SOLAR_ORBIT'], { stationId: 'DSN' });
 
 // ---- learning ladder -------------------------------------------------------------------------------------------------
 const CUBESAT_STARTER: readonly DesignPart[] = [{ partId: 'EPS_BATT_20', qty: 1 }, { partId: 'SOLAR_BODY', qty: 1 }, { partId: 'OBC', qty: 1 }, { partId: 'ADCS_MAG', qty: 1 }, { partId: 'RADIO_UHF', qty: 1 }];
@@ -122,5 +125,5 @@ const EARTH_TO_MOON = resolve({
 });
 
 /** Stable display order: authored presets first, then the learning ladder in teaching order. */
-export const BUILTIN_DEFINITIONS: readonly ResolvedMissionDefinition[] = [FIRST_LIGHT, STORM_WATCH, RED_RELAY, CREW_PATHFINDER, FIRST_SIGNAL, UP_AND_BACK, STAY_IN_ORBIT, RAISE_YOUR_ORBIT, LEAVE_ORBIT_SAFELY, PAST_EARTH, MEET_THE_MOON, EARTH_TO_MOON];
+export const BUILTIN_DEFINITIONS: readonly ResolvedMissionDefinition[] = [FIRST_LIGHT, STORM_WATCH, RED_RELAY, CREW_PATHFINDER, SUN_SENTINEL, FIRST_SIGNAL, UP_AND_BACK, STAY_IN_ORBIT, RAISE_YOUR_ORBIT, LEAVE_ORBIT_SAFELY, PAST_EARTH, MEET_THE_MOON, EARTH_TO_MOON];
 export const BUILTIN_BY_ID: Readonly<Record<BuiltinMissionId, ResolvedMissionDefinition>> = Object.fromEntries(BUILTIN_DEFINITIONS.map(d => [d.id, d])) as Record<BuiltinMissionId, ResolvedMissionDefinition>;

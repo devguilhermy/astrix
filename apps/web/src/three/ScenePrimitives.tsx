@@ -1,16 +1,41 @@
-import { useEffect, useMemo } from 'react';
-import { BufferGeometry, Float32BufferAttribute, Line, LineLoop, LineBasicMaterial } from 'three';
+import { forwardRef, useMemo, type ComponentRef } from 'react';
+import { Line } from '@react-three/drei';
+import type { InterleavedBufferAttribute } from 'three';
 import type { MissionSceneDefinition, SceneVector } from './missionScenes';
 import { Planet } from './space/Planet';
 
-export function SceneLine({ points, color, opacity = 1, closed = false }: { points: readonly SceneVector[]; color: string; opacity?: number; closed?: boolean }) {
- const line = useMemo(() => {
-  const geometry = new BufferGeometry().setAttribute('position', new Float32BufferAttribute(points.flat(), 3));
-  const material = new LineBasicMaterial({ color, transparent: true, opacity });
-  return closed ? new LineLoop(geometry, material) : new Line(geometry, material);
- }, [points, color, opacity, closed]);
- useEffect(() => () => { line.geometry.dispose(); line.material.dispose(); }, [line]);
- return <primitive object={line}/>;
+export type SceneLineObject = ComponentRef<typeof Line>;
+export interface SceneLineProps {
+  points: readonly SceneVector[];
+  color: string;
+  opacity?: number;
+  closed?: boolean;
+  /** Screen-space width in CSS pixels. */
+  width?: number;
+  dashed?: boolean;
+}
+
+/** A screen-space polyline. Transparent lines never write depth, so rings and trails do not cut each other. */
+export const SceneLine = forwardRef<SceneLineObject, SceneLineProps>(function SceneLine({ points, color, opacity = 1, closed = false, width = 1, dashed = false }, ref) {
+  const path = useMemo(() => closed && points.length > 2 ? [...points, points[0]!] : points, [points, closed]);
+  // About forty dashes along the whole line, whatever its scale.
+  const dash = useMemo(() => {
+    let length = 0;
+    for (let i = 1; i < path.length; i++) length += Math.hypot(path[i]![0] - path[i - 1]![0], path[i]![1] - path[i - 1]![1], path[i]![2] - path[i - 1]![2]);
+    return Math.max(length, 1e-6) / 40;
+  }, [path]);
+  if (path.length < 2) return null;
+  const transparent = opacity < 1;
+  return <Line ref={ref} points={path} color={color} lineWidth={width} dashed={dashed} dashSize={dash * .6} gapSize={dash * .4} transparent={transparent} opacity={opacity} depthWrite={!transparent}/>;
+});
+
+/** Moves the only segment of a two-point `SceneLine` in place, without reallocating its buffers. */
+export function setSceneSegment(line: SceneLineObject | null, from: readonly number[], to: readonly number[]) {
+  const start = line?.geometry.attributes.instanceStart as InterleavedBufferAttribute | undefined;
+  if (!start) return;
+  const array = start.data.array as Float32Array;
+  array[0] = from[0]!; array[1] = from[1]!; array[2] = from[2]!; array[3] = to[0]!; array[4] = to[1]!; array[5] = to[2]!;
+  start.data.needsUpdate = true;
 }
 
 /** Retained normalized-radius API for the independent trajectory viewer.

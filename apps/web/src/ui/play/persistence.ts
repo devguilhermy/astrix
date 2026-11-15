@@ -1,9 +1,12 @@
 import { restoreTurnGame, telemetry, turnDebrief, validateQuickDesignConfig, type QuickDesignConfig, type TurnGameState } from '@astrix/core';
+import { missionScore } from './turnMoments';
 
 export interface AttemptRecord {
   id:string; config:QuickDesignConfig; rulesVersion:number; modelVersion:number; outcome:string; assisted:boolean;
   elapsedSec:number; fuelKg:number; energyWh:number; deliveredMB:number; discoveries:readonly string[];
   evidence:readonly {id:string;state:string;actual:number|null;target:number|null;unit:string}[];
+  /** Optional so records saved before scoring was shown still load: core score total, stars and committed turns. */
+  score?:number; stars?:number; turns?:number;
 }
 export interface SaveDocument { format:'astrix-turn-save'; version:1; game:TurnGameState; journal:readonly AttemptRecord[] }
 export interface SaveIssue { code:'STORAGE'|'CORRUPT'|'INCOMPATIBLE'; detail:string; raw:string|null }
@@ -13,8 +16,8 @@ const HEAD='astrix.play.save.v1.head', SLOT='astrix.play.save.v1.';
 const MAX_BYTES=4*1024*1024;
 const legacyKeys=['astrix.setup.draft.v1','astrix.setup.last.v1','astrix.missions.v1'];
 export function attemptRecord(game:TurnGameState):AttemptRecord {
-  const result=turnDebrief(game), t=telemetry(game.sim), last=game.commits.at(-1);
-  return {id:`${game.identity}:${last?.key??'initial'}:${game.assisted}`,config:game.config,rulesVersion:game.rulesVersion,modelVersion:game.modelVersion,outcome:result.outcome,assisted:game.assisted,elapsedSec:result.elapsedSec,fuelKg:typeof game.sim.propellantKg==='number'?game.sim.propellantKg:0,energyWh:t.socWh,deliveredMB:t.downlinkedMB,discoveries:result.discoveries,evidence:result.evidence.map(({id,state,actual,target,unit})=>({id,state,actual,target,unit}))};
+  const result=turnDebrief(game), t=telemetry(game.sim), last=game.commits.at(-1), score=missionScore(game);
+  return {id:`${game.identity}:${last?.key??'initial'}:${game.assisted}`,config:game.config,rulesVersion:game.rulesVersion,modelVersion:game.modelVersion,outcome:result.outcome,assisted:game.assisted,elapsedSec:result.elapsedSec,fuelKg:typeof game.sim.propellantKg==='number'?game.sim.propellantKg:0,energyWh:t.socWh,deliveredMB:t.downlinkedMB,discoveries:result.discoveries,evidence:result.evidence.map(({id,state,actual,target,unit})=>({id,state,actual,target,unit})),score:score.total,stars:score.stars,turns:game.receipts.length};
 }
 export function recordAttempt(journal:readonly AttemptRecord[], game:TurnGameState):readonly AttemptRecord[] {
   const record=attemptRecord(game);
@@ -26,7 +29,7 @@ export function comparable(a:AttemptRecord,b:AttemptRecord):boolean {
 function validRecord(raw:unknown):raw is AttemptRecord {
   if(!raw||typeof raw!=='object')return false;
   const value=raw as AttemptRecord;
-  return typeof value.id==='string'&&value.id.length<=512&&validateQuickDesignConfig(value.config)&&['PROVISIONAL','SUCCESS','FAILURE','INCOMPLETE'].includes(value.outcome)&&typeof value.assisted==='boolean'&&[value.rulesVersion,value.modelVersion,value.elapsedSec,value.fuelKg,value.energyWh,value.deliveredMB].every(Number.isFinite)&&Array.isArray(value.discoveries)&&value.discoveries.length<=64&&value.discoveries.every(item=>typeof item==='string'&&item.length<=512)&&Array.isArray(value.evidence)&&value.evidence.length<=64&&value.evidence.every(item=>item&&typeof item.id==='string'&&typeof item.state==='string'&&typeof item.unit==='string'&&(item.actual===null||Number.isFinite(item.actual))&&(item.target===null||Number.isFinite(item.target)));
+  return typeof value.id==='string'&&value.id.length<=512&&validateQuickDesignConfig(value.config)&&['PROVISIONAL','SUCCESS','FAILURE','INCOMPLETE'].includes(value.outcome)&&typeof value.assisted==='boolean'&&[value.rulesVersion,value.modelVersion,value.elapsedSec,value.fuelKg,value.energyWh,value.deliveredMB].every(Number.isFinite)&&Array.isArray(value.discoveries)&&value.discoveries.length<=64&&value.discoveries.every(item=>typeof item==='string'&&item.length<=512)&&Array.isArray(value.evidence)&&value.evidence.length<=64&&value.evidence.every(item=>item&&typeof item.id==='string'&&typeof item.state==='string'&&typeof item.unit==='string'&&(item.actual===null||Number.isFinite(item.actual))&&(item.target===null||Number.isFinite(item.target)))&&[value.score,value.stars,value.turns].every(item=>item===undefined||Number.isFinite(item));
 }
 export function parseSave(raw:string):SaveDocument {
   if(raw.length>MAX_BYTES)throw new RangeError('Save exceeds the 4 MiB limit.');

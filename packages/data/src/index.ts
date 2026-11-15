@@ -2,12 +2,17 @@ import radlab from '../snapshots/radlab-dostel1-2024-05-10.json';
 import donki from '../snapshots/donki-2024-05.json';
 import usgs from '../snapshots/usgs-missions.json';
 import sources from '../sources-extra.json';
-import type { RadlabProfile, UsgsMission } from './contracts';
+import solar from '../solar-bodies.json';
+import type { RadlabProfile, SolarFact, SolarFactId, SolarFactSource, UsgsMission } from './contracts';
 
 export const RADLAB_PROFILE: RadlabProfile = radlab;
 export const DONKI_SNAPSHOT = donki;
 export const USGS_MISSIONS: readonly UsgsMission[] = usgs.missions;
 export const EXTRA_SOURCES = sources;
+export const SOLAR_FACT_IDS: readonly SolarFactId[] = ['SUN', 'MERCURY', 'VENUS', 'EARTH', 'MOON', 'MARS', 'JUPITER', 'SATURN', 'URANUS', 'NEPTUNE'];
+export const SOLAR_FACTS: Readonly<Record<SolarFactId, SolarFact>> = solar.bodies as Readonly<Record<SolarFactId, SolarFact>>;
+export const SOLAR_FACT_SOURCES: readonly SolarFactSource[] = solar.sources;
+export const SOLAR_FACTS_RETRIEVED: string = solar.retrieved;
 export { SCIENCE_TOPICS } from './science';
 export { SCIENCE_BINDINGS } from './scienceBindings';
 export { TRAJECTORY_SCIENCE_EN, TRAJECTORY_SCIENCE_PT_BR } from './scienceTrajectory';

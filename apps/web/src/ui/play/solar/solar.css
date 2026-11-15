@@ -1,0 +1,44 @@
+.dossier { height:100%; width:100%; display:flex; flex-direction:column; min-height:0; }
+.dossier-header { flex:none; display:flex; align-items:flex-start; justify-content:space-between; gap:.6rem; padding:.5rem .9rem .45rem 1.2rem; border-bottom:1px solid var(--play-line, #314b6c); }
+.dossier-title { display:flex; flex-wrap:wrap; align-items:center; gap:.3rem .7rem; min-width:0; padding-top:.45rem; }
+.dossier-title h2 { margin:0; font-size:1.45rem; line-height:1.15; overflow-wrap:anywhere; }
+.dossier-kind { display:inline-block; padding:.18rem .55rem; border:1px solid #49616e; border-radius:999px; color:#ffb767; font-size:.74rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
+.dossier-nav { flex:none; display:flex; gap:.3rem; }
+.dossier-nav button { display:inline-flex; align-items:center; justify-content:center; width:44px; height:44px; border:1px solid #49616e; border-radius:6px; background:#102231; color:#e3edf8; }
+.dossier-nav button:hover { border-color:#ffb767; color:#ffb767; }
+.dossier-scroll { display:flex; flex-direction:column; gap:.5rem; padding-top:.6rem; padding-bottom:.5rem; }
+.dossier-sentence { margin:0; color:#d7e4ec; font-size:.92rem; line-height:1.4; }
+.dossier-facts { display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 10.5rem), 1fr)); gap:.4rem; margin:0; }
+.dossier-fact { min-width:0; padding:.3rem .65rem; border:1px solid var(--play-line, #314b6c); border-radius:8px; background:#0f2130; }
+.dossier-fact dt { display:flex; align-items:center; gap:.4rem; color:#b7c9df; font-size:.74rem; font-weight:700; letter-spacing:.03em; text-transform:uppercase; }
+.dossier-fact dt svg { flex:none; color:#85b9ed; }
+.dossier-fact dd { margin:.05rem 0 0; font-size:.9rem; font-weight:700; overflow-wrap:anywhere; }
+.dossier-scroll h3 { margin:0 0 .25rem; font-size:.82rem; letter-spacing:.04em; text-transform:uppercase; color:#b7c9df; }
+.dossier-compare ul,.dossier-explored ul,.dossier-flags { list-style:none; margin:0; padding:0; }
+.dossier-compare li { display:grid; grid-template-columns:7.2rem minmax(4rem, 1fr) 6.6rem; align-items:center; gap:.6rem; min-height:1.45rem; font-size:.85rem; }
+.dossier-bar { position:relative; height:.55rem; border-radius:999px; background:#16293a; }
+.dossier-bar::after { content:''; position:absolute; left:50%; top:-.25rem; bottom:-.25rem; width:2px; margin-left:-1px; background:#b7c9df; }
+.dossier-bar-fill { position:absolute; top:0; bottom:0; border-radius:999px; transition:width .3s ease; }
+.dossier-bar-fill[data-side=up] { left:50%; background:#f6a047; }
+.dossier-bar-fill[data-side=down] { right:50%; background:#85b9ed; }
+.dossier-ratio { text-align:right; font-variant-numeric:tabular-nums; font-weight:700; }
+.dossier-muted { margin:.3rem 0 0; color:#abc1cc; font-size:.8rem; line-height:1.4; }
+.dossier-flags { display:flex; flex-wrap:wrap; gap:.4rem; }
+.dossier-flags li { padding:.25rem .65rem; border:1px solid var(--play-line, #314b6c); border-radius:999px; font-size:.82rem; color:#b7c9df; }
+.dossier-flags li[data-on=true] strong { color:#ffb767; }
+.dossier-explored ul { display:flex; flex-wrap:wrap; gap:.15rem .9rem; }
+.dossier-explored a { display:inline-flex; align-items:center; gap:.3rem; min-height:44px; font-size:.88rem; }
+.dossier-note { display:flex; gap:.45rem; align-items:flex-start; margin:0; color:#c0d0d8; font-size:.8rem; line-height:1.4; }
+.dossier-note svg { flex:none; margin-top:.1rem; color:#85b9ed; }
+.dossier-scale { color:#abc1cc; }
+.dossier-source { margin:0; color:#abc1cc; font-size:.78rem; }
+.dossier-source a { display:inline-block; padding:.3rem 0; }
+.dossier-action .button { width:100%; }
+.dossier-action .dossier-muted { margin:0; font-size:.85rem; }
+@media (max-width: 420px) {
+  .dossier-header { padding-left:.9rem; }
+  .dossier-compare li { grid-template-columns:1fr auto; }
+  .dossier-bar { grid-column:1 / -1; grid-row:2; }
+}
+@media (pointer:fine) { .dossier-explored a { min-height:30px; } .dossier-source a { padding:.1rem 0; } }
+@media (prefers-reduced-motion: reduce) { .dossier-bar-fill { transition:none; } }

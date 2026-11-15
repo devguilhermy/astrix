@@ -13,6 +13,8 @@ const ROLES: readonly RoleId[] = ['SCIENCE', 'SPACECRAFT', 'LAUNCH_ORBIT', 'GROU
 const FAILURES: readonly FailureCause[] = ['BATTERY_DEPLETED', 'CAPTURE_FAILED', 'OBJECTIVE_MISSED', 'THERMAL_SURVIVAL', 'CREW_SUPPORT_LOST', 'SURFACE_IMPACT', 'ASCENT_FAILED', 'DEADLINE_MISSED'];
 const METRICS: readonly ProductMetric[] = ['IMAGES', 'MAPS', 'ANY_SCIENCE'];
 const MAX_DEPTH = 8, MAX_ARRAY = 64, MAX_STRING = 600, MAX_DURATION_SEC = 120 * 86400;
+/** Parker-class perihelia are out of scope: the reduced thermal and power models are not stated below a quarter of an astronomical unit. */
+const MIN_PERIHELION_KM = 0.25 * CONSTANTS.EARTH.distanceKm.v;
 const ID = /^[A-Za-z0-9._-]{1,32}$/, MISSION_ID = /^[a-z0-9][a-z0-9._-]{2,47}$/, UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 
 type Rec = Record<string, unknown>;
@@ -80,13 +82,14 @@ function checkDepth(v: unknown, depth: number): boolean {
 
 function parseOrbit(c: Ctx, v: unknown, path: string, body: BodyId, epoch: string): OrbitChoice | null {
  const o = c.shape(v, path, ['body', 'epochUTC', 'frame', 'smaKm', 'ecc', 'inclinationDeg', 'raanDeg', 'argPeriapsisDeg', 'trueAnomalyDeg']); if (!o) return null;
- const ob = c.member(o.body, `${path}.body`, ['EARTH', 'MARS']), frame = o.frame === 'MJ2000Eq' ? 'MJ2000Eq' as const : null;
+ const ob = c.member(o.body, `${path}.body`, ['EARTH', 'MARS', 'SUN']), frame = o.frame === 'MJ2000Eq' ? 'MJ2000Eq' as const : null;
  if (!frame) c.add(`${path}.frame`, 'UNSUPPORTED', 'Only MJ2000Eq is supported');
  const sma = c.num(o.smaKm, `${path}.smaKm`, 1, 1e9, 'km'), ecc = c.num(o.ecc, `${path}.ecc`, 0, 0.999999999), inc = c.num(o.inclinationDeg, `${path}.inclinationDeg`, 0, 180, 'deg'), raan = c.num(o.raanDeg, `${path}.raanDeg`, 0, 360, 'deg'), argp = c.num(o.argPeriapsisDeg, `${path}.argPeriapsisDeg`, 0, 360, 'deg'), ta = c.num(o.trueAnomalyDeg, `${path}.trueAnomalyDeg`, 0, 360, 'deg');
  if (typeof o.epochUTC !== 'string' || o.epochUTC !== epoch) c.add(`${path}.epochUTC`, 'CONTRADICTION', 'Orbit epoch must equal the mission epoch');
  if (ob !== null && ob !== body) c.add(`${path}.body`, 'CONTRADICTION', 'Orbit body must equal the start body');
  if (!frame || ob === null || sma === null || ecc === null || inc === null || raan === null || argp === null || ta === null || ob !== body || o.epochUTC !== epoch) return null;
  if (sma * (1 - ecc) <= CONSTANTS[ob].radius.v) { c.add(path, 'RANGE', 'Periapsis must be above the surface'); return null; }
+ if (ob === 'SUN' && sma * (1 - ecc) < MIN_PERIHELION_KM) { c.add(path, 'RANGE', 'Perihelion must stay at or beyond 0.25 AU'); return null; }
  return { body: ob, epochUTC: epoch, frame, smaKm: sma, ecc, inclinationDeg: inc, raanDeg: raan, argPeriapsisDeg: argp, trueAnomalyDeg: ta };
 }
 
@@ -174,6 +177,7 @@ function parseObjective(c: Ctx, v: unknown, path: string, d: { custom: boolean; 
 function parseTrajectory(c: Ctx, v: unknown, path: string, startBody: BodyId | null): TrajectorySpec | null {
  if (!isRec(v)) { c.add(path, 'TYPE', 'Expected an object'); return null; }
  if (v.model === 'MARS_ANALYTIC_CRUISE') { if (!c.shape(v, path, ['model'])) return null; if (startBody !== 'MARS') { c.add(path, 'CONTRADICTION', 'The analytic cruise needs a Mars start'); return null; } return { model: 'MARS_ANALYTIC_CRUISE' }; }
+ if (v.model === 'HELIOCENTRIC_CONIC') { if (!c.shape(v, path, ['model'])) return null; if (startBody !== 'SUN') { c.add(path, 'CONTRADICTION', 'The heliocentric conic needs a Sun start'); return null; } return { model: 'HELIOCENTRIC_CONIC' }; }
  if (v.model !== 'PATCHED_CONICS') { c.add(`${path}.model`, 'UNSUPPORTED', 'Unknown trajectory model'); return null; }
  const r = c.shape(v, path, ['model', 'bodies', 'maneuvers']); if (!r) return null;
  const list = c.arr(r.bodies, `${path}.bodies`, 1, 2), m = c.shape(r.maneuvers, `${path}.maneuvers`, ['allowed', 'maxBurns']);
@@ -182,9 +186,10 @@ function parseTrajectory(c: Ctx, v: unknown, path: string, startBody: BodyId | n
  const allowed = m ? c.bool(m.allowed, `${path}.maneuvers.allowed`) : null, burns = m ? c.int(m.maxBurns, `${path}.maneuvers.maxBurns`, 0, 16) : null;
  if (!bodies.includes('EARTH')) c.add(`${path}.bodies`, 'CONTRADICTION', 'Earth is always modelled (the Moon is a patch of it)');
  if (startBody === 'MARS') c.add(path, 'CONTRADICTION', 'A Mars start needs the analytic cruise model');
+ if (startBody === 'SUN') c.add(path, 'CONTRADICTION', 'A Sun start needs the heliocentric conic model');
  if (allowed === false && burns !== null && burns > 0) c.add(`${path}.maneuvers.maxBurns`, 'CONTRADICTION', 'Burns are disallowed');
  if (allowed === true && burns === 0) c.add(`${path}.maneuvers.maxBurns`, 'CONTRADICTION', 'Burns are allowed but the limit is zero');
- if (!bodies.includes('EARTH') || allowed === null || burns === null || startBody === 'MARS' || (allowed === false && burns > 0) || (allowed && burns === 0)) return null;
+ if (!bodies.includes('EARTH') || allowed === null || burns === null || startBody === 'MARS' || startBody === 'SUN' || (allowed === false && burns > 0) || (allowed && burns === 0)) return null;
  return { model: 'PATCHED_CONICS', bodies: bodies.sort(), maneuvers: { allowed, maxBurns: burns } };
 }
 
@@ -236,7 +241,7 @@ export function validateMissionDefinition(raw: unknown): DefinitionResult {
  const startRaw = isRec(top.start) ? top.start : null;
  if (!startRaw) c.add('start', 'TYPE', 'Expected an object');
  else if (startRaw.kind === 'PROVIDED_ORBIT') {
-  const r = c.shape(startRaw, 'start', ['kind', 'body', 'orbit', 'orbitOptions'], ['stage','initialPhase']), body = r ? c.member(r.body, 'start.body', ['EARTH', 'MARS'] as const) : null;
+  const r = c.shape(startRaw, 'start', ['kind', 'body', 'orbit', 'orbitOptions'], ['stage','initialPhase']), body = r ? c.member(r.body, 'start.body', ['EARTH', 'MARS', 'SUN'] as const) : null;
   if (r && r.orbitOptions !== 'RIDE') c.add('start.orbitOptions', 'UNSUPPORTED', 'Only ride-offered parking orbits are supported');
   const initialPhase=r?.initialPhase===undefined?undefined:c.member(r.initialPhase,'start.initialPhase',['OPERATIONS'] as const);
   const orbit = r && body && epoch ? parseOrbit(c, r.orbit, 'start.orbit', body, epoch) : null;
@@ -246,7 +251,7 @@ export function validateMissionDefinition(raw: unknown): DefinitionResult {
    if (lid && !launcher) c.add('start.stage.launcherId', 'UNKNOWN_REF', 'Unknown launcher');
    const top2 = launcher ? launcher.stages[launcher.stages.length - 1] : null, kg = sr && top2 ? c.num(sr.propellantKg, 'start.stage.propellantKg', 0, top2.propellantKg, 'kg') : null;
    if (lid && launcher && top2 && kg !== null) { if (launcher.stages.length < 2 || top2.restarts === 0) c.add('start.stage', 'UNSUPPORTED', 'The launcher has no restartable upper stage'); else stage = { launcherId: lid, propellantKg: kg }; }
-   if (body === 'MARS') c.add('start.stage', 'PHASE_INCOMPATIBLE', 'An attached upper stage is an Earth-orbit start');
+   if (body === 'MARS' || body === 'SUN') c.add('start.stage', 'PHASE_INCOMPATIBLE', 'An attached upper stage is an Earth-orbit start');
   }
   if (body && orbit && bus) {
    if (rideIds.length === 0) c.add('vehicle.allowedRideIds', 'EMPTY_REQUIRED', 'A provided-orbit mission needs at least one ride');
@@ -263,21 +268,22 @@ export function validateMissionDefinition(raw: unknown): DefinitionResult {
  } else c.add('start.kind', 'UNSUPPORTED', 'Unknown start');
  const trajectory = parseTrajectory(c, top.trajectory, 'trajectory', start && start.kind === 'PROVIDED_ORBIT' ? start.body : start ? 'EARTH' : null);
  if (start?.kind === 'SURFACE_LAUNCH' && trajectory?.model !== 'PATCHED_CONICS' && trajectory) c.add('trajectory', 'CONTRADICTION', 'A surface launch needs the patched-conic model');
+ if (storm && start?.kind === 'PROVIDED_ORBIT' && start.body === 'SUN') c.add('environment.storm', 'UNSUPPORTED', 'Sun-centred missions have no storm dose replay; their dose is an assumed background');
 
  const sup = c.shape(top.support, 'support', ['crew']), crew = sup ? c.bool(sup.crew, 'support.crew') : null;
  if (crew !== null && bus && (crew !== (bus === 'CREW_CAPSULE'))) c.add('support.crew', 'CONTRADICTION', 'Crew support belongs to the crew capsule bus, and the capsule needs it');
  if (crew && start && start.kind !== 'PROVIDED_ORBIT') c.add('support.crew', 'PHASE_INCOMPATIBLE', 'Crew missions start from a provided orbit');
  if (stationId && start) {
-  const expected = crew ? 'CREW_RELAY' : start.kind === 'PROVIDED_ORBIT' && start.body === 'MARS' ? 'DSN' : 'GS_MIDLAT';
+  const expected = crew ? 'CREW_RELAY' : start.kind === 'PROVIDED_ORBIT' && (start.body === 'MARS' || start.body === 'SUN') ? 'DSN' : 'GS_MIDLAT';
   if (stationId !== expected) c.add('environment.stationId', 'CONTRADICTION', `This mission requires station ${expected}`);
  }
  if (light === false && trajectory?.model === 'PATCHED_CONICS' && trajectory.bodies.includes('MOON')) c.add('environment.commLightTime', 'CONTRADICTION', 'Lunar missions use geometric light time');
- if (light === true && trajectory?.model !== 'PATCHED_CONICS') c.add('environment.commLightTime', 'UNSUPPORTED', 'Mars missions use planetary light time');
+ if (light === true && trajectory?.model !== 'PATCHED_CONICS') c.add('environment.commLightTime', 'UNSUPPORTED', 'Mars and Sun-centred missions always use planetary light time');
 
  const objectives: ObjectiveDef[] = [], list = c.arr(top.objectives, 'objectives', 1, 12), ids = new Map<string, string>();
  if (list && duration !== null && bus && crew !== null && trajectory) {
   for (const [i, item] of list.entries()) {
-   const parsed = parseObjective(c, item, `objectives[${i}]`, { custom: true, duration, crew, bodies: trajectory.model === 'PATCHED_CONICS' ? trajectory.bodies : ['MARS'], patched: trajectory.model === 'PATCHED_CONICS', bus, required: requiredParts, ids });
+   const parsed = parseObjective(c, item, `objectives[${i}]`, { custom: true, duration, crew, bodies: trajectory.model === 'PATCHED_CONICS' ? trajectory.bodies : trajectory.model === 'HELIOCENTRIC_CONIC' ? ['SUN'] : ['MARS'], patched: trajectory.model === 'PATCHED_CONICS', bus, required: requiredParts, ids });
    if (parsed) { if (ids.has(parsed.id)) c.add(`objectives[${i}].id`, 'CONTRADICTION', 'Duplicate objective id'); else { ids.set(parsed.id, parsed.spec.kind); objectives.push(parsed); } }
   }
   if (objectives.length === list.length && !objectives.some(o => o.required)) c.add('objectives', 'EMPTY_REQUIRED', 'At least one objective must be required');
