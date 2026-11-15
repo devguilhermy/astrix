@@ -1,12 +1,13 @@
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { CONSTANTS, bodyRotationAngle, sunDirection, listScenarios, type BodyId, type Design, type Telemetry } from '@astrix/core';
+import { CONSTANTS, bodyRotationAngle, sunDirection, type BodyId, type Design, type Telemetry } from '@astrix/core';
 import { type DirectionalLight, type Group } from 'three';
 import { relativePosition, renderDirection, type KmVector } from './FloatingOrigin';
 import { useMissionPose } from './useMissionPose';
 import { Skybox } from './Skybox';
 import { SunLight } from './SunLight';
 import { Planet } from './Planet';
+import { missionBody } from '../../ui/missions/definitionView';
 
 const ZERO: KmVector = [0, 0, 0];
 export interface SpaceBackdropProps {
@@ -26,8 +27,8 @@ export interface SpaceBackdropProps {
  */
 export function SpaceBackdrop({ design, telemetry, live = false, originKm, planet = true, body: overrideBody, sunDisc = true }: SpaceBackdropProps) {
  const readPose = useMissionPose();
- const body = overrideBody ?? design.orbit?.body ?? listScenarios().find(scenario => scenario.id === design.scenarioId)!.body;
- const epoch = design.orbit?.epochUTC ?? listScenarios().find(scenario => scenario.id === design.scenarioId)!.epoch;
+ const body = overrideBody ?? design.orbit?.body ?? missionBody(design.definition);
+ const epoch = design.orbit?.epochUTC ?? design.definition.environment.epochUTC;
  const coreSun = useMemo(() => sunDirection(body, telemetry?.t ?? 0, undefined, epoch), [body, epoch, telemetry?.t]);
  const centre = useRef<Group>(null);
  const surface = useRef<Group>(null);

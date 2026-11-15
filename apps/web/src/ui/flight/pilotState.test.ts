@@ -4,7 +4,7 @@ import { useMission } from '../../store';
 import { pilotInput, usePilot } from './pilotState';
 
 function flight() {
- const s=useMission.getState();s.resetMission();s.setTeam(1);s.startScenario('FIRST_LIGHT','ASPIRING');s.addPart('CAM_EO');
+ const s=useMission.getState();s.resetMission();s.setTeam(1);s.startMission('FIRST_LIGHT','ASPIRING');s.addPart('CAM_EO');
  s.updateArtifacts({objectiveConfirmed:true});
  for(let stage=0;stage<3;stage++)expect(s.completeStage()).toBe(true);
  const design=useMission.getState().design!,quote=quoteAddPart(design,'MAG','ALL');

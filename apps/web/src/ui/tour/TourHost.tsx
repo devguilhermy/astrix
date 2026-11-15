@@ -6,56 +6,62 @@ import { showWindow, useWindows } from '../layout/windows';
 import { PANEL_IDS } from '../layout/panelLayout';
 import { Modal } from '../primitives';
 import { useMissionControl, revealControl } from '../guide/missionControlState';
-import { useWorkbench } from '../../three/spacecraft/workbenchState';
-import { usePilot } from '../flight/pilotState';
-import { openPartDetails } from '../inspector/openPart';
+import { resolveCueTarget } from '../guide/cueTargets';
 import { TourCard } from './TourCard';
 import { TourSpotlight } from './TourSpotlight';
-import { stepsForTour, surfaceTour } from './tours';
+import { CURRICULUM_TOURS, stepsForTour, surfaceTour, targetsForStep } from './tours';
 import { useTourStore } from './tourStore';
 import { tourNavigation } from './tourNavigation';
+
+/**
+ * Presentation-only walkthrough. It never dispatches navigation or design intents: it opens device-local
+ * trays/windows/disclosures for the current card and restores them on exit. A LAN room's clock is shared, so
+ * the tour does not pause it; static play pauses only under the local `tour` reason and never auto-resumes.
+ */
 export function TourHost({ready}:{ready:boolean}) {
  const s=useMission(),tour=useTourStore(),{t}=useTranslation(),surface=surfaceTour(s.activeStage,!!s.sim),layout=useWindows(state=>state.layout);
- const steps=useMemo(()=>tour.active?stepsForTour(tour.active,s):[],[tour.active,s.activeStage,s.design?.busId,!!s.sim,s.settings.presentation]);
- const step=steps[tour.index],target=layout!=='desktop'&&step?.compactTarget?step.compactTarget:step?.target;
- const close=useCallback(()=>useTourStore.getState().end(false),[]);
+ const shared=s.mode==='LAN'||s.remoteMode,compact=layout!=='desktop';
+ const steps=useMemo(()=>tour.active?stepsForTour(tour.active,useMission.getState()):[],[tour.active,s.activeStage,s.design?.busId,!!s.sim,s.levelId]);
+ const step=steps[tour.index],targets=useMemo(()=>step?targetsForStep(step,compact):[],[step,compact]);
+ const conceptsThrough=useCallback((through:number)=>steps.slice(0,through).map(item=>item.id),[steps]);
+ const end=useCallback((finished:boolean)=>useTourStore.getState().end(finished,conceptsThrough(finished?steps.length:useTourStore.getState().index)),[conceptsThrough,steps.length]);
+ const close=useCallback(()=>end(false),[end]);
+ const eligible=ready&&!tour.active&&!tour.history[surface]&&!tour.curriculumSkipped&&(CURRICULUM_TOURS as readonly string[]).includes(surface);
  useEffect(()=>{
-  if(!ready||tour.active||tour.history[surface])return;
-  const timer=setTimeout(()=>{const current=useMission.getState();if(current.explanation||current.handoff)return;if(current.levelId==='ASPIRING')useTourStore.getState().start(surface);},600);
+  if(!eligible||s.levelId!=='ASPIRING')return;
+  const timer=setTimeout(()=>{const current=useMission.getState();if(current.explanation||current.handoff||useTourStore.getState().active)return;if(stepsForTour(surface,current).length)useTourStore.getState().start(surface,'auto');},600);
   return()=>clearTimeout(timer);
- },[ready,surface,tour.active,tour.history,s.levelId,s.explanation,s.handoff]);
+ },[eligible,surface,s.levelId,s.explanation,s.handoff]);
  useEffect(()=>{
   if(!tour.active)return;
-  const previousTray=useMissionControl.getState().tray,previousWindows=useWindows.getState(),previousPart=useWorkbench.getState().inspectedPartId,previousPilot=usePilot.getState().enabled,previousSubstep=useMission.getState().activeSubstep,disclosures=[...document.querySelectorAll('details')].map(element=>({element,open:element.open}));
-  useMission.getState().pause('tour');
-  if(tour.active==='build')useMission.getState().setSubstep('equipment');
+  const previousTray=useMissionControl.getState().tray,previousWindows=useWindows.getState(),disclosures=[...document.querySelectorAll('details')].map(element=>({element,open:element.open}));
+  const pauses=!(useMission.getState().mode==='LAN'||useMission.getState().remoteMode);
+  if(pauses)useMission.getState().pause('tour');
   return()=>{
    useMissionControl.getState().setTray(previousTray);
    useWindows.setState(current=>{const windows={...current.windows};for(const id of PANEL_IDS)windows[id]={...windows[id],visibility:previousWindows.windows[id].visibility};return {windows,compactWindow:previousWindows.compactWindow};});
-   useWorkbench.getState().inspect(previousPart);usePilot.getState().setEnabled(previousPilot);
    for(const {element,open} of disclosures)if(element.isConnected)element.open=open;
-   if(tour.active==='build')useMission.getState().setSubstep(previousSubstep);
-   useMission.getState().clearPauseReason('tour');
+   if(pauses)useMission.getState().clearPauseReason('tour');
   };
  },[tour.active]);
  useEffect(()=>{
-  if(!step||!target)return;
-  if(step.tray)useMissionControl.getState().setTray(step.tray);else useMissionControl.getState().setTray(null);
-  if(step.pilot)usePilot.getState().setEnabled(true);
-  if(step.inspect)openPartDetails(step.inspect);
-  if(step.panel)showWindow(step.panel,`[data-cue-target="${target}"],[id="${target}"]`);
-  revealControl(target);
+  if(!step)return;
+  useMissionControl.getState().setTray(step.tray??null);
+  if(step.panel)showWindow(step.panel,targets.map(target=>`[data-cue-target="${target}"],[id="${target}"]`).join(','));
   const frame=requestAnimationFrame(()=>{
-   const element=document.querySelector<HTMLElement>(`[data-cue-target="${step.disclosure??target}"]`);
-   if(element instanceof HTMLDetailsElement)element.open=true;
+   const anchor=targets.find(target=>resolveCueTarget(target));
+   if(anchor)revealControl(anchor);
    document.getElementById('tour-step-heading')?.focus();
   });
   return()=>cancelAnimationFrame(frame);
- },[step,target]);
- const move=(direction:'back'|'next')=>{if(!tour.active)return;const result=tourNavigation(tour.index,steps.length,direction);if(result.finish)tour.end(true);else tour.move(result.index);};
+ },[step,targets]);
+ const move=(direction:'back'|'next')=>{if(!tour.active)return;const result=tourNavigation(tour.index,steps.length,direction);if(result.finish)end(true);else tour.move(result.index,direction==='next'?conceptsThrough(result.index):[]);};
  if(!ready)return null;
- if(!tour.active||!step||!target)return s.levelId==='EXPERT'&&!tour.history[surface]?<aside className="tour-offer"><span>{t('hud.tourOffer')}</span><button className="button" onClick={()=>tour.start(surface)}>{t('ui.tour')}</button><button className="button" onClick={()=>tour.offer(surface)}>{t('hud.notNow')}</button></aside>:null;
+ if(!tour.active||!step){
+  const offer=s.levelId==='EXPERT'&&eligible;
+  return offer?<aside className="tour-offer" aria-label={t('tour.offerLabel')}><span>{t('hud.tourOffer')}</span><button type="button" className="button" onClick={()=>tour.start(surface,'auto')}>{t('ui.tour')}</button><button type="button" className="button" onClick={()=>tour.declineOffers()}>{t('hud.notNow')}</button></aside>:null;
+ }
  return <div className="tour-layer" onKeyDown={event=>{if(event.altKey||event.ctrlKey||event.metaKey||event.target instanceof HTMLInputElement)return;if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();event.stopPropagation();move(event.key==='ArrowLeft'?'back':'next');}if(event.key==='Enter'&&event.target instanceof HTMLElement&&!event.target.closest('button')){event.preventDefault();move('next');}}}>
-  <TourSpotlight target={target}/><Modal title={t(`hud.tour.${tour.active}`)} className="tour-dialog" onClose={close}><TourCard step={step} index={tour.index} total={steps.length} next={()=>move('next')} back={()=>move('back')} skip={close}/></Modal>
+  <TourSpotlight targets={targets}/><Modal title={t(`hud.tour.${tour.active}`)} className="tour-dialog" onClose={close}><TourCard step={step} index={tour.index} total={steps.length} next={()=>move('next')} back={()=>move('back')} skip={close} auto={tour.origin==='auto'&&tour.active!=='choice'} sharedClock={shared} teamPaused={!s.running} onTeamPause={()=>useMission.getState().pause('manual')}/></Modal>
  </div>;
 }

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { createStarterDesign } from '@astrix/core';
+import { createStarterDesign, missionById } from '@astrix/core';
 import type { Command } from '@astrix/core';
 import { parseClientMessage, PROTOCOL_VERSION } from './protocol';
 import type { SessionIntent } from './contracts';
@@ -7,13 +7,13 @@ const request=(intent:unknown)=>({type:'INTENT',id:'tap-1',epoch:'room-1',attemp
 describe('runtime-validated wire protocol',()=>{
  test('rebuilds known variants and survives JSON round trips',()=>{
   const intents:SessionIntent[]=[
-   {kind:'START_SCENARIO',scenarioId:'FIRST_LIGHT',levelId:'ASPIRING'}, {kind:'RESET_MISSION',keepDesign:true},
+   { kind: 'START_MISSION', missionId: 'FIRST_LIGHT', levelId: 'ASPIRING' }, {kind:'RESET_MISSION',keepDesign:true},
    {kind:'SET_STAGE',stage:'DESIGN'},{kind:'SET_SUBSTEP',step:'equipment'},{kind:'SET_VIEW',view:'OPERATE'},
    {kind:'CONFIRM_OBJECTIVE'},{kind:'SET_SEGMENT',segment:'ground',selected:true},{kind:'INVALIDATE_BASELINE'},
    {kind:'QUOTE_DESIGN',edit:{kind:'ADD_PART',partId:'CAM_EO'},baseRevision:1},
    {kind:'COMMIT_DESIGN',edit:{kind:'REMOVE_PART',partId:'CAM_EO'},baseRevision:1,quoteId:'q-1'},
    {kind:'RECORD_TRADE',edit:{kind:'SET_RIDE',rideId:'RIDE_SMALL_LAUNCHER'},description:'ride comparison',baseRevision:1},
-   {kind:'COMMIT_DESIGN',edit:{kind:'SET_ORBIT',orbit:createStarterDesign('FIRST_LIGHT','ASPIRING').orbit!},baseRevision:1},
+   {kind:'COMMIT_DESIGN',edit:{kind:'SET_ORBIT',orbit:createStarterDesign(missionById('FIRST_LIGHT'), 'ASPIRING').orbit!},baseRevision:1},
    {kind:'COMMIT_DESIGN',edit:{kind:'SET_PROPELLANT',kg:1},baseRevision:1},
    {kind:'FREEZE_BASELINE',designRevision:1},{kind:'VERIFY_BASELINE',designRevision:1},{kind:'COMPLETE_STAGE',designRevision:1},
    {kind:'SIGN_OFF',role:'SCIENCE',designRevision:1,rosterRevision:2},
@@ -39,7 +39,7 @@ describe('runtime-validated wire protocol',()=>{
   for(const message of messages){expect(parseClientMessage(message).ok).toBe(true);expect(parseClientMessage({...message,unexpected:true}).ok).toBe(false);}
  });
  test('rejects arbitrary state writes, unknown fields, prototypes and trusted-only local actions',()=>{
-  for(const intent of [{kind:'SET_DESIGN',design:createStarterDesign('FIRST_LIGHT','ASPIRING')},{kind:'COMMIT_DESIGN',edit:{kind:'ADD_PART',partId:'CAM_EO',next:{}},baseRevision:1},{kind:'LOCAL_RESTORE',state:{}},{kind:'LOCAL_TRADE',revision:1,before:{},after:{},actor:'ALL',description:'fake'},{kind:'COMMANDS',commands:[{kind:'SAFE',on:true,playerId:'forged'}]}])expect(parseClientMessage(request(intent)).ok).toBe(false);
+  for(const intent of [{kind:'SET_DESIGN',design:createStarterDesign(missionById('FIRST_LIGHT'), 'ASPIRING')},{kind:'COMMIT_DESIGN',edit:{kind:'ADD_PART',partId:'CAM_EO',next:{}},baseRevision:1},{kind:'LOCAL_RESTORE',state:{}},{kind:'LOCAL_TRADE',revision:1,before:{},after:{},actor:'ALL',description:'fake'},{kind:'COMMANDS',commands:[{kind:'SAFE',on:true,playerId:'forged'}]}])expect(parseClientMessage(request(intent)).ok).toBe(false);
   expect(parseClientMessage({...request({kind:'PAUSE'}),secret:'ignored?'}).ok).toBe(false);
   expect(parseClientMessage(Object.assign(Object.create({type:'PING'}),{nonce:'inherited'})).ok).toBe(false);
   expect(parseClientMessage(null).ok).toBe(false);expect(parseClientMessage([]).ok).toBe(false);expect(parseClientMessage('{').ok).toBe(false);

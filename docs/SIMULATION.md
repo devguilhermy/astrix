@@ -2,13 +2,15 @@
 
 Core is authoritative for model state, resources, commands and outcomes. This is a reduced educational simulation, not flight-qualified operations or a medical model. [Missions](./MISSIONS.md), [Resources](./RESOURCES.md) and [Technical models](./TECHNICAL_MODELS.md) describe objectives, evidence and parameters. This page does not claim a new verification run.
 
+**Integration pending:** the rules-v5 model below is being integrated; earlier recorded runs do not validate its new ascent, lunar or custom-objective paths.
+
 ## Identity and transactions
 
-A rules-v4 design has required `scenarioId`, `levelId: ASPIRING | EXPERT`, full orbit, paid parts and revision. `createSim(design, seed)` validates readiness and freezes the flown configuration. Both levels have finite quaternion attitude; Expert additionally has reduced thermal, power-life, link, computer and pointing-fault mechanisms. Aspiring supports explicit assisted checkpoint restoration. Neither level grants automatic repair or dose-derived random destruction. Display depth is independent. Rules-v3 flight snapshots are rejected, not relabelled.
+A rules-v5 design embeds its resolved immutable mission definition and digest, level, paid hardware, revision, burns and either a provided orbit or surface-launch configuration. `createSim(design, seed)` validates readiness and freezes the flown configuration. Both levels retain quaternion attitude and resource conservation; Expert additionally enables the applicable engineering mechanisms. Old snapshots are rejected rather than relabelled. Built-in preset numerical compatibility is a regression requirement, not a claim that this integration has passed.
 
 `issueCommand(state, command, role, actor?)` produces an immutable state or refusal. A receipt records issuing actor, owning discipline, transport, timestamps and status; acceptance is not execution. Ground requests wait for contact and Mars transmission adds one-way light time. Onboard crew/deployment procedures wait their authored execution time independently of radio, and metabolism continues during that time. A confirmed `endMission` is an immediate session action, not a radio command or a successful completion. Faults win ties with command arrivals; arriving commands are revalidated.
 
-`stepSim` uses a ten-second absolute integration grid with event and command deadlines. Small requests can leave a remainder; large requests are bounded. Pausing for a decision discards unplayed post-decision time. Scheduled faults are seeded, not sampled on every display frame. Core `nextBoundary` reports a known upcoming opportunity or deadline, not a guarantee against earlier unmodeled or threshold events.
+Resource integration retains the absolute ten-second grid and event/command deadlines. Surface ascent uses a separate bounded 0.5-second RK4 grid; orbital coast uses conic propagation. Requested elapsed time, integration remainder and event stops remain authority-owned. Decision pauses discard unplayed post-decision time. Scheduled faults are seeded, not sampled per display frame. `nextBoundary` reports known opportunities and deadlines, not a guarantee against earlier threshold events.
 
 The pure `@astrix/session` authority serializes mission intents around core and owns the running/warp/pause policy. Static mode feeds browser elapsed time to `tickSession`; browser publication is throttled without moving physics into React. A bounded self-paced job yields between chunks, preserves sub-tick remainder once, and is invalidated by cancellation, reset or checkpoint rewind. Epoch, attempt and commit sequence identify authoritative state; a checkpoint rewind creates a fresh attempt context and marks assistance.
 
@@ -18,9 +20,17 @@ Pause reasons coexist. Clearing one reason never resumes. Local hot-seat retains
 
 ## Orbit and environment
 
-The canonical initial orbit includes body, UTC epoch, `MJ2000Eq` frame, semi-major axis, eccentricity, inclination, RAAN, argument of periapsis and true anomaly. Altitude controls convert to that single representation. Propagation is two-body; sunlight, station rotation and Mars geometry use the explicit epoch. Cylindrical eclipse, sampled contact and simplified circular coplanar planetary motion are approximations. The eight-hour allocation starts at the scenario-authored offset within each operational day (Storm Watch 12 h, others 0 h); these are not UTC clock hours or real station reservations. No J2, operational drag, real network schedule, finite-burn ascent or full GMAT force model is implied.
+Initial provided orbits specify body, UTC epoch, MJ2000Eq frame and Keplerian elements. Live trajectory state uses body-relative position in km and velocity in km/s; derived elements may describe bound, parabolic or escaping motion. Earth/Moon flight uses patched two-body conics; the Moon follows an explicitly reduced circular ephemeris. Within each patch only its central body's gravity acts. Earth–Moon station visibility uses finite segment/sphere occultation; Earth shadow remains a cylindrical approximation. Station allocation is definition-authored, not a real network booking. Mars retains its separate analytical transfer model.
 
 Mars cruise is analytically skipped to capture rather than pretending to integrate cruise power or science. Capture confirmation consumes calculated fuel; a failure remains a failure even if later science would have been possible. Earth CubeSat deployables begin stowed where applicable, and deployed state affects the corresponding generation or antenna capability. An authored deployment anomaly can be retried; paid mitigation does not guarantee success. Disposal screening is separate from live propagation and is not regulatory approval.
+
+### Surface ascent, burns and lunar flight
+
+Surface launch begins at the declared rotating-Earth site with paid staged launcher mass and finite propellant. The reduced ascent model includes thrust, gravity and exponential-atmosphere drag; staging, cutoff, coast, impact and orbital handoff are physical events, not cinematic milestones. It omits lift, winds, structural loads and Mach-dependent aerodynamics.
+
+Burns specify a source (`SPACECRAFT` or `UPPER_STAGE`), an inertial or velocity-normal-radial vector, and a time, apsis or lunar-entry trigger. They are explicitly impulsive, consume rocket-equation propellant and can be refused; no infinite-fuel preview becomes authority state. Launch/Orbit owns trajectory actions. Attitude steering remains a distinct Spacecraft command.
+
+The lunar progression is ascent → parking orbit → injection → encounter → capture → observation/data return. Entering the Moon's sphere of influence is not capture; capture requires a bound lunar orbit and the declared objective evidence. Changing reference frame must preserve absolute position and velocity. No landing, real ephemeris, continuous three-body dynamics or crew lunar return is implied. Worker recommendations and forecasts do not install or execute a plan automatically.
 
 ### Attitude, Sun and transport
 
@@ -53,6 +63,6 @@ Power and science integrate from the prior interval state; data must be generate
 
 Telemetry exposes actual power, data, position, retained/launch mass, phase-aware clock, applicable crew and deployment state. `history` stores bounded whole-attempt samples and `historyInfo` reports decimation; `attemptAudit` reports a bounded decision/event trail and its own decimation flag. The active receipt buffer is not an unlimited debrief archive. Analytical cruise is not fabricated as continuous engineering history; sampling, decimation and unmodeled causes limit replay and causal claims.
 
-Versioned bests are separate by scenario, level and rules; assistance and seed remain part of run identity. Older incomparable scores are not relabelled. The integration owner records actual test and browser evidence in [Verification](./VERIFICATION.md).
+Objective evidence identifies each declared objective, owner, required flag, state (`NOT_EVALUATED`, `IN_PROGRESS`, `MET`, `FAILED`), actual/target/unit, source and dwell history. Delivery, orbit, ascent, encounter, reserve and crew objectives are evaluated from physical state, not mission names. Terminal outcome and objective achievement are distinct; ending an attempt early does not manufacture completion. Run identity includes definition ID/revision/digest/origin, rules/model versions, level, seed, assistance and policy. Earlier scores remain separate. Actual checks are recorded in [Verification](./VERIFICATION.md).
 
 Crew return opportunities are authored ten-minute windows repeating every 90 minutes from 12 hours elapsed. A 10-second onboard deorbit action uses a two-body burn to an 80 km entry perigee; recovery is a separate six-hour abstraction. An early window can support a successful return when actual product and support requirements are met, but cannot satisfy the separate 72-hour orbital-duration requirement.

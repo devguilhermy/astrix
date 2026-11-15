@@ -1,48 +1,37 @@
 import { beforeEach, expect, test } from 'bun:test';
-import { listParts, missionRequirements } from '@astrix/core';
-import { STAGES, SUBSTEPS, WARPS, useMission } from '../../store';
+import { listParts } from '@astrix/core';
+import { getSessionState, useMission } from '../../store';
 import { english, portuguese } from '../../i18n/resources';
-import { tours, stepsForTour } from './tours';
+import { CURRICULUM_LIMIT, CURRICULUM_TOURS, MAX_TOUR_CARDS, conceptIdsFor, stepsForTour, targetsForStep, tours, type TourId } from './tours';
+import { useTourStore } from './tourStore';
 
-/** Intentional user-facing inventory: adding a controller option requires adding its tour. */
-const controlCoverage = [
- 'control-context','primary','control-explain','control-requirements','requirements-explain','requirements-evidence',
- 'control-checklist','checklist-items','control-close','control-slots','control-stage',
- 'chapter-briefing','chapter-build','chapter-test','chapter-fly','chapter-debrief',
- 'control-panel-mission','control-panel-readiness','control-panel-review','control-panel-log',
- 'slot-exploded','slot-dimensions','slot-turntable',
- 'control-flight','timeline-edge','timeline-contact','timeline-advance','timeline-toggle',
- 'hotbar-sun','hotbar-target','hotbar-earth','hotbar-downlink','hotbar-safe','hotbar-deploy',
- 'pilot','pilot-rollLeft','pilot-pitchUp','pilot-rollRight','pilot-yawLeft','pilot-pitchDown','pilot-yawRight',
- 'time-warp','time-event','receipts','choice-tour','choice-preview','confirm','choice-cancel',
-];
-beforeEach(()=>{useMission.getState().resetMission();useMission.getState().setTeam(1);useMission.getState().startScenario('FIRST_LIGHT','ASPIRING');});
-test('every named controller option has a tour step, not a whole-panel replacement',()=>{
- const targets=new Set(Object.values(tours).flatMap(steps=>steps.flatMap(step=>[step.target,...(step.compactTarget?[step.compactTarget]:[])])));
- for(const target of controlCoverage)expect(targets.has(target)).toBe(true);
- for(const category of ['BATTERY','SOLAR','COMPUTER','STORAGE','ADCS','RADIO','INSTRUMENT','PROPULSION','THERMAL'])expect(targets.has(`slot-${category}`)).toBe(true);
- for(const id of ['mass','power','budget','data','comms','time','crew'])expect(targets.has(`resource-${id}`)).toBe(true);
+beforeEach(()=>{useMission.getState().resetMission();useMission.getState().setTeam(1);useMission.getState().startMission('FIRST_LIGHT','ASPIRING');});
+
+test('the automatic curriculum is exactly 3 + 5 + 2 + 3 + 2 concepts, numbered 1 to 15',()=>{
+ expect(CURRICULUM_TOURS.map(id=>tours[id].length)).toEqual([3,5,2,3,2]);
+ const numbers=CURRICULUM_TOURS.flatMap(id=>tours[id].map(step=>step.concept));
+ expect(numbers).toEqual(Array.from({length:CURRICULUM_LIMIT},(_,i)=>i+1));
+ expect(tours.choice.length).toBe(1);expect(tours.choice[0]!.concept).toBeNull();
 });
-test('every mission stage/substep and every clock speed is explicitly named',()=>{
- const ids=new Set(tours.welcome.map(step=>step.id));
- for(const stage of STAGES)for(const substep of SUBSTEPS[stage])expect(ids.has(`view-${stage}-${substep}`)).toBe(true);
- for(const speed of WARPS)expect(tours.flight.find(step=>step.id===`warp-${speed}`)?.values?.speed).toBe(speed);
+test('content, hardware and presentation can never inflate any rendered tour',()=>{
+ const s=useMission.getState();
+ for(const part of listParts(s.design!.busId))useMission.getState().addPart(part.id);
+ useMission.getState().setSettings({presentation:'DETAILED'});
+ const state=useMission.getState();
+ for(const id of Object.keys(tours) as TourId[])expect(stepsForTour(id,state).length).toBeLessThanOrEqual(MAX_TOUR_CARDS);
+ expect(CURRICULUM_TOURS.reduce((sum,id)=>sum+stepsForTour(id,state).length,0)).toBeLessThanOrEqual(CURRICULUM_LIMIT);
 });
-test('every tour step has English and Portuguese copy and stable unique identity',()=>{
- for(const steps of Object.values(tours)) {
-  expect(new Set(steps.map(step=>step.id)).size).toBe(steps.length);
-  for(const step of steps) {
-   expect(english[step.key]).toBeTruthy();expect(portuguese[step.key]).toBeTruthy();
-   if(step.titleKey){expect(english[step.titleKey]).toBeTruthy();expect(portuguese[step.titleKey]).toBeTruthy();}
-  }
+test('every card has a stable unique id, bilingual copy and at least one anchor',()=>{
+ const ids=Object.values(tours).flat().map(step=>step.id);
+ expect(new Set(ids).size).toBe(ids.length);
+ for(const step of Object.values(tours).flat()){
+  for(const part of ['title','body'])for(const copy of [english,portuguese])expect(copy[`tour.card.${step.id}.${part}`]?.trim().length,`${step.id}.${part}`).toBeGreaterThan(0);
+  expect(targetsForStep(step,true).length).toBeGreaterThan(0);
  }
+ for(const key of ['progress','concept','skipIntro','close','offerLabel','sharedClock','pauseTeam','teamPaused'])for(const copy of [english,portuguese])expect(copy[`tour.${key}`]).toBeTruthy();
 });
-test('actual bus categories, installed components and requirements receive steps without mutating the mission',()=>{
- const s=useMission.getState(),before=JSON.stringify({design:s.design,artifacts:s.artifacts,telemetry:s.telemetry});
- const steps=stepsForTour('welcome',s),targets=new Set(steps.map(step=>step.target));
- for(const category of new Set(listParts(s.design!.busId).map(part=>part.category)))expect(targets.has(`slot-${category}`)).toBe(true);
- for(const part of s.design!.parts)expect(targets.has(`component-${part.partId}`)).toBe(true);
- const detailed={...s,settings:{...s.settings,presentation:'DETAILED' as const}},detailedTargets=new Set(stepsForTour('welcome',detailed).map(step=>step.target));
- for(const requirement of missionRequirements(s.design!))expect(detailedTargets.has(`requirement-${requirement.id}`)).toBe(true);
- expect(JSON.stringify({design:s.design,artifacts:s.artifacts,telemetry:s.telemetry})).toBe(before);
+test('tour start, move and end never mutate the authoritative session',()=>{
+ const before=getSessionState();
+ useTourStore.getState().start('build');useTourStore.getState().move(2,conceptIdsFor('build').slice(0,2));useTourStore.getState().end(true,conceptIdsFor('build'));
+ expect(getSessionState()).toBe(before);
 });

@@ -5,12 +5,13 @@ import { ENGINEERING } from '../models';
 import { degrees, planetPosition, radians, type Vec3 } from '../physics';
 import type { FlightState } from './state';
 
+/** Craft-to-Earth-station direction in Earth-centred axes. For a lunar craft this is NOT the lunar nadir. */
 export function earthDirection(s: FlightState): Vec3 {
- if (s.design.orbit!.body === 'MARS') {
-  const e = planetPosition('EARTH',s.t,s.design.orbit!.epochUTC), m = planetPosition('MARS',s.t,s.design.orbit!.epochUTC);
+ if (s.mars) {
+  const e = planetPosition('EARTH',s.t,s.epochUTC), m = planetPosition('MARS',s.t,s.epochUTC);
   return [e[0]-m[0]-s.positionKm[0],e[1]-m[1]-s.positionKm[1],e[2]-m[2]-s.positionKm[2]];
  }
- return s.crew || !s.stationPosKm ? [-s.positionKm[0],-s.positionKm[1],-s.positionKm[2]] : [s.stationPosKm[0]-s.positionKm[0],s.stationPosKm[1]-s.positionKm[1],s.stationPosKm[2]-s.positionKm[2]];
+ return s.crew || !s.stationPosKm ? [-s.earthPosKm[0],-s.earthPosKm[1],-s.earthPosKm[2]] : [s.stationPosKm[0]-s.earthPosKm[0],s.stationPosKm[1]-s.earthPosKm[1],s.stationPosKm[2]-s.earthPosKm[2]];
 }
 export function holdTarget(s: FlightState, mode: PointingMode) {
  if (mode === 'TARGET') return attitudeTargetForDirection([-s.positionKm[0],-s.positionKm[1],-s.positionKm[2]],s.sunDir);

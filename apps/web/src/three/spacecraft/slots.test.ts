@@ -1,13 +1,13 @@
 import { describe, expect, test } from 'bun:test';
-import { computeBudgets, createStarterDesign, listParts, type BusId, type Design, type ScenarioId } from '@astrix/core';
+import { computeBudgets, createStarterDesign, listParts, type BusId, missionById, type BuiltinMissionId, type Design } from '@astrix/core';
 import { BUS_GEOMETRY, SPACECRAFT_SLOTS, instancePosition, slotForPart } from './slots';
 import { installedInstances, isSlotClick, previewInstance, roomProjection, snapProgress } from './model';
 
-const scenarios: Readonly<Record<BusId, ScenarioId>> = {
+const scenarios: Readonly<Record<BusId, BuiltinMissionId>> = {
   CUBESAT_3U: 'FIRST_LIGHT', SMALLSAT: 'RED_RELAY', CREW_CAPSULE: 'CREW_PATHFINDER',
 };
 function designFor(busId: BusId, parts: Design['parts'] = []): Design {
-  return { ...createStarterDesign(scenarios[busId], 'ASPIRING'), parts };
+  return { ...createStarterDesign(missionById(scenarios[busId]), 'ASPIRING'), parts };
 }
 
 describe('spacecraft catalogue/geometry invariants', () => {

@@ -1,90 +1,69 @@
 // Tour infrastructure adapted from Void Protocol at pin 218625d; mission controls/content are original.
-import { listParts, missionRequirements, type JourneyStage } from '@astrix/core';
-import { STAGES, SUBSTEPS, WARPS, type MissionStore } from '../../store';
+import type { JourneyStage } from '@astrix/core';
+import type { MissionStore } from '../../store';
 import type { PanelId } from '../layout/panelLayout';
-import { stageKeys } from '../guide/missionControlModel';
 import type { ControlTray } from '../guide/missionControlState';
-import { journeySteps } from '../guide/nextSteps';
-import { guideContext } from '../guide/missionControlModel';
-import { CAMERA_MODES } from '../../three/camera/modes';
+
 export type TourId='welcome'|'build'|'launch'|'flight'|'debrief'|'choice';
-export interface TourStep { id:string; target:string; compactTarget?:string; key:string; titleKey?:string; values?:Record<string,string|number>; panel?:PanelId; tray?:ControlTray; disclosure?:string; inspect?:string; pilot?:boolean; applicable?:(state:MissionStore)=>boolean }
-const step=(id:string,target:string,titleKey:string,key:string,extra:Partial<TourStep>={}):TourStep=>({id,target,titleKey,key,...extra});
-const navigation:TourStep[]=[
- ...['briefing','build','test','fly','debrief'].map(id=>step(`chapter-${id}`,`chapter-${id}`,`hud.chapter.${id}`,'control.tour.chapter',{compactTarget:'control-stage'})),
- ...STAGES.flatMap(stage=>SUBSTEPS[stage].map(substep=>step(`view-${stage}-${substep}`,'control-stage',`control.${substep==='requirements'?'requirementsView':substep}`,'control.tour.stage',{values:{stage:stageKeys[stage]}}))),
- ...(['mission','readiness','review','log'] as const).map(id=>step(`panel-${id}`,`control-panel-${id}`,id==='mission'?'hud.workshop':id==='readiness'?'hud.details':id==='review'?'ui.panelReview':'ui.events','control.tour.panel')),
-];
-const controller:TourStep[]=[
- step('context','control-context','control.title','control.tour.context'),
- step('primary','primary','flow.next','control.tour.primary'),
- step('explain','control-explain','ui.explain','control.tour.explain'),
- step('requirements','control-requirements','control.requirements','control.tour.requirements',{tray:'requirements'}),
- ...['SCI-DATA-01','LAUNCH-MASS-01','SCI-PAYLOAD-01','POWER-ECLIPSE-01'].map(id=>step(id,`requirement-${id}`,`hud.requirement.${id}`,'control.tour.requirement',{tray:'requirements'})),
- step('evidence','requirements-evidence','hud.details','control.tour.evidence',{tray:'requirements',disclosure:'requirements-evidence',applicable:s=>s.settings.presentation!=='DETAILED'}),
- step('requirements-explain','requirements-explain','ui.explain','control.tour.explain',{tray:'requirements'}),
- step('checklist','control-checklist','control.checklist','control.tour.checklist',{tray:'checklist'}),
- step('checklist-items','checklist-items','hud.nextStep','control.tour.checklistItems',{tray:'checklist'}),
- step('close','control-close','control.close','control.tour.close',{tray:'checklist'}),
- ...navigation,
- ...['mass','power','budget','data','comms','time','crew'].map(id=>step(`resource-${id}`,`resource-${id}`,`flow.${id}`,'control.tour.resources')),
- step('resources-compact','resources-compact','hud.compactResources','control.tour.resources'),
- ...CAMERA_MODES.map(mode=>step(`camera-mode-${mode}`,'camera-mode',`flight.${mode}`,'control.tour.camera')),
- ...['zoomOut','zoomIn','fit'].map(action=>step(`camera-${action}`,`camera-${action}`,`scene.${action}`,'control.tour.camera')),
- step('camera-options','camera-options','scene.controls','control.tour.camera',{disclosure:'camera-options'}),
- ...['left','right','up','down','panLeft','panRight','panUp','panDown','focus','body','plane','station','reset'].map(action=>step(`camera-${action}`,`camera-${action}`,['body','plane','station'].includes(action)?`flight.${action}`:`scene.${action}`,'control.tour.camera',{disclosure:'camera-options'})),
- step('camera-explore','camera-explore','scene.explore','control.tour.camera',{applicable:()=>typeof matchMedia==='function'&&matchMedia('(any-pointer: coarse)').matches}),
- step('help','topbar','hud.help','control.tour.help'),
-];
-const slots:TourStep[]=[
- step('slots','control-slots','control.slots','control.tour.slots',{tray:'slots'}),
- ...['exploded','dimensions','turntable'].map(id=>step(`slot-${id}`,`slot-${id}`,`flight.${id}`,'control.tour.presentation',{tray:'slots',applicable:s=>!s.sim})),
- ...['BATTERY','SOLAR','COMPUTER','STORAGE','ADCS','RADIO','INSTRUMENT','PROPULSION','THERMAL'].map(category=>step(`slot-${category}`,`slot-${category}`,`flight.cat${category}`,'control.tour.category',{tray:'slots',applicable:s=>!s.sim&&!!s.design&&listParts(s.design.busId).some(part=>part.category===category)})),
-];
+/** Whole-product cap on the automatic first-mission curriculum, and the cap for any single rendered tour. */
+export const CURRICULUM_LIMIT=15;
+export const MAX_TOUR_CARDS=15;
+export const CURRICULUM_TOURS=['welcome','build','launch','flight','debrief'] as const satisfies readonly TourId[];
+/**
+ * One concept card. `id` is the stable concept identity used for completion/dismissal and copy
+ * (`tour.card.<id>.title|body`). Targets are a *group* anchor: the first visible candidate is spotlighted.
+ */
+export interface TourStep {
+ readonly id:string;
+ /** Position in the 15-concept curriculum; `null` for optional contextual cards. */
+ readonly concept:number|null;
+ readonly target:string;
+ readonly fallbacks?:readonly string[];
+ readonly compactTarget?:string;
+ readonly panel?:PanelId;
+ readonly tray?:ControlTray;
+ /** Concepts that do not apply to a learning profile are omitted, never replaced by control inventories. */
+ readonly applicable?:(state:MissionStore)=>boolean;
+}
+const card=(id:string,concept:number|null,target:string,extra:Partial<TourStep>={}):TourStep=>({id,concept,target,...extra});
 export const tours:Record<TourId,readonly TourStep[]>={
- welcome:[...controller,...slots],
- build:[...slots,
-  step('guided','parts-guided','ui.allParts','control.tour.allParts',{panel:'mission'}),
-  step('parts','parts','hud.workshop','control.tour.parts',{panel:'mission'}),
-  step('preview','preview','ui.preview','control.tour.preview',{panel:'mission'}),
-  step('orbit','control-stage','hud.chooseOrbit','control.tour.orbit'),
-  step('freeze','freeze','flow.freeze','control.tour.freeze',{panel:'mission'}),
-  ...controller,
+ welcome:[
+  card('mission',1,'control-requirements',{tray:'requirements',fallbacks:['control-context']}),
+  card('control',2,'primary',{fallbacks:['control-context']}),
+  card('workspace',3,'control-stage',{fallbacks:['control-panel-mission']}),
+ ],
+ build:[
+  card('hardware',4,'control-slots',{tray:'slots',fallbacks:['parts','control-panel-mission']}),
+  card('compare',5,'parts',{panel:'mission',fallbacks:['preview','control-panel-mission']}),
+  card('path',6,'control-stage',{fallbacks:['orbit','control-panel-mission']}),
+  card('requirements',7,'control-requirements',{tray:'requirements',fallbacks:['control-context']}),
+  card('freeze',8,'freeze',{panel:'mission',fallbacks:['trade','control-panel-mission']}),
  ],
  launch:[
-  step('return-build','return-build','hud.returnBuild','control.tour.returnBuild',{panel:'mission'}),
-  step('dry-run','dry-run','forecast.title','control.tour.forecast',{panel:'mission',applicable:s=>s.activeStage==='BUILD_VERIFY'}),
-  step('checks','verification','hud.checklist','control.tour.checks',{panel:'mission',applicable:s=>s.activeStage==='BUILD_VERIFY'}),
-  step('launch','primary','hud.goForLaunch','control.tour.launch'),...controller,
+  card('verify',9,'verification',{panel:'mission',fallbacks:['readiness','control-checklist','control-panel-mission']}),
+  card('commit',10,'primary',{fallbacks:['control-context']}),
  ],
  flight:[
-  step('flight','control-flight','control.flight','control.tour.flight',{tray:'flight'}),
-  step('edge','timeline-edge','control.next','control.tour.edge'),
-  step('contact','timeline-contact','ui.contact','control.tour.contact'),
-  step('advance','timeline-advance','flight.next','control.tour.advance'),
-  step('timeline-toggle','timeline-toggle','flight.timelineToggle','control.tour.timeline',{tray:'flight',disclosure:'timeline-toggle'}),
-  ...['sun','target','earth','downlink','safe','deploy'].map(id=>step(`command-${id}`,`hotbar-${id}`,`flight.${id}`,'control.tour.command',{tray:'flight',applicable:s=>id!=='deploy'||!!s.telemetry&&['STOWED','ANOMALOUS'].some(status=>s.telemetry!.deployment.wings===status||s.telemetry!.deployment.antenna===status)})),
-  step('pilot','pilot','flight.pilot','control.tour.pilot',{tray:'flight'}),
-  ...['rollLeft','pitchUp','rollRight','yawLeft','pitchDown','yawRight'].map(axis=>step(`pilot-${axis}`,`pilot-${axis}`,`flight.${axis}`,'control.tour.pilot',{tray:'flight',pilot:true})),
-  ...WARPS.map(speed=>step(`warp-${speed}`,'time-warp','flight.warp','control.tour.warp',{tray:'flight',values:{speed}})),
-  step('event','time-event','flight.next','control.tour.event',{tray:'flight',applicable:s=>!s.telemetry?.cruise&&!s.telemetry?.capturePending}),
-  step('receipts','receipts','flight.receipt','control.tour.receipts',{tray:'flight'}),...controller,...slots,
+  card('observe',11,'camera-mode',{fallbacks:['control-flight']}),
+  card('advance',12,'timeline-advance',{tray:'flight',fallbacks:['timeline-edge','primary']}),
+  card('systems',13,'resource-power',{fallbacks:['resources-compact','resources']}),
  ],
- debrief:[step('score','score','ui.report','control.tour.score',{panel:'mission'}),step('replay','replay','flow.replayHistory','control.tour.replay',{panel:'mission'}),step('redesign','redesign','flow.redesign','control.tour.redesign',{panel:'mission'}),...controller,...slots],
- choice:[step('choice-tour','choice-tour','control.tourQuote','control.tour.choiceOffer',{panel:'mission'}),step('comparison','choice-preview','ui.preview','control.tour.comparison',{panel:'mission'}),step('install','confirm','control.confirm','control.tour.install',{panel:'mission'}),step('cancel','choice-cancel','ui.cancel','control.tour.cancel',{panel:'mission'})],
+ debrief:[
+  card('result',14,'score',{panel:'mission',fallbacks:['control-panel-mission']}),
+  card('iterate',15,'redesign',{panel:'mission',fallbacks:['control-panel-mission']}),
+ ],
+ // Optional, explicitly requested; never chained onto the curriculum.
+ choice:[card('choice',null,'choice-preview',{panel:'mission',fallbacks:['choice-tour','parts','orbit','control-panel-mission']})],
 };
+/** Stable ids of every concept in a tour regardless of state-dependent applicability. */
+export function conceptIdsFor(id:TourId):readonly string[] {return tours[id].map(step=>step.id);}
 export function stepsForTour(id:TourId,state:MissionStore):readonly TourStep[] {
- const steps=tours[id].filter(item=>!item.applicable||item.applicable(state));
- if(!state.design||!['welcome','build','flight','debrief'].includes(id))return steps;
- const parts=listParts(state.design.busId),installed=state.design.parts.map(item=>parts.find(part=>part.id===item.partId)).filter(part=>!!part);
- const ctx=guideContext(state),checklist=ctx?journeySteps(ctx):[],first=installed[0];
- return [...steps,
-  ...missionRequirements(state.design,state.sim??undefined).filter(requirement=>state.settings.presentation==='DETAILED'&&!['SCI-DATA-01','LAUNCH-MASS-01','SCI-PAYLOAD-01','POWER-ECLIPSE-01'].includes(requirement.id)).map(requirement=>step(requirement.id,`requirement-${requirement.id}`,`hud.requirement.${requirement.id}`,'control.tour.requirement',{tray:'requirements'})),
-  ...checklist.map(item=>step(`checklist-${item.id}`,`checklist-${item.id}`,item.titleKey,'control.tour.checklistItems',{tray:'checklist',values:{...item.values}})),
-  ...installed.map(part=>step(`component-${part.id}`,`component-${part.id}`,part.nameKey,'control.tour.component',{tray:'slots'})),
-  ...(first?[step('component-close','component-close','inspector.close','control.tour.component',{inspect:first.id,panel:'part'}),...(!state.sim&&state.activeStage==='DESIGN'?[step('component-find','component-find','inspector.findInWorkshop','control.tour.component',{inspect:first.id,panel:'part'})]:[])]:[]),
- ];
+ return tours[id].filter(step=>!step.applicable||step.applicable(state));
 }
 export function surfaceTour(stage:JourneyStage,hasFlight:boolean):TourId {
  return stage==='REVIEW'?'debrief':hasFlight?'flight':stage==='BUILD_VERIFY'||stage==='IMPLEMENT'?'launch':stage==='DESIGN'?'build':'welcome';
+}
+/** Candidate anchors in preference order for the current layout. */
+export function targetsForStep(step:TourStep,compact:boolean):readonly string[] {
+ return [...(compact&&step.compactTarget?[step.compactTarget]:[]),step.target,...(step.fallbacks??[])];
 }

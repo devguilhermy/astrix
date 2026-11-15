@@ -10,7 +10,7 @@ export function canAct(state:SessionState,actor:SessionActor,role?:RoleId):boole
 export function decisionOwner(event:SimEvent,command?:Command):RoleId {
  if(command&&(event.kind==='COMMAND_EXPIRED'||event.kind==='COMMAND_REFUSED'))return commandRole(command);
  switch(event.kind){
- case 'CAPTURE_DONE':case 'CAPTURE_BURN':case 'MISSION_END':case 'CREW_DEORBIT':case 'CREW_RECOVERY':return 'LAUNCH_ORBIT';
+ case 'LIFTOFF':case 'STAGE_SEPARATION':case 'ORBIT_INSERTION':case 'BURN_EXECUTED':case 'SOI_ENTRY':case 'SOI_EXIT':case 'ENCOUNTER_CLOSEST':case 'SURFACE_IMPACT':case 'ENTRY_INTERFACE':case 'ASCENT_FAILED':case 'CAPTURE_DONE':case 'CAPTURE_BURN':case 'MISSION_END':case 'CREW_DEORBIT':case 'CREW_RECOVERY':return 'LAUNCH_ORBIT';
  case 'PASS_START':case 'PASS_END':case 'GROUND_OUTAGE':case 'LINK_DEGRADED':case 'LINK_RECOVERED':case 'COMMAND_EXPIRED':case 'COMMAND_REFUSED':return 'GROUND_COMMS';
  case 'STORAGE_NEAR_FULL':case 'OBJECTIVE_MET':return 'SCIENCE';
  default:return 'SPACECRAFT';

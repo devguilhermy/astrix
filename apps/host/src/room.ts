@@ -1,7 +1,10 @@
-import { createSession, reduceSession, tickSession, toPublicSnapshot, selectHistoryPage, parseClientMessage, PROTOCOL_VERSION, ROLES, type ParseResult, type SessionState, type SessionIntent, type SessionActor, type ServerMessage, type ClientMessage, type TransportCode } from '@astrix/session';
+import { createHash } from 'node:crypto';
+import { createSession, reduceSession, tickSession, toPublicSnapshot, selectHistoryPage, parseClientMessage, messageByteLimit, PROTOCOL_VERSION, ROLES, type ParseResult, type SessionState, type SessionIntent, type SessionActor, type ServerMessage, type ClientMessage, type TransportCode } from '@astrix/session';
 import { secret, WsTickets } from './auth/wsTicket';
 import { RoomQueue } from './clock';
-import { RateLimit, MAX_FRAME_BYTES, MAX_BUFFER_BYTES } from './security/rateLimit';
+import { RateLimit, MAX_WS_FRAME_BYTES, MAX_BUFFER_BYTES } from './security/rateLimit';
+/** Control-ledger fingerprints are hashed: a 40 KB definition frame times thousands of ledger entries must not live in memory verbatim. */
+const fingerprintOf = (text: string): string => createHash('sha256').update(text).digest('hex');
 export interface Peer { send(data: string): number; close(code: number, reason: string): void; getBufferedAmount(): number }
 interface Device { id:string; playerId:string; credential:string; host:boolean; peer:Peer|null; hello:boolean; lastSeen:number; disconnectedAt:number|null; offline:boolean; pendingSnapshot:string|null }
 interface Pending { id:string; name:string; credential:string; created:number }
@@ -48,11 +51,22 @@ export class Room {
   detach(deviceId:string, peer:Peer):void { const d=this.devices.get(deviceId); if(!d || d.peer!==peer)return; d.peer=null;d.hello=false;d.disconnectedAt=this.now();if(d.host)this.queue.enqueue(()=>{this.apply({kind:'PAUSE',reason:'host-display-disconnected'});this.apply({kind:'SET_PRESENCE',playerId:d.playerId,connected:false});this.broadcast();}); }
   receive(deviceId:string, peer:Peer, raw:string|Uint8Array):void {
     const d=this.devices.get(deviceId);if(!d||d.peer!==peer)return;
-    if(typeof raw!=='string'||new TextEncoder().encode(raw).length>MAX_FRAME_BYTES){peer.close(1009,'BAD_MESSAGE');return;}
+    if(typeof raw!=='string'){peer.close(1003,'BAD_MESSAGE');return;}
+    const bytes=new TextEncoder().encode(raw).length;
+    if(bytes>MAX_WS_FRAME_BYTES){peer.close(1009,'BAD_MESSAGE');return;}
     if(!this.frames.consume(deviceId)){peer.close(1008,'RATE_LIMITED');return;}
-    let parsed:ParseResult;try{const input:unknown=JSON.parse(raw);if(input&&typeof input==='object'&&'type'in input&&input.type==='HELLO'&&'protocol'in input&&input.protocol!==PROTOCOL_VERSION){peer.close(4406,'VERSION_MISMATCH');return;}parsed=parseClientMessage(input);}catch{peer.close(1008,'BAD_MESSAGE');return;}
-    if(!parsed.ok){peer.close(1008,'BAD_MESSAGE');return;}const message=parsed.value;
-    if(!this.queue.enqueue(()=>{if(d.peer===peer&&this.devices.has(d.id))this.dispatch(d,message);})){peer.close(1008,'RATE_LIMITED');}
+    let input:unknown;try{input=JSON.parse(raw);}catch{peer.close(1008,'BAD_MESSAGE');return;}
+    if(input&&typeof input==='object'&&'type'in input&&input.type==='HELLO'&&'protocol'in input&&input.protocol!==PROTOCOL_VERSION){peer.close(4406,'VERSION_MISMATCH');return;}
+    // A malformed or oversized frame that still names itself is answered, not punished: closing would look like a terminal credential failure to the client.
+    const id=input&&typeof input==='object'&&'id'in input&&typeof input.id==='string'&&input.id.length>0&&input.id.length<=128?input.id:null;
+    const bad=():void=>{if(id)this.reject(d,id,'BAD_MESSAGE');else peer.close(1008,'BAD_MESSAGE');};
+    if(bytes>messageByteLimit(input)){bad();return;}
+    const parsed:ParseResult=parseClientMessage(input);
+    if(!parsed.ok){bad();return;}const message=parsed.value;
+    if(!this.queue.enqueue(()=>{
+      if(d.peer!==peer||!this.devices.has(d.id))return;
+      try{this.dispatch(d,message);}catch(error){console.error('ASTRIX: message handler failed; refusing it.',error);if('id'in message)this.reject(d,message.id,'BAD_MESSAGE');}
+    })){peer.close(1008,'RATE_LIMITED');}
   }
   private send(d:Device,message:ServerMessage):void {
     if(message.type==='RESULT'){const entry=this.controls.get(`${d.id}:${message.id}`);if(entry&&!entry.message)entry.message=message;}
@@ -73,7 +87,7 @@ export class Room {
     if(m.type==='GET_RESULTS'){for(const id of m.ids){const result=this.state.results[`${d.id}:${id}`]?.result,control=this.controls.get(`${d.id}:${id}`)?.message;if(result)this.send(d,{type:'RESULT',id,...result});else if(control)this.send(d,control);else this.reject(d,id,'OUTCOME_UNKNOWN');}return;}
     if(m.type==='GET_HISTORY'){this.send(d,{type:'HISTORY',id:m.id,page:selectHistoryPage(this.state,m.cursor)});return;}
     if('id'in m){
-    const key=`${d.id}:${m.id}`,fingerprint=JSON.stringify(m),saved=this.controls.get(key);
+    const key=`${d.id}:${m.id}`,fingerprint=fingerprintOf(JSON.stringify(m)),saved=this.controls.get(key);
     if(saved){if(saved.fingerprint!==fingerprint)this.reject(d,m.id,'DUPLICATE_ID');else if(saved.message)this.send(d,saved.message);return;}
     if(this.controls.size>=10000){this.reject(d,m.id,'RATE_LIMITED');return;}
     this.controls.set(key,{fingerprint,message:null});
@@ -92,7 +106,7 @@ export class Room {
       const actor={...this.actor(d),role:m.actor.role};
       const next=reduceSession(this.state,m,actor);this.state=next.state;
       if(next.result.ok&&next.result.quote)this.quoteExpiry.set(next.result.quote.quoteId,this.now()+30000);
-      if(next.result.ok&&m.intent.kind==='START_SCENARIO')this.locked=true;
+      if(next.result.ok&&(m.intent.kind==='START_MISSION'||m.intent.kind==='START_DEFINITION'))this.locked=true;
       this.send(d,{type:'RESULT',id:m.id,...next.result});this.broadcast();return;
     }
     if(m.type==='READY'){const next=reduceSession(this.state,{kind:'SET_READY',ready:m.ready,rosterRevision:m.rosterRevision},this.actor(d));this.state=next.state;if(!next.result.ok)this.send(d,{type:'RESULT',id:'ready',...next.result});this.broadcast();return;}
@@ -103,14 +117,21 @@ export class Room {
       const playerId=this.state.participantMode==='SOLO'?'host':p.id;
       if(this.state.participantMode==='TEAM'&&!this.apply({kind:'ADD_PLAYER',playerId,name:p.name})){this.reject(d,m.id,'UNAUTHORIZED');return;}
       this.pending.delete(p.id);this.devices.set(p.id,{id:p.id,playerId,credential:p.credential,host:false,peer:null,hello:false,lastSeen:this.now(),disconnectedAt:this.now(),offline:false,pendingSnapshot:null});
-    }else if(m.type==='KICK'){if(m.deviceId==='host'){this.reject(d,m.id,'HOST_ONLY');return;}this.revoke(m.deviceId);
+    }else if(m.type==='KICK'){
+      if(m.deviceId==='host'){this.reject(d,m.id,'HOST_ONLY');return;}
+      // A pending join request is denied; an admitted device is revoked; anything else is an explicit miss, never a silent success.
+      const denied=this.pending.delete(m.deviceId);
+      if(!denied){if(!this.devices.has(m.deviceId)){this.reject(d,m.id,'NOT_FOUND');return;}this.revoke(m.deviceId);}
     }else if(m.type==='ROTATE_JOIN_TOKEN'){this.invitation=secret();this.invitationExpiry=this.now()+900000;this.state={...this.state,seq:this.state.seq+1};
     }else if(m.type==='ASSIGN_ROLE'){const result=reduceSession(this.state,{kind:'ASSIGN_ROLE',role:m.role,playerId:m.playerId,rosterRevision:m.rosterRevision},this.actor(d));this.state=result.state;this.send(d,{type:'RESULT',id:m.id,...result.result});this.broadcast();return;
     }else if(m.type==='ROTATE_FACILITATOR'){const result=reduceSession(this.state,{kind:'ROTATE_FACILITATOR',rosterRevision:m.rosterRevision},this.actor(d));this.state=result.state;this.send(d,{type:'RESULT',id:m.id,...result.result});this.broadcast();return;}
     this.send(d,{type:'RESULT',id:m.id,ok:true,seq:this.state.seq,receiptIds:[]});this.broadcast();
   }
   private revoke(deviceId:string):void {const d=this.devices.get(deviceId);if(!d||d.host)return;this.tickets.revoke(d.id);this.devices.delete(d.id);d.peer?.close(4403,'KICKED');if(d.playerId!=='host'){this.apply({kind:'SET_PRESENCE',playerId:d.playerId,connected:false});if(this.state.roster.some(p=>p.id===d.playerId&&p.roles.length))this.apply({kind:'PAUSE',reason:`controller-disconnected:${d.id}`});}}
-  admin(credential:string,action:'lock'|'unlock'|'host-only'|'solo'|'team'):void {const d=this.authenticate(credential);if(!d.host)this.fail('HOST_ONLY');if(!this.queue.enqueue(()=>{
+  admin(credential:string,action:'lock'|'unlock'|'host-only'|'solo'|'team'):void {const d=this.authenticate(credential);if(!d.host)this.fail('HOST_ONLY');
+    // Mode changes are only meaningful for a lone host before any mission exists; anything else is refused, not acknowledged and ignored.
+    if((action==='solo'||action==='team')&&(this.devices.size!==1||this.state.design||this.state.sim))this.fail('JOIN_LOCKED');
+    if(!this.queue.enqueue(()=>{
     if(action==='lock'||action==='unlock'){this.locked=action==='lock';this.state={...this.state,seq:this.state.seq+1};}
     if(action==='solo'||action==='team'){
       if(this.devices.size!==1||this.state.design||this.state.sim)return;

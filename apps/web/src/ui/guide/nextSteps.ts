@@ -1,5 +1,6 @@
 import { computeBudgets, evaluateJourneyStage, missionRequirements, listParts, type ActiveCue, type Design, type JourneyStage, type MissionArtifacts, type RoleId, type SimEvent, type SimState, type Telemetry } from '@astrix/core';
 import type { PanelId } from '../layout/panelLayout';
+import { startsOnSurface } from '../missions/definitionView';
 
 export interface GuideContext {
  design: Design; artifacts: MissionArtifacts; stage: JourneyStage;
@@ -51,7 +52,7 @@ export function journeySteps(context: GuideContext): NextStep[] {
    const r=requirements.find(item=>item.id===id)!;
    const [target,section]=requirementTargets[id];
    const part=id==='SCI-PAYLOAD-01'?listParts(design.busId).find(p=>p.id===r.target):undefined;
-   add({id,owner:r.owner,titleKey:id==='SCI-PAYLOAD-01'&&design.scenarioId==='FIRST_LIGHT'?'hud.guide.camera':`hud.guide.${id}`,target:part?`part-${part.id}`:target,panel:'mission',section,sceneTarget:id==='SCI-PAYLOAD-01'?'INSTRUMENT':section,done:c=>missionRequirements(c.design).find(item=>item.id===id)?.result==='PASS'});
+   add({id,owner:r.owner,titleKey:id==='SCI-PAYLOAD-01'&&part?.metric==='IMAGES'?'hud.guide.camera':`hud.guide.${id}`,target:part?`part-${part.id}`:target,panel:'mission',section,sceneTarget:id==='SCI-PAYLOAD-01'?'INSTRUMENT':section,done:c=>missionRequirements(c.design).find(item=>item.id===id)?.result==='PASS'});
   }
   for (const cue of cues.filter(c=>c.severity===3)) add({id:cue.id,owner:cue.role,titleKey:`cue.${cue.ruleId}.title`,hintKey:`cue.${cue.ruleId}.body`,values:cue.params,target:cue.ruleId==='DV_SHORT'?'fuel-planner':'parts',panel:'mission',section:cue.ruleId==='DV_SHORT'?'orbit':cueSection[cue.ruleId],sceneTarget:cueSection[cue.ruleId],done:c=>!c.cues.some(item=>item.id===cue.id)});
  }
@@ -60,7 +61,7 @@ export function journeySteps(context: GuideContext): NextStep[] {
   const target=blocker.id==='TRADE'?'parts':blocker.id==='VERIFY'||blocker.target==='readiness'?'verification':blocker.target;
   add({id:blocker.values.role?`${blocker.id}:${blocker.values.role}`:blocker.id,owner:typeof blocker.values.role==='string'&&['SCIENCE','SPACECRAFT','LAUNCH_ORBIT','GROUND_COMMS'].includes(blocker.values.role)?blocker.values.role as RoleId:blockerOwner[blocker.id]??'ALL',titleKey:`hud.guide.blocker.${blocker.id}`,hintKey:blocker.messageKey,target,panel:'mission',values:blocker.values,done:c=>!evaluateJourneyStage(c.design,c.artifacts,c.stage,c.signoffs,c.sim).some(b=>b.id===blocker.id&&JSON.stringify(b.values)===JSON.stringify(blocker.values))});
  }
- if (stage==='DESIGN') add({id:'orbit-choice',owner:'LAUNCH_ORBIT',titleKey:'hud.guide.orbit',target:'orbit',panel:'mission',section:'orbit',done:c=>c.design.orbit!==null});
+ if (stage==='DESIGN') add(startsOnSurface(design.definition)?{id:'launch-plan',owner:'LAUNCH_ORBIT',titleKey:'hud.guide.launchPlan',target:'orbit',panel:'mission',section:'orbit',done:c=>c.design.launch!==null}:{id:'orbit-choice',owner:'LAUNCH_ORBIT',titleKey:'hud.guide.orbit',target:'orbit',panel:'mission',section:'orbit',done:c=>c.design.orbit!==null});
  if (designStage) {
   let objectiveSection='INSTRUMENT';
   if(cues.some(cue=>cue.ruleId==='OBJECTIVE_UNREACHABLE')) {

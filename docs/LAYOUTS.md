@@ -4,7 +4,7 @@ The persistent Canvas is the main surface. `Simulator` composes a compact identi
 
 ## Shell and bottom mission control
 
-Home/setup retain static SVG, four scenarios, language/sound/motion and shared-screen roles. Setup now presents Aspiring/Expert as icon-bearing, explicitly selected toggle cards with their unchanged rule descriptions. Team setup starts expanded; each player has a horizontal responsibility column that reflows on narrow screens. Native role dropdowns swap owners, while Add responsibility preserves the existing multi-role allocation model; no role is lost or duplicated. The local-start card explains solo/shared-screen play and uses the existing preparation callback. The separate `/host` link remains LAN entry, not an implied running server. Preparation/commit/rollback and one retained Canvas are unchanged. TopBar contains brand, mission/level, Help and Settings only: no Continue or progress-dot navigation.
+Setup separates Learn, Challenge and Expert Create. Learn offers short, scoped missions; Challenge retains the four original briefs; Create opens the local mission library and editor. Aspiring/Expert remain explicit level cards. Team setup starts expanded with reflowing player columns and role dropdowns that preserve one owner per discipline. Local start and `/host` remain distinct entry paths. Preparation/commit/rollback and the retained Canvas remain unchanged. TopBar contains identity, Help and Settings, not a competing Continue. These rules-v5 surfaces are awaiting integration/browser verification.
 
 `MissionControl` owns the sole `#mission-primary`: Show me for a real blocker, Continue, Go for launch, Launch, event advance/cancel, pause/resume, capture confirmation, pending-decision focus or terminal Review. Guidance names the task and owner once. Refusals and independent pause reasons remain visible; opening help or closing a tour never automatically resumes.
 
@@ -39,11 +39,17 @@ Pointer/touch geometry gestures start only at handles; pointer capture, Escape a
 
 ## Tours, scientific help and recovery
 
-Device-local `astrix.tours.v2` records Welcome, Build, Launch, Flight, Debrief and contextual Choice independently. The new version intentionally offers the new controls even to devices that finished the former shorter tours. Aspiring auto-starts after scene readiness; Expert receives an offer. Every card shows n/N, Back/Next and Skip/Finish; arrows/Enter/Escape remain. Help replays available tours; an actual quote offers its own Install/Cancel/Comparison tour rather than substituting Parts for a missing confirmation.
+The automatic first-mission curriculum contains **15 concept cards total**, split Welcome 3, Build 5, Launch 2, Flight 3 and Debrief 2. This is not a separate allowance of 15 per stage. The optional Choice card is Help-only and never extends the automatic chain. Cards group related controls and use visible target alternatives rather than enumerating every control.
 
-Each step names one control. Definitions include every chapter/stage/substep, panel route, slot toggle/category, actual installed component, requirement/evidence route, checklist task, resource, camera alternative, command, pilot axis and warp speed. Applicability is based on actual bus/stage/flight state; tours reveal presentation disclosures and view-only component inspection, never manufacture a quote or issue commands. Presentation tray/tool/disclosure/pilot/inspection state is restored on exit. In-flight tours add and remove only pause reason `tour`; no auto-resume. Coverage-manifest tests guard this inventory.
+`astrix.tour-concepts.v3` stores concept completion and a curriculum-wide opt-out; older history remains readable so prior skips are respected. Skip, Escape or declining the Expert offer suppresses remaining automatic interruptions. Help replay does not erase that choice. Tours reveal only device-local trays, disclosures and inspection state, restoring them on exit; they never change stage/substep, mission, hardware, approvals or commands. Static tours add/remove their own pause without auto-resume. LAN tours do not pause the shared clock and instead expose an explicit team-pause action.
 
 Modal retains inert/focus trapping and connected-opener return. Scientific Explain keeps one immutable opening snapshot and uses `showWindow`/controller reveal for real destinations. ErrorBoundary surrounds stage tools, not Canvas/HUD; local retry clears only its `error` reason. Help and mission control remain reachable.
+
+## Mission Studio and trajectory planning
+
+`ui/create/MissionStudio.tsx` groups identity, vehicle, environment, start, trajectory/support, objectives, termination and review. Field issues use stable schema paths and focusable destinations. Save retains an editable draft; Publish creates an immutable revision; Export validates before download; Fly validates current input before preparing an attempt. Storage and import failures are explicit. Neither a deferred validation badge nor a stale preview authorizes execution.
+
+`ui/flightplan/` provides launcher/ascent and burn controls, preview outcomes, trajectory plots and flown records. Heavy recommendations/previews use cancellable workers; replacing the request or design invalidates stale results. Applying a result requires a normal authorized quote/commit. Predicted paths and planned burns remain visually distinct from flown samples and executed events.
 
 ## LAN surfaces and device-local presentation
 

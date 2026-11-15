@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { english, portuguese } from './resources';
 import uiManifest from './uiKeys.json';
 import { CORE_I18N_KEYS, CATALOG_I18N_KEYS } from '@astrix/core/i18nKeys';
-import { listParts, listRides, listScenarios, listSources, listAssumptions, listOrbitPresets, createStarterDesign } from '@astrix/core';
+import { listParts, listRides, listMissions, listSources, listAssumptions, listOrbitPresets, createStarterDesign } from '@astrix/core';
 import { SCIENCE_BINDINGS, SCIENCE_TOPICS } from '@astrix/data';
 
 
@@ -42,9 +42,10 @@ describe('complete bilingual mission content', () => {
       for (const part of listParts(bus)) contexts.push(`part.${part.id}`, `category.${part.category}`);
       for (const body of ['EARTH','MARS'] as const) for (const ride of listRides(bus, body)) contexts.push(`ride.${ride.id}`);
     }
-    for (const scenario of listScenarios()) {
-      contexts.push(`mission.${scenario.id}`, `metric.${scenario.metric}`);
-      for (const preset of listOrbitPresets(createStarterDesign(scenario.id, 'ASPIRING'))) contexts.push(`preset.${preset.id}`);
+    for (const mission of listMissions({ origin: 'BUILTIN' })) {
+      contexts.push(`mission.${mission.id}`);
+      for (const objective of mission.objectives) if (objective.spec.kind === 'DELIVERED_PRODUCT') contexts.push(`metric.${objective.spec.metric}`);
+      for (const preset of listOrbitPresets(createStarterDesign(mission, 'ASPIRING'))) contexts.push(`preset.${preset.id}`);
     }
     for (const key of CORE_I18N_KEYS) {
       if (/^(cue|event|failure)\./.test(key)) contexts.push(key.split('.').slice(0,2).join('.'));

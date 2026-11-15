@@ -1,4 +1,8 @@
-export const MAX_FRAME_BYTES = 8192;
+import { MAX_CLIENT_FRAME_BYTES, MAX_DEFINITION_FRAME_BYTES } from '@astrix/session';
+/** HTTP bodies and ordinary WebSocket frames. */
+export const MAX_FRAME_BYTES = MAX_CLIENT_FRAME_BYTES;
+/** WebSocket transport ceiling: only START_DEFINITION / SUBMIT_DEFINITION may exceed MAX_FRAME_BYTES, and the session parser enforces that per type. */
+export const MAX_WS_FRAME_BYTES = MAX_DEFINITION_FRAME_BYTES;
 export const MAX_QUEUE = 256;
 export const MAX_BUFFER_BYTES = 256 * 1024;
 /** Bounded fixed windows; callers allow multiple devices per IP. Boundary bursts are possible. */
@@ -15,10 +19,12 @@ export class RateLimit {
     return ++entry.count <= this.limit;
   }
 }
-export function requestBoundary(request: Request, host: string, originRequired: boolean): boolean {
-  if (request.headers.get('host') !== host || new URL(request.url).host !== host) return false;
+/** `host` may list several accepted authorities (e.g. 127.0.0.1:p and localhost:p); the request must be internally consistent with one of them. */
+export function requestBoundary(request: Request, host: string | readonly string[], originRequired: boolean): boolean {
+  const requested = request.headers.get('host'), accepted = typeof host === 'string' ? [host] : host;
+  if (requested === null || !accepted.includes(requested) || new URL(request.url).host !== requested) return false;
   const origin = request.headers.get('origin');
-  return originRequired ? origin === `http://${host}` : origin === null || origin === `http://${host}`;
+  return originRequired ? origin === `http://${requested}` : origin === null || origin === `http://${requested}`;
 }
 /** Reject before parsing; do not trust Content-Length alone. */
 export async function readJson(request: Request): Promise<unknown> {

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'bun:test';
 import { RADLAB_PROFILE } from '@astrix/data';
 import type { SimState } from '../contracts';
-import { MODEL, createStarterDesign } from '../catalog';
+import { MODEL } from '../catalog';
+import { createStarterDesign, missionById } from '../mission/library';
 import { computeBudgets, quoteAddPart, quoteRemovePart, quoteSetPropellant } from '../design';
 import { DAY, hohmann, lightTime, rocketDeltaV } from '../physics';
 import { next } from '../rng';
@@ -109,7 +110,7 @@ describe('deterministic, immutable flight transactions', () => {
   expect(state.dataLostMB).toBeGreaterThan(0);
  });
  it('distinguishes low battery from brownout, forces SAFE and captures the first immutable fatal facts', () => {
-  const base = accepted(quoteAddPart(createStarterDesign('FIRST_LIGHT', 'ASPIRING'), 'CAM_EO', 'ALL')).next;
+  const base = accepted(quoteAddPart(createStarterDesign(missionById('FIRST_LIGHT'), 'ASPIRING'), 'CAM_EO', 'ALL')).next;
   const d = accepted(quoteRemovePart(base, 'SOLAR_BODY', 'ALL')).next;
   let state = createSim(d, 42), low = 0, brownouts = 0;
   while (!telemetry(state).ended && state.t < 2 * DAY) {
@@ -125,7 +126,7 @@ describe('deterministic, immutable flight transactions', () => {
   expect(failureReport(stepSim(state, DAY).state)).toEqual(report);
  });
  it('requires an explicit assisted practice retry instead of granting free Cadet repair', () => {
-  const base = accepted(quoteAddPart(createStarterDesign('FIRST_LIGHT', 'ASPIRING'), 'CAM_EO', 'ALL')).next;
+  const base = accepted(quoteAddPart(createStarterDesign(missionById('FIRST_LIGHT'), 'ASPIRING'), 'CAM_EO', 'ALL')).next;
   const d = accepted(quoteRemovePart(base, 'SOLAR_BODY', 'ALL')).next;
   const checkpoint = createSim(d, 42), saved = structuredClone(checkpoint);
   let state = advanceTo(checkpoint, 4 * DAY);
@@ -193,7 +194,7 @@ describe('historical profile, exact events and Mars arrival', () => {
   expect(telemetry(state).safe).toBe(false); expect(telemetry(state).instruments[0].on).toBe(true);
  });
  it('does not count unrelated measurements as the delivered-image objective', () => {
-  let d = accepted(quoteAddPart(createStarterDesign('FIRST_LIGHT', 'ASPIRING'), 'CAM_EO', 'ALL')).next;
+  let d = accepted(quoteAddPart(createStarterDesign(missionById('FIRST_LIGHT'), 'ASPIRING'), 'CAM_EO', 'ALL')).next;
   d = accepted(quoteAddPart(d, 'RAD_MON', 'ALL')).next;
   let state = commandAndWait(commission(createSim(d, 42)), { kind: 'INSTRUMENT', partId: 'RAD_MON', on: true });
   state = advanceTo(state, state.t + 4 * 3600);
@@ -210,7 +211,7 @@ describe('historical profile, exact events and Mars arrival', () => {
 });
 
 it('charges radio receive power, not transmit power, once the persistent send request empties storage', () => {
- const base = accepted(quoteAddPart(createStarterDesign('FIRST_LIGHT', 'ASPIRING'), 'CAM_EO', 'ALL')).next;
+ const base = accepted(quoteAddPart(createStarterDesign(missionById('FIRST_LIGHT'), 'ASPIRING'), 'CAM_EO', 'ALL')).next;
  const d = accepted(quoteAddPart(base, 'RAD_MON', 'ALL')).next;
  let s = commandAndWait(commission(createSim(d, 42)), { kind: 'INSTRUMENT', partId: 'RAD_MON', on: true });
  s = advanceTo(s, s.t + 100);

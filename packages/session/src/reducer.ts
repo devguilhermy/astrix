@@ -1,5 +1,5 @@
 import * as core from '@astrix/core';
-import type { CueEngineState, Design, Quote, RoleId, SimEvent, SimState } from '@astrix/core';
+import type { CueEngineState, Design, Quote, ResolvedMissionDefinition, RoleId, SimEvent, SimState } from '@astrix/core';
 import { ROLES, STAGES, SUBSTEPS, WARPS } from './contracts';
 import type { DesignEdit, IntentEnvelope, IntentResult, PauseReason, ReplayEntry, SessionActor, SessionIntent, SessionOptions, SessionRefusal, SessionState } from './contracts';
 import { canAct, decisionOwner } from './permissions';
@@ -13,10 +13,10 @@ const refusal=(code:SessionRefusal['code'],values:Readonly<Record<string,string|
 const success=(state:SessionState):IntentResult=>({ok:true,seq:state.seq,receiptIds:[]});
 export function createSession(options:SessionOptions={}):SessionState {
  const id=options.hostPlayerId??'player-1';
- return {epoch:options.epoch??'local',seq:0,rosterRevision:0,mode:options.mode??'LOCAL',participantMode:options.participantMode??'SOLO',roster:[{id,name:options.hostName??'Host',roles:ROLES,ready:true,acknowledged:true,connected:true}],approvals:[],scenarioId:'FIRST_LIGHT',levelId:'ASPIRING',attemptId:0,artifacts:null,activeStage:'NEED_GOALS',furthestStage:0,activeSubstep:'brief',activeView:'GOAL',players:[ROLES],facilitator:0,signoffs:blankSigns(),team:emptyTeam(),design:null,budgets:null,cues:emptyCues(),designNotes:[],rosterHistory:[],acceptedTrades:[],sim:null,telemetry:null,running:false,warp:100,historyVersion:0,events:[],pendingDecisions:[],decisions:[],pauseReasons:[],pauseOwners:{},pauseRoles:{},advancing:false,advanceMessage:null,advanceTarget:null,advanceWork:0,practiceCheckpoints:[],nextCheckpointId:0,assisted:false,results:{},quotes:{},replay:[]};
+ return {epoch:options.epoch??'local',seq:0,rosterRevision:0,mode:options.mode??'LOCAL',participantMode:options.participantMode??'SOLO',roster:[{id,name:options.hostName??'Host',roles:ROLES,ready:true,acknowledged:true,connected:true}],approvals:[],missionId:'FIRST_LIGHT',definition:core.missionById('FIRST_LIGHT'),authorPlayerId:null,levelId:'ASPIRING',attemptId:0,artifacts:null,activeStage:'NEED_GOALS',furthestStage:0,activeSubstep:'brief',activeView:'GOAL',players:[ROLES],facilitator:0,signoffs:blankSigns(),team:emptyTeam(),design:null,budgets:null,cues:emptyCues(),designNotes:[],rosterHistory:[],acceptedTrades:[],sim:null,telemetry:null,running:false,warp:100,historyVersion:0,events:[],pendingDecisions:[],decisions:[],pauseReasons:[],pauseOwners:{},pauseRoles:{},advancing:false,advanceMessage:null,advanceTarget:null,advanceWork:0,practiceCheckpoints:[],nextCheckpointId:0,assisted:false,results:{},quotes:{},replay:[]};
 }
 export function quoteDesign(design:Design,edit:DesignEdit,actor:SessionActor['role']):Quote<{next:Design}> {
- switch(edit.kind){case 'ADD_PART':return core.quoteAddPart(design,edit.partId,actor);case 'REMOVE_PART':return core.quoteRemovePart(design,edit.partId,actor);case 'SET_RIDE':return core.quoteSetRide(design,edit.rideId,actor);case 'SET_ORBIT':return core.quoteSetOrbit(design,edit.orbit,actor);case 'SET_PROPELLANT':return core.quoteSetPropellant(design,edit.kg,actor);}
+ switch(edit.kind){case 'ADD_PART':return core.quoteAddPart(design,edit.partId,actor);case 'REMOVE_PART':return core.quoteRemovePart(design,edit.partId,actor);case 'SET_RIDE':return core.quoteSetRide(design,edit.rideId,actor);case 'SET_ORBIT':return core.quoteSetOrbit(design,edit.orbit,actor);case 'SET_PROPELLANT':return core.quoteSetPropellant(design,edit.kg,actor);case 'SET_LAUNCHER':return core.quoteSetLauncher(design,edit.launcherId,actor);case 'SET_ASCENT':return core.quoteSetAscent(design,edit.program,actor);case 'SET_BURNS':return core.quoteSetBurns(design,edit.burns,actor);}
 }
 function checkpoint(state:SessionState,name:'launch'|'arrival'|'decision'):SessionState {
  if(state.levelId!=='ASPIRING'||!state.design||!state.sim||state.telemetry?.ended)return state;
@@ -35,6 +35,13 @@ function rosterCommit(state:SessionState,roster:SessionState['roster'],actor:Ses
  const approvals=state.approvals.filter(a=>signoffs[a.role]);
  return {...state,roster,players,signoffs,approvals,rosterRevision:state.rosterRevision+1,quotes:{},facilitator:Math.min(state.facilitator,players.length-1),team:{...state.team,roles:state.participantMode==='SOLO'?1:4},rosterHistory:[...state.rosterHistory,{before:state.players.map(r=>[...r]),after:players.map(r=>[...r]),beforePlayers:state.roster.map(({id,name,roles})=>({id,name,roles:[...roles]})),afterPlayers:roster.map(({id,name,roles})=>({id,name,roles:[...roles]})),time:state.sim?.t??0,actorId:actor.playerId}].slice(-100)};
 }
+/** Carry the player's hardware and plans across a definition revision only where the new definition still permits them. */
+function reconcile(old:Design,definition:ResolvedMissionDefinition):Design {
+ const starter=core.createStarterDesign(definition,old.levelId),next:Design={...starter,revision:old.revision+1};
+ if(definition.vehicle.busId!==old.busId)return next;
+ const start=definition.start,launch=start.kind==='SURFACE_LAUNCH'&&old.launch&&start.launcherIds.includes(old.launch.launcherId)&&!core.ascentProgramIssue(old.launch.program,core.LAUNCHER_BY_ID[old.launch.launcherId])?old.launch:next.launch;
+ return {...next,parts:old.parts,launch,burns:core.burnPlanIssue(definition,old.burns)?next.burns:old.burns};
+}
 interface Transition {state:SessionState;result:IntentResult}
 function transact(s:SessionState,intent:SessionIntent,actor:SessionActor):Transition {
  const fail=(code:SessionRefusal['code']='NOT_READY',values:Readonly<Record<string,string|number>>={}):Transition=>({state:s,result:{ok:false,refusal:refusal(code,values)}});
@@ -43,10 +50,12 @@ function transact(s:SessionState,intent:SessionIntent,actor:SessionActor):Transi
  const role=(required:RoleId)=>canAct(s,actor,required);
  const d=s.design;
  if(!s.roster.some(p=>p.id===actor.playerId))return fail('UNAUTHORIZED');
+ // Definitions are the only large replayed payloads; bound how many a replay suffix may hold.
+ if((intent.kind==='SUBMIT_DEFINITION'||intent.kind==='START_DEFINITION')&&s.replay.reduce((n,e)=>n+(e.kind==='INTENT'&&(e.intent.kind==='SUBMIT_DEFINITION'||e.intent.kind==='START_DEFINITION')?1:0),0)>=64)return fail('RATE_LIMITED');
  // Host capability permits administration, never a physical-role bypass.
- const admin=['START_SCENARIO','RESET_MISSION','SET_TEAM','ADD_PLAYER','ASSIGN_ROLE','SET_PRESENCE','ROTATE_FACILITATOR','END_MISSION','RETRY_CHECKPOINT'];
+ const admin=['START_MISSION','START_DEFINITION','GRANT_AUTHORING','RESET_MISSION','SET_TEAM','ADD_PLAYER','ASSIGN_ROLE','SET_PRESENCE','ROTATE_FACILITATOR','END_MISSION','RETRY_CHECKPOINT'];
  if(admin.includes(intent.kind)&&!host())return fail('HOST_ONLY');
- if(!admin.includes(intent.kind)&&!['PAUSE','CLEAR_PAUSE','RESUME','SET_READY','ACK_LEARNING','SET_STAGE','SET_SUBSTEP','SET_VIEW'].includes(intent.kind)&&!canAct(s,actor))return fail('ROLE_NOT_ASSIGNED');
+ if(!admin.includes(intent.kind)&&!['PAUSE','CLEAR_PAUSE','RESUME','SET_READY','ACK_LEARNING','SET_STAGE','SET_SUBSTEP','SET_VIEW','SUBMIT_DEFINITION'].includes(intent.kind)&&!canAct(s,actor))return fail('ROLE_NOT_ASSIGNED');
  if('designRevision'in intent&&intent.designRevision!==d?.revision)return fail('STALE_DESIGN');
  if('baseRevision'in intent&&intent.baseRevision!==d?.revision)return fail('STALE_DESIGN');
  if('rosterRevision'in intent&&intent.rosterRevision!==s.rosterRevision)return fail('STALE_ROSTER');
@@ -54,17 +63,32 @@ function transact(s:SessionState,intent:SessionIntent,actor:SessionActor):Transi
  case 'LOCAL_RESTORE':return s.mode==='LOCAL'&&actor.isHost?done({...intent.state,seq:s.seq,results:s.results,replay:s.replay,running:false,advancing:false}):fail('HOST_ONLY');
  case 'LOCAL_TRADE':return s.mode==='LOCAL'&&!s.sim&&d?.revision===intent.revision&&s.artifacts?done({...s,artifacts:{...s.artifacts,trade:{revision:intent.revision,description:intent.description,before:intent.before,after:intent.after,actor:intent.actor}}}):fail('HOST_ONLY');
  case 'INVALIDATE_BASELINE':return !s.sim&&s.artifacts?done({...s,artifacts:{...s.artifacts,baselineRevision:null,verifiedRevision:null}}):fail();
- case 'START_SCENARIO':case 'RESET_MISSION':{
-  if(intent.kind==='START_SCENARIO'&&!d&&s.mode==='LAN'&&s.roster.some(p=>!p.connected||!p.ready||!p.acknowledged))return fail('NOT_READY',{missing:'rosterReady'});
+ case 'START_MISSION':case 'START_DEFINITION':case 'RESET_MISSION':{
+  if(intent.kind!=='RESET_MISSION'&&!d&&s.mode==='LAN'&&s.roster.some(p=>!p.connected||!p.ready||!p.acknowledged))return fail('NOT_READY',{missing:'rosterReady'});
   const reset=intent.kind==='RESET_MISSION',keep=reset?!!intent.keepDesign:!!intent.retainHardware;
-  const scenarioId=reset?s.scenarioId:intent.scenarioId,levelId=reset?s.levelId:intent.levelId;
+  let definition:ResolvedMissionDefinition=s.definition;
+  if(intent.kind==='START_MISSION')definition=core.missionById(intent.missionId);
+  else if(intent.kind==='START_DEFINITION'){const checked=core.validateMissionDefinition(intent.definition);if(!checked.ok)return fail('DEFINITION_INVALID',{path:checked.issues[0]?.path??'$',issues:checked.issues.length});definition=checked.definition;}
+  const levelId=reset?s.levelId:intent.levelId;
   const fresh=createSession({epoch:s.epoch,mode:s.mode,participantMode:s.participantMode,hostPlayerId:s.roster[0].id});
-  const common={...fresh,seq:s.seq,rosterRevision:s.rosterRevision,roster:s.roster,players:s.players,participantMode:s.participantMode,scenarioId,levelId,attemptId:s.attemptId+1,nextCheckpointId:s.nextCheckpointId,warp:reset&&!keep?100:s.warp,results:s.results,replay:s.replay};
+  const common={...fresh,seq:s.seq,rosterRevision:s.rosterRevision,roster:s.roster,players:s.players,participantMode:s.participantMode,missionId:definition.id,definition,authorPlayerId:s.authorPlayerId,levelId,attemptId:s.attemptId+1,nextCheckpointId:s.nextCheckpointId,warp:reset&&!keep?100:s.warp,results:s.results,replay:s.replay};
   if(reset&&!keep)return done(common);
-  const starter=core.createStarterDesign(scenarioId,levelId),design=keep&&d?.scenarioId===scenarioId?{...d,levelId:starter.levelId,rulesVersion:starter.rulesVersion,revision:d.revision+1}:starter;
-  const revisit=keep&&d?.scenarioId===scenarioId&&s.furthestStage>=3&&!!s.artifacts?.objectiveConfirmed&&Object.values(s.artifacts.segments).every(Boolean);
+  const starter=core.createStarterDesign(definition,levelId),same=keep&&d?.definitionDigest===definition.digest,design=same?{...d!,levelId:starter.levelId,rulesVersion:starter.rulesVersion,revision:d!.revision+1}:starter;
+  const revisit=same&&s.furthestStage>=3&&!!s.artifacts?.objectiveConfirmed&&Object.values(s.artifacts.segments).every(Boolean);
   const artifacts=core.createMissionArtifacts(design);
   return done({...common,design,budgets:core.computeBudgets(design),cues:cuesFor(design,emptyCues(),null),artifacts:revisit?{...artifacts,objectiveConfirmed:true,segments:{...s.artifacts!.segments}}:artifacts,activeStage:revisit?'DESIGN':'NEED_GOALS',furthestStage:revisit?3:0,activeSubstep:revisit?'equipment':'brief',activeView:revisit?'DESIGN':'GOAL',team:{...emptyTeam(),roles:s.participantMode==='SOLO'?1:4}});
+ }
+ case 'GRANT_AUTHORING':return intent.playerId===null||s.roster.some(p=>p.id===intent.playerId)?done({...s,authorPlayerId:intent.playerId}):fail('UNAUTHORIZED');
+ case 'SUBMIT_DEFINITION':{
+  // Only the host or the granted author may revise the mission, and only while the design is still on the ground.
+  if(!host()&&actor.playerId!==s.authorPlayerId)return fail('HOST_ONLY');
+  if(!d||s.sim||!s.artifacts)return fail('NOT_READY',{missing:'frozenDesign'});
+  if(intent.baseDigest!==s.definition.digest)return fail('DEFINITION_STALE');
+  const revised=core.reviseDefinition(s.definition,intent.definition);
+  if(!revised.ok)return fail('DEFINITION_INVALID',{path:revised.issues[0]?.path??'$',issues:revised.issues.length});
+  const design=reconcile(d,revised.definition);
+  // Every artifact, approval, quote, note target and baseline was earned against the old definition; none survives.
+  return done({...s,missionId:revised.definition.id,definition:revised.definition,design,budgets:core.computeBudgets(design),cues:cuesFor(design,emptyCues(),null),artifacts:core.createMissionArtifacts(design),signoffs:blankSigns(),approvals:[],quotes:{},acceptedTrades:[],activeStage:'NEED_GOALS',furthestStage:0,activeSubstep:'brief',activeView:'GOAL'});
  }
  case 'SET_STAGE':{
   const current=STAGES.indexOf(s.activeStage),target=STAGES.indexOf(intent.stage);
@@ -97,7 +121,7 @@ function transact(s:SessionState,intent:SessionIntent,actor:SessionActor):Transi
   }
   const signoffs={...s.signoffs};affected.forEach(r=>signoffs[r]=false);
   const cues=cuesFor(next,s.cues,null),oldCritical=s.cues.active.filter(c=>c.severity===3),critical=cues.active.filter(c=>c.severity===3);
-  const description='partId'in intent.edit?intent.edit.partId:intent.edit.kind==='SET_RIDE'?'ride':intent.edit.kind==='SET_PROPELLANT'?'propellant':'orbit';
+  const description='partId'in intent.edit?intent.edit.partId:intent.edit.kind==='SET_RIDE'?'ride':intent.edit.kind==='SET_PROPELLANT'?'propellant':intent.edit.kind==='SET_LAUNCHER'?'launcher':intent.edit.kind==='SET_ASCENT'?'ascent':intent.edit.kind==='SET_BURNS'?'burns':'orbit';
   return done({...s,design:next,budgets:after,quotes:{},signoffs,approvals:s.approvals.filter(a=>!affected.includes(a.role)),cues,acceptedTrades:[...s.acceptedTrades,{revision:d.revision,actor:actor.role,player:actor.role==='ALL'?null:s.roster.findIndex(p=>p.id===actor.playerId),playerId:actor.playerId,description,before,after}].slice(-100),team:{...s.team,sev3Raised:s.team.sev3Raised+critical.filter(c=>!oldCritical.some(p=>p.id===c.id)).length,sev3ResolvedBeforeLaunch:s.team.sev3ResolvedBeforeLaunch+oldCritical.filter(c=>!critical.some(p=>p.id===c.id)).length}});
  }
  case 'FREEZE_BASELINE':return d&&s.artifacts&&!s.sim&&s.artifacts.trade?done({...s,artifacts:{...s.artifacts,baselineRevision:d.revision,verifiedRevision:null}}):fail();
@@ -107,7 +131,7 @@ function transact(s:SessionState,intent:SessionIntent,actor:SessionActor):Transi
   const cues=cuesFor(d,s.cues,null),roles=actor.role==='ALL'?ROLES:[intent.role],blocked=roles.find(r=>cues.active.some(c=>c.severity===3&&(c.role===r||c.role==='ALL')));
   if(blocked)return {state:{...s,cues,team:{...s.team,blockedSignoffAttempts:s.team.blockedSignoffAttempts+1}},result:{ok:false,refusal:refusal('SIGNOFF_BLOCKED',{role:blocked})}};
   const signoffs={...s.signoffs};let added=0;for(const r of roles){if(!signoffs[r])added++;signoffs[r]=true;}
-  return done({...s,cues,signoffs,team:{...s.team,signoffs:s.team.signoffs+added},approvals:[...s.approvals.filter(a=>!roles.includes(a.role)),...roles.map(r=>({role:r,playerId:actor.playerId,designRevisionReviewed:d.revision,dependencyFingerprint:JSON.stringify({role:r,design:d}),rosterRevision:s.rosterRevision,acceptedSeq:s.seq+1}))]});
+  return done({...s,cues,signoffs,team:{...s.team,signoffs:s.team.signoffs+added},approvals:[...s.approvals.filter(a=>!roles.includes(a.role)),...roles.map(r=>({role:r,playerId:actor.playerId,designRevisionReviewed:d.revision,dependencyFingerprint:core.digestOf({role:r,definition:s.definition.digest,design:d}),rosterRevision:s.rosterRevision,acceptedSeq:s.seq+1}))]});
  }
  case 'NOTE':{
   if(!d||s.sim)return fail();const text=normalizeText(intent.text,500);if(!text)return fail('INVALID_PARAMETER',{parameter:'text'});
@@ -120,7 +144,8 @@ function transact(s:SessionState,intent:SessionIntent,actor:SessionActor):Transi
   if(s.mode==='LAN'&&ROLES.some(r=>!s.roster.some(p=>p.roles.includes(r)&&p.connected&&p.acknowledged&&p.ready)))return fail('NOT_READY',{missing:'roster'});
   const errors=core.launchReadiness(d,s.signoffs);if(errors.length)return {state:s,result:{ok:false,refusal:errors[0]}};
   if(core.evaluateJourneyStage(d,s.artifacts,'IMPLEMENT',s.signoffs).length)return fail();
-  const sim=core.createSim(d,core.listScenarios().find(x=>x.id===s.scenarioId)!.seed);
+  if(d.definitionDigest!==s.definition.digest)return fail('DEFINITION_STALE');
+  const sim=core.createSim(d,s.definition.environment.seed);
   return done(checkpoint({...s,sim,telemetry:core.telemetry(sim),running:false,cues:cuesFor(d,emptyCues(),sim),pauseReasons:['manual'],activeStage:'IMPLEMENT',activeSubstep:'operations',activeView:'OPERATE'},'launch'));
  }
  case 'COMMANDS':{
@@ -221,7 +246,10 @@ export function reduceSession(state:SessionState,input:SessionIntent|IntentEnvel
  // Narrow the public union without trusting caller-supplied state objects.
  if('intent'in intent)return {state,result:{ok:false,refusal:refusal('BAD_MESSAGE')}};
  if(envelope&&envelope.epoch!==state.epoch)return {state,result:{ok:false,refusal:refusal('STALE_EPOCH')}};
- const key=envelope?`${actor.deviceId??actor.playerId}:${envelope.id}`:null,fingerprint=envelope?canonical({actor,intent,epoch:envelope.epoch,attemptId:envelope.attemptId,rosterRevision:envelope.rosterRevision}):'';
+ const key=envelope?`${actor.deviceId??actor.playerId}:${envelope.id}`:null;
+ // Hostile payloads that slip past a caller's parser must be refused, never thrown: one bad intent cannot be allowed to stop the authority.
+ let fingerprint='';
+ if(envelope){try{fingerprint=core.digestOf({actor,intent,epoch:envelope.epoch,attemptId:envelope.attemptId,rosterRevision:envelope.rosterRevision});}catch{return {state,result:{ok:false,refusal:refusal('BAD_MESSAGE')}};}}
  if(key){const previous=state.results[key];if(previous)return previous.fingerprint===fingerprint?{state,result:previous.result}:{state,result:{ok:false,refusal:refusal('DUPLICATE_ID')}};}
  if(Object.keys(state.results).length>=10000)return {state,result:{ok:false,refusal:refusal('RATE_LIMITED')}};
  const reject=(code:SessionRefusal['code']):Transition=>{

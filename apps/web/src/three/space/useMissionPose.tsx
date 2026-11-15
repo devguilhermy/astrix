@@ -1,10 +1,12 @@
 import { createContext, useContext, useMemo, useRef, type ReactNode } from 'react';
-import { CONSTANTS, orbitPosition, sunDirection, transferPosition, listScenarios, type AttitudeTelemetry, type Design, type HistorySample, type Telemetry } from '@astrix/core';
+import { CONSTANTS, orbitPosition, sunDirection, transferPosition, type AttitudeTelemetry, type Design, type HistorySample, type Telemetry } from '@astrix/core';
 import { hohmann } from '@astrix/core/physics';
 import { liveMission } from '../../store';
 import { isCloseShot, type CameraMode } from '../camera/modes';
 import type { SceneKind } from '../missionScenes';
 import type { KmVector } from './FloatingOrigin';
+import { flightRegime, padPose, poseFromSample, poseFromTelemetry, type FlightPose, type FlightRegime } from '../flight/flightState';
+import { usesMoon } from '../../ui/missions/definitionView';
 
 export interface MissionPose {
  positionKm: KmVector;
@@ -17,6 +19,9 @@ export interface MissionPose {
  recorded: boolean;
  attitude: AttitudeTelemetry | null;
  discontinuity: number;
+ /** Authoritative flight state for `flight` scenes (Earth-inertial world frame); null for analytic scenes. */
+ flight: FlightPose | null;
+ regime: FlightRegime | null;
 }
 type PoseReader = () => MissionPose;
 const PoseContext = createContext<PoseReader | null>(null);
@@ -44,7 +49,7 @@ export function MissionPoseProvider({ children, ...inputs }: PoseInputs & { chil
   let lastKind: SceneKind | undefined;
   let lastMode: CameraMode | undefined;
   let lastGeneration = -1;
-  const pose: MissionPose = { positionKm: ZERO, velocityKmSec: ZERO, sunDir: [1, 0, 0], stationPosKm: null, originKm: ZERO, t: 0, telemetry: null, recorded: false, discontinuity: 0, attitude: null };
+  const pose: MissionPose = { positionKm: ZERO, velocityKmSec: ZERO, sunDir: [1, 0, 0], stationPosKm: null, originKm: ZERO, t: 0, telemetry: null, recorded: false, discontinuity: 0, attitude: null, flight: null, regime: null };
   return () => {
    const { design, live, telemetry: published, reviewSample, kind, mode } = latest.current;
    const telemetry = live && !reviewSample ? liveMission.telemetry ?? published : null;
@@ -53,17 +58,20 @@ export function MissionPoseProvider({ children, ...inputs }: PoseInputs & { chil
    const previousTime = pose.t;
    const time = reviewSample?.t ?? telemetry?.t ?? 0;
    const orbit = design.orbit;
-   const epoch = orbit?.epochUTC ?? listScenarios().find(scenario => scenario.id === design.scenarioId)!.epoch;
+   const epoch = orbit?.epochUTC ?? design.definition.environment.epochUTC;
    const elapsedOrbit = orbit?.body === 'MARS' ? telemetry ? Math.max(0, telemetry.clock.plannedSec - telemetry.clock.remainingSec) : Math.max(0, time - hohmann().transferSec) : time;
    const transfer = kind === 'transfer';
-   const position: KmVector = transfer ? transferPosition(time, epoch) : kind === 'launch' ? [0, 0, CONSTANTS.EARTH.radius.v + .02] : reviewSample?.positionKm ?? telemetry?.positionKm ?? (orbit ? orbitPosition(orbit, 0) : ZERO);
+   const flight = kind === 'flight' ? telemetry ? poseFromTelemetry(telemetry) : reviewSample ? poseFromSample(reviewSample) : padPose(design, 0) : null;
+   const position: KmVector = flight ? flight.earthKm : transfer ? transferPosition(time, epoch) : kind === 'launch' ? [0, 0, CONSTANTS.EARTH.radius.v + .02] : reviewSample?.positionKm ?? telemetry?.positionKm ?? (orbit ? orbitPosition(orbit, 0) : ZERO);
    // Tangent is analytical core propagation, used only to choose a camera boom.
-   const next = transfer ? transferPosition(time + .5, epoch) : orbit ? orbitPosition(orbit, elapsedOrbit + .5) : position;
-   pose.velocityKmSec = [(next[0] - position[0]) * 2, (next[1] - position[1]) * 2, (next[2] - position[2]) * 2];
+   const next = transfer ? transferPosition(time + .5, epoch) : orbit && !flight ? orbitPosition(orbit, elapsedOrbit + .5) : position;
+   pose.velocityKmSec = flight ? flight.velocityKms ?? ZERO : [(next[0] - position[0]) * 2, (next[1] - position[1]) * 2, (next[2] - position[2]) * 2];
    pose.positionKm = position;
    pose.sunDir = kind === 'launch' ? sunDirection('EARTH', 0, undefined, epoch) : reviewSample?.sunDir ?? telemetry?.sunDir ?? sunDirection(orbit?.body ?? 'EARTH', time, undefined, epoch);
-   pose.stationPosKm = reviewSample?.stationPosKm ?? telemetry?.stationPosKm ?? null;
-   pose.originKm = isCloseShot(mode, kind) ? position : ZERO;
+   pose.stationPosKm = flight && flight.central !== 'EARTH' ? null : reviewSample?.stationPosKm ?? telemetry?.stationPosKm ?? null;
+   pose.flight = flight;
+   pose.regime = flight ? flightRegime(flight, usesMoon(design.definition)) : null;
+   pose.originKm = isCloseShot(mode, kind) ? position : pose.regime?.focusKm ?? ZERO;
    pose.t = time;
    pose.telemetry = telemetry;
    pose.recorded = !!reviewSample;

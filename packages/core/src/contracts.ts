@@ -1,6 +1,9 @@
 // Shared contracts for the core, content and web implementation owners.
-export type ScenarioId = 'FIRST_LIGHT' | 'STORM_WATCH' | 'RED_RELAY' | 'CREW_PATHFINDER';
-export type BodyId = 'EARTH' | 'MARS';
+import type { BurnSpec, AscentProgram, Digest, MissionId, MissionOrigin, ResolvedMissionDefinition } from './mission/types';
+import type { AscentPreview, BurnPreview, TrajectoryForecast, FlightSample, FlightTelemetry, MissionOutcome, ObjectiveEvidence, TrajectoryEvent } from './flight/types';
+export type * from './mission/types';
+export type * from './flight/types';
+export type BodyId = 'EARTH' | 'MARS' | 'MOON';
 export type BusId = 'CUBESAT_3U' | 'SMALLSAT' | 'CREW_CAPSULE';
 export type RoleId = 'SCIENCE' | 'SPACECRAFT' | 'LAUNCH_ORBIT' | 'GROUND_COMMS';
 export type ActorRole = RoleId | 'ALL';
@@ -10,7 +13,7 @@ export type AttitudeQuaternion = readonly [number, number, number, number];
 export interface AttitudeTelemetry { q: AttitudeQuaternion; target: AttitudeQuaternion; rateRadSec: number; hold: PointingMode | 'MANUAL'; panelSunDeg: number; instrumentTargetDeg: number; antennaEarthDeg: number }
 export interface TimelineWindow { kind: 'SUNLIGHT' | 'ECLIPSE' | 'CONTACT' | 'TARGET' | 'STORM' | 'EVENT' | 'MISSION_END'; startSec: number; endSec: number; labelKey?: string }
 export interface TimelineForecast { startSec: number; endSec: number; windows: readonly TimelineWindow[] }
-export interface MissionForecast { policy: 'DEFAULT'; samples: readonly { t: number; socWh: number; storedMB: number; downlinkedMB: number }[]; outcome: 'SUCCESS' | 'FAILURE' | 'INCOMPLETE'; objectiveValue: number; objectiveTarget: number; endedAtSec: number }
+export interface MissionForecast { policy: 'DEFAULT'; samples: readonly { t: number; socWh: number; storedMB: number; downlinkedMB: number }[]; outcome: 'SUCCESS' | 'FAILURE' | 'INCOMPLETE'; objectiveValue: number; objectiveTarget: number; endedAtSec: number; evidence: readonly ObjectiveEvidence[]; events: readonly TrajectoryEvent[] }
 export type LevelId = 'ASPIRING' | 'EXPERT';
 export type HeaterMode = 'OFF' | 'ON' | 'AUTO';
 export type LinkMode = 'NORMAL' | 'ROBUST';
@@ -30,11 +33,11 @@ export interface PartDef {
  readonly heaterW?: Q;
  readonly slewRateDegSec?: Q; readonly accuracyDeg?: Q; readonly coneHalfAngleDeg?: Q; readonly beamHalfAngleDeg?: Q;
 }
-export interface ScenarioDef { readonly id: ScenarioId; readonly body: BodyId; readonly busId: BusId; readonly nameKey: string; readonly descKey: string; readonly objectiveKey: string; readonly budget: Q; readonly durationDays: Q; readonly target: Q; readonly metric: 'DOWNLINK_MB' | 'RADIATION_HOURS'; readonly epoch: string; readonly stationAllocationStartSec: Q; readonly defaultOrbit: OrbitChoice; readonly seed: number }
 export interface RideDef { readonly id: string; readonly nameKey: string; readonly descKey: string; readonly busIds: readonly BusId[]; readonly body: BodyId; readonly cost: Q; readonly fixedOrbits?: readonly OrbitChoice[] }
 export interface DesignPart { readonly partId: string; readonly qty: number; readonly propellantKg?: number }
 export interface OrbitChoice { readonly body: BodyId; readonly epochUTC: string; readonly frame: 'MJ2000Eq'; readonly smaKm: number; readonly ecc: number; readonly inclinationDeg: number; readonly raanDeg: number; readonly argPeriapsisDeg: number; readonly trueAnomalyDeg: number }
-export interface Design { readonly scenarioId: ScenarioId; readonly levelId: LevelId; readonly rulesVersion: number; readonly busId: BusId; readonly parts: readonly DesignPart[]; readonly rideId: string | null; readonly orbit: OrbitChoice | null; readonly stationId: string; readonly revision: number }
+export interface LaunchPlan { readonly launcherId: string; readonly program: AscentProgram }
+export interface Design { readonly missionId: MissionId; readonly definitionDigest: Digest; readonly definition: ResolvedMissionDefinition; readonly levelId: LevelId; readonly rulesVersion: number; readonly busId: BusId; readonly parts: readonly DesignPart[]; readonly rideId: string | null; readonly orbit: OrbitChoice | null; readonly launch: LaunchPlan | null; readonly burns: readonly BurnSpec[]; readonly stationId: string; readonly revision: number }
 export interface Budgets {
  readonly massKg: { used: number; limit: number }; readonly volume: { used: number; limit: number; unit: 'U' | 'BAY' }; readonly cost: { used: number; limit: number };
  readonly power: { avgGenW: number; avgLoadW: number; marginPct: number; eclipseWh: number; usableBatteryWh: number } | null;
@@ -43,12 +46,12 @@ export interface Budgets {
  readonly orbit: { periodMin: number; eclipseFrac: number; contactMinPerDay: number } | null;
  readonly technical: { bolGenerationW: number; eolGenerationW: number; eolCapacityWh: number; eolUsableBatteryWh: number; eclipseRequiredWh: number; nominalCaptureKms: number; planningCaptureKms: number; thermalColdEquilibriumK: number; thermalHotEquilibriumK: number; recordingRequiredMB: number; minimumLinkKbps: number } | null;
 }
-export type RefusalCode = 'MASS_OVER_LIMIT' | 'NO_SLOT' | 'OVER_BUDGET' | 'ROLE_LOCKED' | 'DUPLICATE_UNIQUE' | 'RIDE_MISMATCH' | 'ORBIT_NOT_OFFERED' | 'REQUIRES_PART' | 'SIGNOFF_BLOCKED' | 'NOT_READY' | 'NO_CONTACT' | 'MODE_FORBIDS' | 'STORAGE_EMPTY' | 'PROPELLANT_OVER_TANK' | 'UNSUPPORTED_RULES' | 'POWER_EOL_SHORT' | 'ECLIPSE_RESERVE_SHORT' | 'THERMAL_MARGIN_SHORT' | 'RETURN_FUEL_SHORT' | 'CAPTURE_RESERVE_SHORT' | 'DATA_CAPACITY_SHORT' | 'LINK_UNAVAILABLE' | 'POINTING_ACQUIRING' | 'POINTING_DEGRADED' | 'COMPUTER_REBOOTING' | 'RECOVERY_COOLDOWN' | 'INSUFFICIENT_ENERGY' | 'COMMAND_EXPIRED' | 'COMMAND_INVALIDATED' | 'LEVEL_FORBIDS' | 'INVALID_PARAMETER';
+export type RefusalCode = 'MASS_OVER_LIMIT' | 'NO_SLOT' | 'OVER_BUDGET' | 'ROLE_LOCKED' | 'DUPLICATE_UNIQUE' | 'RIDE_MISMATCH' | 'ORBIT_NOT_OFFERED' | 'REQUIRES_PART' | 'SIGNOFF_BLOCKED' | 'NOT_READY' | 'NO_CONTACT' | 'MODE_FORBIDS' | 'STORAGE_EMPTY' | 'PROPELLANT_OVER_TANK' | 'UNSUPPORTED_RULES' | 'POWER_EOL_SHORT' | 'ECLIPSE_RESERVE_SHORT' | 'THERMAL_MARGIN_SHORT' | 'RETURN_FUEL_SHORT' | 'CAPTURE_RESERVE_SHORT' | 'DATA_CAPACITY_SHORT' | 'LINK_UNAVAILABLE' | 'POINTING_ACQUIRING' | 'POINTING_DEGRADED' | 'COMPUTER_REBOOTING' | 'RECOVERY_COOLDOWN' | 'INSUFFICIENT_ENERGY' | 'COMMAND_EXPIRED' | 'COMMAND_INVALIDATED' | 'LEVEL_FORBIDS' | 'INVALID_PARAMETER' | 'PROPELLANT_SHORT' | 'BURN_NOT_ALLOWED' | 'BURN_LIMIT' | 'BURN_DUPLICATE_ID' | 'BURN_TRIGGER_PAST' | 'BURN_UNKNOWN' | 'NO_STAGE' | 'LAUNCHER_MISMATCH' | 'PAYLOAD_OVER_LIMIT' | 'ASCENT_PROGRAM_INVALID' | 'DEFINITION_STALE' | 'DEFINITION_INVALID' | 'UNSUPPORTED_MODEL' | 'MOON_UNSUPPORTED_FOR_IMPORT' | 'ASCENT_FORECAST_FAILS' | 'NO_PROPULSION';
 export interface Refusal { readonly ok: false; readonly code: RefusalCode; readonly values: Readonly<Record<string, number | string>> }
 export type Quote<T> = { readonly ok: true; readonly value: T } | Refusal;
-export type Command = { kind: 'ATTITUDE_TARGET'; q: AttitudeQuaternion; gestureId?: string } | { kind: 'POINT'; mode: PointingMode } | { kind: 'INSTRUMENT'; partId: string; on: boolean } | { kind: 'DOWNLINK'; on: boolean } | { kind: 'SAFE'; on: boolean } | { kind: 'CAPTURE_CONFIRM' } | { kind: 'HEATER'; mode: HeaterMode } | { kind: 'LINK_MODE'; mode: LinkMode } | { kind: 'DUTY_CYCLE'; partId: string; fraction: number } | { kind: 'REACQUIRE_POINTING' } | { kind: 'RECOVER_COMPUTER' } | { kind: 'DEPLOY' | 'DEPLOY_RETRY'; system: 'WINGS' | 'ANTENNA' } | { kind: 'CREW_FAN'; on: boolean } | { kind: 'CREW_CARTRIDGE' } | { kind: 'CREW_ISOLATE'; isolated: boolean } | { kind: 'CREW_REPRESSURIZE' } | { kind: 'CREW_PRIORITIZE_POWER'; on: boolean } | { kind: 'CREW_DEORBIT' };
+export type Command = { kind: 'ATTITUDE_TARGET'; q: AttitudeQuaternion; gestureId?: string } | { kind: 'POINT'; mode: PointingMode } | { kind: 'INSTRUMENT'; partId: string; on: boolean } | { kind: 'DOWNLINK'; on: boolean } | { kind: 'SAFE'; on: boolean } | { kind: 'CAPTURE_CONFIRM' } | { kind: 'HEATER'; mode: HeaterMode } | { kind: 'LINK_MODE'; mode: LinkMode } | { kind: 'DUTY_CYCLE'; partId: string; fraction: number } | { kind: 'REACQUIRE_POINTING' } | { kind: 'RECOVER_COMPUTER' } | { kind: 'DEPLOY' | 'DEPLOY_RETRY'; system: 'WINGS' | 'ANTENNA' } | { kind: 'CREW_FAN'; on: boolean } | { kind: 'CREW_CARTRIDGE' } | { kind: 'CREW_ISOLATE'; isolated: boolean } | { kind: 'CREW_REPRESSURIZE' } | { kind: 'CREW_PRIORITIZE_POWER'; on: boolean } | { kind: 'CREW_DEORBIT' } | { kind: 'BURN_SCHEDULE'; burn: BurnSpec } | { kind: 'BURN_CANCEL'; id: string } | { kind: 'SEPARATE_STAGE' };
 export interface SimState { readonly t: number; readonly [k: string]: unknown }
-export type SimEventKind = 'SOLAR_STORM_START' | 'SOLAR_STORM_END' | 'BATTERY_AGING' | 'GROUND_OUTAGE' | 'STORAGE_NEAR_FULL' | 'BATTERY_LOW' | 'BROWNOUT' | 'CAPTURE_DONE' | 'CAPTURE_BURN' | 'FAILURE' | 'OBJECTIVE_MET' | 'PASS_START' | 'PASS_END' | 'MISSION_END' | 'WARP_LIMITED' | 'THERMAL_INHIBIT' | 'THERMAL_RECOVERED' | 'POINTING_DEGRADED' | 'POINTING_SETTLED' | 'COMPUTER_RESET' | 'COMPUTER_RECOVERED' | 'LINK_DEGRADED' | 'LINK_RECOVERED' | 'COMMAND_EXPIRED' | 'COMMAND_REFUSED' | 'CAPACITY_CLAMPED' | 'CREW_CARTRIDGE_SATURATED' | 'CREW_LEAK' | 'CREW_WARNING' | 'CREW_SUPPORT_LOST' | 'CREW_DEORBIT' | 'CREW_RECOVERY' | 'DEPLOYMENT_ANOMALY' | 'DEPLOYMENT_DONE' | 'SESSION_ENDED';
+export type SimEventKind = 'SOLAR_STORM_START' | 'SOLAR_STORM_END' | 'BATTERY_AGING' | 'GROUND_OUTAGE' | 'STORAGE_NEAR_FULL' | 'BATTERY_LOW' | 'BROWNOUT' | 'CAPTURE_DONE' | 'CAPTURE_BURN' | 'FAILURE' | 'OBJECTIVE_MET' | 'PASS_START' | 'PASS_END' | 'MISSION_END' | 'WARP_LIMITED' | 'THERMAL_INHIBIT' | 'THERMAL_RECOVERED' | 'POINTING_DEGRADED' | 'POINTING_SETTLED' | 'COMPUTER_RESET' | 'COMPUTER_RECOVERED' | 'LINK_DEGRADED' | 'LINK_RECOVERED' | 'COMMAND_EXPIRED' | 'COMMAND_REFUSED' | 'CAPACITY_CLAMPED' | 'CREW_CARTRIDGE_SATURATED' | 'CREW_LEAK' | 'CREW_WARNING' | 'CREW_SUPPORT_LOST' | 'CREW_DEORBIT' | 'CREW_RECOVERY' | 'DEPLOYMENT_ANOMALY' | 'DEPLOYMENT_DONE' | 'SESSION_ENDED' | 'LIFTOFF' | 'STAGE_SEPARATION' | 'ORBIT_INSERTION' | 'BURN_EXECUTED' | 'SOI_ENTRY' | 'SOI_EXIT' | 'ENCOUNTER_CLOSEST' | 'SURFACE_IMPACT' | 'ENTRY_INTERFACE' | 'ASCENT_FAILED';
 export interface SimEvent { readonly kind: SimEventKind; readonly t: number; readonly autoPause: boolean; readonly values: Readonly<Record<string, number | string>> }
 export interface CommandQueueEntry { readonly id: string; readonly command: Command; readonly actor: ActorContext; readonly transport: 'GROUND' | 'ONBOARD'; readonly issuedAt: number; readonly transmittedAt: number | null; readonly applyAt: number | null; readonly expiresAt: number; readonly resolvedAt: number | null; readonly status: 'WAITING_CONTACT' | 'IN_TRANSIT' | 'DELIVERED' | 'REFUSED' | 'EXPIRED'; readonly refusal?: Refusal }
 export interface ThermalTelemetry { temperatureK: number; operatingMinK: number; operatingMaxK: number; survivalMinK: number; survivalMaxK: number; heaterMode: HeaterMode; heaterW: number; externalW: number; internalW: number; radiatedW: number; trendKPerHour: number; inhibited: boolean; survivalDwellSec: number }
@@ -69,16 +72,17 @@ export interface Telemetry {
  t: number; socWh: number; capacityWh: number; genW: number; loadW: number; sunlit: boolean; inContact: boolean;
  storedMB: number; storageMB: number; downlinkedMB: number; doseUGyH: number; mode: PointingMode; safe: boolean;
  lightTimeSec: number | null; queued: number; objective: { metricKey: string; value: number; target: number };
+ flight: FlightTelemetry | null; evidence: readonly ObjectiveEvidence[]; outcome: MissionOutcome; definition: { id: MissionId; digest: Digest; revision: number; origin: MissionOrigin };
  positionKm: [number, number, number]; sunDir: [number, number, number]; stationPosKm: [number, number, number] | null;
  instruments: readonly { partId: string; on: boolean; lost: boolean; dutyFraction: number }[];
  commandQueue: readonly CommandQueueEntry[];
  downlinkRequested: boolean; downlinkActive: boolean;
  ended?: boolean; endedByTeam: boolean; cruise?: boolean; capturePending?: boolean; nextPassSec?: number | null;
 }
-export interface HistorySample { attitude: AttitudeTelemetry; t: number; eventBoundary: boolean; phase: string; positionKm: [number, number, number]; sunDir: [number, number, number]; stationPosKm: [number, number, number] | null; retainedKg: number; socPct: number; storedPct: number; downlinkedMB: number; doseUGyH: number; inContact: 0 | 1; temperatureK: number | null; arrayFactor: number; capacityWh: number; pointingQuality: number; linkQuality: number; computerState: ComputerTelemetry['state'] }
+export interface HistorySample { attitude: AttitudeTelemetry; t: number; eventBoundary: boolean; phase: string; positionKm: [number, number, number]; sunDir: [number, number, number]; stationPosKm: [number, number, number] | null; retainedKg: number; socPct: number; storedPct: number; downlinkedMB: number; doseUGyH: number; inContact: 0 | 1; temperatureK: number | null; arrayFactor: number; capacityWh: number; pointingQuality: number; linkQuality: number; computerState: ComputerTelemetry['state']; flight?: FlightSample }
 export interface FailureReport { causeKey: string; t: number; facts: readonly { key: string; values: Record<string, number | string> }[]; advice: readonly string[] }
-export interface RunIdentity { levelId: LevelId; rulesVersion: number; scenarioId: ScenarioId; seed: number; assisted: boolean }
-export interface ScoreBreakdown { total: number; stars: 0 | 1 | 2 | 3 | 4 | 5; components: readonly { key: string; weight: number; value: number }[]; identity: RunIdentity; outcome: 'PROVISIONAL' | 'SUCCESS' | 'FAILURE'; scienceAchieved: boolean; interventionEnergyWh: number; firstFailure: FailureReport | null }
+export interface RunIdentity { levelId: LevelId; rulesVersion: number; modelVersion: number; definitionId: MissionId; definitionRevision: number; definitionDigest: Digest; origin: MissionOrigin; seed: number; assisted: boolean; policy: 'STANDARD' | 'EXPERIMENTAL' }
+export interface ScoreBreakdown { total: number; stars: 0 | 1 | 2 | 3 | 4 | 5; components: readonly { key: string; weight: number; value: number }[]; identity: RunIdentity; outcome: MissionOutcome; evidence: readonly ObjectiveEvidence[]; interventionEnergyWh: number; firstFailure: FailureReport | null }
 export interface TeamStats { roles: number; signoffs: number; blockedSignoffAttempts: number; sev3Raised: number; sev3ResolvedBeforeLaunch: number }
 export interface ActiveCue { id: string; ruleId: string; category: 'alert' | 'tip' | 'teach'; severity: 1 | 2 | 3; role: RoleId | 'ALL'; params: Record<string, number | string>; target?: string; glossaryId?: string; fix?: string; firstRaisedSec: number }
 export interface CueEngineState { readonly lastRaised: Readonly<Record<string, number>>; readonly clearPending: Readonly<Record<string, number>>; readonly active: readonly ActiveCue[] }
@@ -115,13 +119,18 @@ export interface CoreAPI {
  evaluateCues(prev: CueEngineState, snap: ReviewSnapshot, nowSec: number): CueEngineState;
  designSnapshot(design: Design): ReviewSnapshot;
  operateSnapshot(state: SimState, design: Design): ReviewSnapshot;
- listScenarios(): readonly ScenarioDef[];
+ listMissions(filter?: { origin?: MissionOrigin }): readonly ResolvedMissionDefinition[];
+ previewAscent(design: Design): AscentPreview;
+ recommendAscentProgram(design: Design): { program: AscentProgram; preview: AscentPreview } | Refusal;
+ previewBurn(from: SimState | Design, burn: BurnSpec): BurnPreview;
+ forecastTrajectory(from: SimState | Design, horizonSec: number): TrajectoryForecast;
+ recommendBurns(design: Design): readonly BurnSpec[];
  listParts(busId: BusId): readonly PartDef[];
  listRides(busId: BusId, body: BodyId): readonly RideDef[];
  captureOrbits(): readonly OrbitChoice[];
  listSources(): readonly SourceRef[];
  listAssumptions(): readonly { key: string; note: string; value: number | string }[];
- createStarterDesign(scenario: ScenarioId, levelId: LevelId): Design;
+ createStarterDesign(definition: ResolvedMissionDefinition, levelId: LevelId): Design;
  listOrbitPresets(design: Design): readonly OrbitPreset[];
  previewOrbit(design: Design, presetId: string, role: ActorRole): Quote<{ next: Design; before: Budgets; after: Budgets }>;
  planPropellant(design: Design, role: ActorRole): Quote<{ next: Design; requiredKg: number; after: Budgets }>;

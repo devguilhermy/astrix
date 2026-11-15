@@ -8,7 +8,7 @@ import { cylinderEclipse, inStationContact, marsLineOfSight, radians, rotatePeri
 import { MODEL } from '@astrix/core/catalog';
 import { useQualityProfile } from './quality';
 import { SpacecraftModel } from './spacecraft/SpacecraftModel';
-import { MISSION_SCENES, type SceneVector } from './missionScenes';
+import { sceneKitFor, type SceneVector } from './missionScenes';
 import { ObservationTarget, SceneLine } from './ScenePrimitives';
 import { relativePosition, renderAttitude, renderDirection } from './space/FloatingOrigin';
 import { useMissionPose } from './space/useMissionPose';
@@ -25,7 +25,7 @@ export function OrbitScene({ design, live = false, previewEquipment = false, tel
  design: Design; live?: boolean; previewEquipment?: boolean; telemetry?: Telemetry | null; reviewSample?: HistorySample | null; referenceOnly?: boolean; mode?: CameraMode; reducedMotion?: boolean;
 }) {
  const { t } = useTranslation();
- const kit = MISSION_SCENES[design.scenarioId], quality = useQualityProfile();
+ const kit = useMemo(() => sceneKitFor(design.definition), [design.definition]), quality = useQualityProfile();
  const readPose = useMissionPose();
  const pathRoot = useRef<Group>(null), marker = useRef<Group>(null), attitude = useRef<Group>(null), station = useRef<Group>(null), link = useRef<Group>(null), footprint = useRef<Group>(null);
  const packet = useRef<Group>(null);

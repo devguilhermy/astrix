@@ -85,8 +85,13 @@ function snapToAnchor(): PointingMode | null {
  };
  compare('SUN', ...telemetry.sunDir, true);
  compare('TARGET', -telemetry.positionKm[0], -telemetry.positionKm[1], -telemetry.positionKm[2]);
- if (telemetry.stationPosKm) compare('EARTH', telemetry.stationPosKm[0] - telemetry.positionKm[0], telemetry.stationPosKm[1] - telemetry.positionKm[1], telemetry.stationPosKm[2] - telemetry.positionKm[2]);
- else if (state.design.scenarioId === 'CREW_PATHFINDER') compare('EARTH', -telemetry.positionKm[0], -telemetry.positionKm[1], -telemetry.positionKm[2]);
+ const flight = telemetry.flight, earthCentral = !flight || flight.view.central.body === 'EARTH';
+ if (flight && flight.view.central.body !== 'EARTH') {
+  // Away from Earth the Earth direction is minus the spacecraft's Earth-relative state, not the station vector.
+  const earth = flight.view.earth.rKm;
+  compare('EARTH', -earth[0], -earth[1], -earth[2]);
+ } else if (telemetry.stationPosKm && earthCentral) compare('EARTH', telemetry.stationPosKm[0] - telemetry.positionKm[0], telemetry.stationPosKm[1] - telemetry.positionKm[1], telemetry.stationPosKm[2] - telemetry.positionKm[2]);
+ else if (state.definition.support.crew) compare('EARTH', -telemetry.positionKm[0], -telemetry.positionKm[1], -telemetry.positionKm[2]);
  else if (state.design.orbit?.body === 'MARS') {
   const earth = planetPosition('EARTH', telemetry.t, state.design.orbit.epochUTC), mars = planetPosition('MARS', telemetry.t, state.design.orbit.epochUTC);
   compare('EARTH', earth[0] - mars[0], earth[1] - mars[1], earth[2] - mars[2]);

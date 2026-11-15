@@ -15,7 +15,7 @@ export function LaunchScene({ design, presentation, reducedMotion, previewEquipm
  const stack = useRef<Group>(null), booster = useRef<Group>(null), craft = useRef<Group>(null);
  const elapsed = useRef(0), lastStage = useRef(-1);
  const invalidate = useThree(state => state.invalidate);
- useEffect(() => { elapsed.current = presentation === 'COMPLETE' ? 6 : 0; lastStage.current = -1; invalidate(); }, [presentation, design.scenarioId, invalidate]);
+ useEffect(() => { elapsed.current = presentation === 'COMPLETE' ? 6 : 0; lastStage.current = -1; invalidate(); }, [presentation, design.definitionDigest, invalidate]);
  useFrame((_, wallDelta) => {
   if (presentation === 'PLAYING' && !reducedMotion) elapsed.current = Math.min(6, elapsed.current + Math.min(wallDelta, .1));
   else elapsed.current = presentation === 'COMPLETE' ? 6 : 0;

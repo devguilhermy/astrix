@@ -74,3 +74,26 @@ cd /path/to/GMAT/bin
 ```
 
 Compare the resulting `astrix-earth-state.txt` and `astrix-mars-state.txt` reports in the GMAT output directory with `/tmp/astrix-gmat/*-astrix.json`. These commands generate local files and invoke an independently installed executable; browser uploads never invoke GMAT.
+
+## Mission-design expansion: independent conic references
+
+Observed 2026-11-15: the downloaded NASA GMAT R2025a console successfully interpreted and ran [validate-flight.script](../../scripts/validate-flight.script). The script explicitly sets Earth μ to 398600 and Luna μ to 4902.8 km³/s², matching the new engine's rounded constants. It uses RungeKutta89 with point-mass gravity, no drag, SRP or third-body force, and inertial body-centered frames.
+
+The Earth transfer starts at radius 6578.137 km with tangential speed 7.784257434611812 km/s. Its first impulse is +2.4545860090817744 km/s; at the transfer apoapsis, a second +1.4772709110334405 km/s impulse circularizes. GMAT's `VNB` first axis is the velocity direction. Mass decrement is deliberately disabled in this independent **kinematics** case; it does not validate the game's fuel accounting.
+
+| Reference state | Elapsed seconds reported by GMAT | Position vector (km) | Velocity vector (km/s) |
+|---|---:|---|---|
+| Transfer apoapsis, before circularization | 18931.93096113391 | (−42164.13699999993, 4.566022327179287e−7, 0) | (−6.408207786705008e−11, −1.597388674032814, 0) |
+| After circularization | 18931.93096113391 | Same position | (−1.233454187749175e−10, −3.074659585066255, 0) |
+| Earth escape: initial (6578.137, 0, 0) km and (0, 11.3, 0) km/s | 86400 | (−268932.0309020925, 157475.1054304831, 0) | (−2.709612233076099, 1.310232636839253, 0) |
+| Lunar circular coast: initial radius 1837.4 km, speed 1.6335041143928368 km/s | 7067.459813109599 | (1837.399999999994, −5.701440386474133e−7, 0) | (5.068897523941018e−10, 1.633504114392833, 0) |
+
+Requested transfer and lunar times were 18931.930961285834 s and 7067.459813349092 s. The small reported-time differences are retained rather than rounded away. Compare the application at the actual reported time, or disclose the resulting time offset.
+
+Reproduce from the extracted distribution's `bin` directory:
+
+```sh
+./GmatConsole-R2025a -r /absolute/path/to/astrix/scripts/validate-flight.script
+```
+
+The reports are `output/astrix-raise-reference.txt`, `output/astrix-escape-reference.txt` and `output/astrix-moon-reference.txt`. Optional Python 3.12 and MATLAB plugin libraries were unavailable; neither was used. This independent run establishes reference outputs only: it does not by itself demonstrate application agreement, atmospheric ascent, a lunar ephemeris, sphere-of-influence transitions, lunar targeting, resource integration or full mission success. Application comparison results belong in [Verification](../VERIFICATION.md).

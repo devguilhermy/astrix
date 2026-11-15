@@ -1,4 +1,7 @@
-import { PARTS, RIDES, SCENARIOS, listAssumptions } from './catalog';
+import { PARTS, RIDES, listAssumptions } from './catalog';
+import { BUILTIN_DEFINITIONS } from './mission/builtins';
+import { LAUNCHERS } from './flight/launchers';
+import { MISSION_COPY_EN, MISSION_COPY_PT_BR } from './i18nMission';
 import { CORE_TECHNICAL_EN } from './technicalCopy';
 
 /** Exhaustive core-emitted locale keys and authoring defaults; not runtime English fallback. */
@@ -113,9 +116,11 @@ const cueDefaults: Record<typeof CUE_RULE_IDS[number], readonly [string, string,
  PASS_SOON_DOWNLINK_OFF: ['Contact approaching', 'A station pass is near but sending is not requested.', 'Review pointing, stored data and the downlink command.'],
  STORAGE_FILLING: ['Storage filling', 'At least 80% of storage is occupied.', 'Send data home or reduce collection.'],
 };
-export const CORE_I18N_DEFAULTS: Readonly<Record<string, string>> = Object.freeze({ ...CORE_ENGLISH, ...CORE_TECHNICAL_EN, ...Object.fromEntries(listAssumptions().flatMap(a => [[`assumption.${a.key}`, a.note], ...(typeof a.value === 'string' ? [[`assumptionValue.${a.key}`, a.value]] : [])])), ...Object.fromEntries(CUE_RULE_IDS.flatMap(id => ['title', 'body', 'fix'].map((field, i) => [`cue.${id}.${field}`, cueDefaults[id][i]]))) });
+export const CORE_I18N_DEFAULTS: Readonly<Record<string, string>> = Object.freeze({ ...CORE_ENGLISH, ...MISSION_COPY_EN, ...CORE_TECHNICAL_EN, ...Object.fromEntries(listAssumptions().flatMap(a => [[`assumption.${a.key}`, a.note], ...(typeof a.value === 'string' ? [[`assumptionValue.${a.key}`, a.value]] : [])])), ...Object.fromEntries(CUE_RULE_IDS.flatMap(id => ['title', 'body', 'fix'].map((field, i) => [`cue.${id}.${field}`, cueDefaults[id][i]]))) });
 export const ASSUMPTION_I18N_KEYS: readonly string[] = Object.freeze(listAssumptions().flatMap(a => [`assumption.${a.key}`, ...(typeof a.value === 'string' ? [`assumptionValue.${a.key}`] : [])]));
 export const I18N_KEYS: readonly string[] = Object.freeze([...new Set([...Object.keys(CORE_I18N_DEFAULTS), ...ASSUMPTION_I18N_KEYS])]);
 export const CORE_I18N_KEYS = I18N_KEYS;
 // Catalogue descriptors are explicitly checked by the content parity test, not guessed from IDs.
-export const CATALOG_I18N_KEYS = [...SCENARIOS.flatMap(s => [s.nameKey, s.descKey, s.objectiveKey]), ...PARTS.flatMap(p => [p.nameKey, p.descKey]), ...RIDES.flatMap(r => [r.nameKey, r.descKey])];
+export const CATALOG_I18N_KEYS = [...BUILTIN_DEFINITIONS.flatMap(d => [d.name.key!, d.description.key!, d.objectiveSummary.key!, ...d.objectives.map(o => o.label.key!)]), ...PARTS.flatMap(p => [p.nameKey, p.descKey]), ...RIDES.flatMap(r => [r.nameKey, r.descKey]), ...LAUNCHERS.flatMap(l => [l.nameKey, l.descKey])];
+/** Brazilian Portuguese copy for the keys introduced with definition-driven missions; the web locale files must carry these verbatim. */
+export const CORE_MISSION_PT_BR: Readonly<Record<string, string>> = MISSION_COPY_PT_BR;

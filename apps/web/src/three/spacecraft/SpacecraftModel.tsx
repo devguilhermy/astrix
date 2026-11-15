@@ -162,5 +162,5 @@ function Craft({ design, previewEquipment, telemetry, workbench, reducedMotion, 
 
 /** Geometry is in metres, with the body's axes unchanged. Callers own world pose and km conversion. */
 export function SpacecraftModel({ design, previewEquipment = false, telemetry = null, workbench = false, reducedMotion = false, inspectable = false }: SpacecraftModelProps) {
-  return design ? <Craft key={`${design.busId}:${design.scenarioId}`} design={design} previewEquipment={previewEquipment} telemetry={telemetry} workbench={workbench} reducedMotion={reducedMotion} inspectable={inspectable}/> : null;
+  return design ? <Craft key={`${design.busId}:${design.definitionDigest}`} design={design} previewEquipment={previewEquipment} telemetry={telemetry} workbench={workbench} reducedMotion={reducedMotion} inspectable={inspectable}/> : null;
 }

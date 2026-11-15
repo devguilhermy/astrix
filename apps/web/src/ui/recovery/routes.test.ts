@@ -9,6 +9,8 @@ test('known screens are accepted at the deployed base without accepting missing 
   for (const hash of ['#missing', '#setup/missing', '#mission/missing', '#mission/design/extra', '#setup/toString', '#mission/__proto__']) {
     expect(isKnownLocation('/', hash), hash).toBe(false);
   }
+  expect(isKnownLocation('/', '#studio')).toBe(true);
+  expect(isKnownLocation('/', '#studio/extra')).toBe(false);
   expect(isKnownLocation('/missing', '#home')).toBe(false);
   expect(isKnownLocation('/studio/missing/', '#home', '/studio/')).toBe(false);
   expect(isKnownLocation('/another/', '#home', '/studio/')).toBe(false);

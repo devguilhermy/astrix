@@ -1,5 +1,4 @@
 import type { Design } from './contracts';
-import { scenarioById } from './catalog';
 import { DAY } from './physics';
 import { CREW_DEORBIT_BURN_SEC } from './return';
 import { CREW_MODEL, crewTelemetry, initialCrew } from './sim/crew';
@@ -22,8 +21,8 @@ export interface CrewSupportPlan {
  readonly scrubberKg: number | null;
 }
 export function planCrewSupport(design: Design): CrewSupportPlan | null {
- if (design.scenarioId !== 'CREW_PATHFINDER') return null;
- const plannedOrbitSec = scenarioById(design.scenarioId).durationDays.v * DAY;
+ if (!design.definition.support.crew) return null;
+ const plannedOrbitSec = design.definition.environment.durationSec;
  const burnSec = CREW_DEORBIT_BURN_SEC, recoverySec = CREW_MODEL.recoverySec;
  const supportInstalled = design.busId === 'CREW_CAPSULE' && design.parts.some(p => p.partId === 'CREW_SUPPORT' && p.qty === 1);
  const inventory = supportInstalled ? crewTelemetry(initialCrew()) : null;

@@ -7,7 +7,7 @@ The renderer reads deterministic core state projected by `@astrix/session`; it n
 | Responsibility | Implementation |
 |---|---|
 | Lazy preparation, cancellation, rollback and retained renderer | `App.tsx`, `ui/screens/Simulator.tsx`, `three/AppCanvas.tsx` |
-| Closed mission registry and kilometre shot bounds | `three/missionScenes.ts` |
+| Definition-derived scene family and kilometre shot bounds | `three/missionScenes.ts` |
 | Candidate/live/recorded pose authority | `three/space/useMissionPose.tsx` |
 | Floating origin and right-handed coordinate conversion | `three/space/FloatingOrigin.ts` |
 | Shared sky, Sun, planet and bounded texture residency | `three/space/{SpaceBackdrop,Skybox,SunLight,Planet}.tsx`, `{starfieldShader,atmosphere,textures}.ts` |
@@ -18,6 +18,7 @@ The renderer reads deterministic core state projected by `@astrix/session`; it n
 | Timeline, commands, pilot input, decisions and events | `ui/flight/*` |
 | Bottom spacecraft-slot DOM alternatives and scene model limits | `ui/guide/MissionControl.tsx`, `ui/scene/{WorkbenchControls,SceneCaption}.tsx` |
 | Same-renderer snapshots and adaptive resolution | `three/{previewSnapshots.tsx,AdaptivePixelBudget.tsx,pixelBudget.ts,quality.ts}` |
+| Physical launch/lunar trajectory and planned/flown path overlays | `ui/flightplan/FlightPlanScene.tsx`, core flight telemetry and trajectory forecast |
 
 The obsolete root `SpacecraftModel.tsx` and `MissionCamera.tsx` adapters, fixed points stars, workbench floor and permanent camera button grid are removed. The detailed CameraBridge actions remain deliberate non-drag alternatives.
 
@@ -26,6 +27,8 @@ The obsolete root `SpacecraftModel.tsx` and `MissionCamera.tsx` adapters, fixed 
 Home is DOM-only before first entry. The first entry lazily imports Simulator; its one `AppCanvas` and one WebGLRenderer then remain mounted across stages, previews, replay, help, mission replacement and return to Home. There is no mission/phase key on Canvas and no second WebGL root for cards, Explain or mobile.
 
 Preparation acknowledges scene validation, mounted DOM controls/CameraBridge and an actual committed draw with render calls on a non-lost context. `CommittedDraw` owns that existing root's draw through positive R3F priority. It is not another renderer or a simulation loop. App's attempt token rejects late callbacks and retains prior mission/live state for cancellation or failure rollback. Loading has no fabricated progress percentage or minimum cinematic delay.
+
+Rules-v5 scene integration derives destinations and families from the resolved mission definition, not a four-scenario lookup. Surface-launch flight must render actual ascent state; a storyboard cannot stand in for propagation. Earth/Moon trajectories retain explicit central-body/frame information, while map conversion and floating origin remain rendering-only. A preview path is not flown history, and crossing the lunar sphere of influence is not a capture animation. This new path is awaiting runtime/browser verification.
 
 NASA imagery loads asynchronously without suspending entry. The first real draw may use the original procedural sky/plain planetary surface, then invalidate when an image is committed. A high-tier load failure attempts the local 1k image; exhausted assets report a surface error without changing physics or creating fake telemetry.
 
@@ -91,7 +94,7 @@ Picking requires less than 5 CSS px movement, so orbit dragging does not install
 
 ## 4. Shared sky, Sun and surfaces
 
-All mission shots share one open-space backdrop: no floor, bench or atmosphere/weather field surrounds the craft. The sky uses NASA SVS [Deep Star Maps 2020](https://svs.gsfc.nasa.gov/4851/), with a fixed original procedural fallback if imagery is unavailable. The real sky is paired with core rules-v4's low-precision solar ephemeris; it must not be paired with the old arbitrary equatorial Sun circle.
+All mission shots share an open-space backdrop: no workbench floor or environmental weather field surrounds the craft. NASA SVS [Deep Star Maps 2020](https://svs.gsfc.nasa.gov/4851/) retains an original procedural fallback. Its celestial orientation remains paired with the low-precision equatorial solar model introduced in rules v4 and retained in v5, not the obsolete arbitrary Sun circle.
 
 ### Explicit celestial orientation
 

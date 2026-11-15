@@ -1,7 +1,8 @@
-import type { BusId, LevelId, Q, ScenarioId } from './contracts';
+import type { BusId, LevelId, Q } from './contracts';
 import { clamp } from './physics';
 
-export const RULES_VERSION = 4;
+/** Rules 5: common mission definitions, physical ascent, state-vector trajectories. Rules 4 results are historical. */
+export const RULES_VERSION = 5;
 export interface ModelParameter extends Q { readonly units: string; readonly range: readonly [number, number] }
 const parameter = (v: number, units: string, range: readonly [number, number], note: string): ModelParameter => ({ v, units, range, p: { kind: 'assumption', note: `${note} Rules ${RULES_VERSION}; authored educational coefficient, not calibrated hardware data.` } });
 export const LEVELS: Readonly<Record<LevelId, { budgetFactor: ModelParameter; technical: boolean }>> = {
@@ -50,12 +51,6 @@ export const THERMAL_MODELS: Readonly<Record<BusId, ThermalModel>> = {
  CUBESAT_3U: thermal(6000, .025, .003, 1),
  SMALLSAT: thermal(120000, .28, .08, 10),
  CREW_CAPSULE: thermal(5000000, 8, 1, 200),
-};
-export const MISSION_REQUIREMENTS: Readonly<Record<ScenarioId, { payload: string; recordingMB: number; minimumLinkKbps: number }>> = {
- FIRST_LIGHT: { payload: 'CAM_EO', recordingMB: 1000, minimumLinkKbps: 100 },
- STORM_WATCH: { payload: 'RAD_MON', recordingMB: 32, minimumLinkKbps: 1 },
- CREW_PATHFINDER: { payload: 'CREW_OBSERVER', recordingMB: 100, minimumLinkKbps: 100 },
- RED_RELAY: { payload: 'SS_MAPPER', recordingMB: 6500, minimumLinkKbps: 100 },
 };
 export function lifeFactor(elapsed: number, durationSec: number, eol: number): number { return 1 - (1 - eol) * clamp(elapsed / durationSec, 0, 1); }
 export function thermalEquilibriumK(bus: BusId, absorbedW: number): number {

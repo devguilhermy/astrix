@@ -1,7 +1,20 @@
 export * from './contracts';
-export { computeBudgets, quoteAddPart, quoteRemovePart, quoteSetRide, quoteSetOrbit, quoteSetPropellant, launchReadiness, rolesAffectedBy, previewOrbit, planPropellant } from './design';
+export { MAX_DEFINITION_BYTES, MAX_DEFINITION_FRAME_BYTES, DEFINITION_SCHEMA_VERSION, FLIGHT_MODEL_VERSION } from './mission/types';
+export { computeBudgets, quoteAddPart, quoteRemovePart, quoteSetRide, quoteSetOrbit, quoteSetLauncher, quoteSetAscent, quoteSetBurns, quoteSetPropellant, launchReadiness, rolesAffectedBy, previewOrbit, planPropellant, designMassKg, burnPlanIssue, defaultProgramFor } from './design';
 export { commandRole } from './design';
-export { listScenarios, listParts, listRides, captureOrbits, listSources, listAssumptions, createStarterDesign, listOrbitPresets } from './catalog';
+export { listParts, listRides, captureOrbits, listSources, listAssumptions, listOrbitPresets } from './catalog';
+export { listMissions, missionById, definitionOf, editAsCopy, reviseDefinition, exportMissionDefinition, importMissionDefinition, createStarterDesign } from './mission/library';
+export type { CopyText } from './mission/library';
+export { validateMissionDefinition } from './mission/validate';
+export { digestOf, canonicalJson } from './mission/digest';
+export { BUILTIN_DEFINITIONS, MOON_WINDOW } from './mission/builtins';
+export { listLaunchers, LAUNCHER_BY_ID } from './flight/launchers';
+export { PROGRAM_BOUNDS, ascentProgramIssue } from './flight/program';
+export { previewAscent, recommendAscentProgram, MODEL_LIMITS, MAX_RECOMMENDATION_PREVIEWS } from './flight/preview';
+export { recommendBurns } from './flight/recommend';
+export { previewBurn, forecastTrajectory, MAX_FORECAST_HORIZON_SEC } from './sim/trajectoryForecast';
+export { moonState, MOON_SOI_RADIUS_KM } from './flight/moon';
+export { burnSpecValid, MAX_BURN_DV_KMS } from './sim/trajectory';
 export { createSim, markPracticeRetry } from './sim/state';
 export { issueCommand } from './sim/commands';
 export { stepSim, skipCruise } from './sim/step';
@@ -9,7 +22,7 @@ export { telemetry, history, failureReport, nextBoundary, endMission, historyInf
 export { evaluateCues } from './review/engine';
 export { designSnapshot, operateSnapshot } from './review/rules';
 export { scoreMission, summarizeMission } from './score';
-export { RULES_VERSION, LEVELS, isTechnical, ENGINEERING, THERMAL_MODELS, MISSION_REQUIREMENTS } from './models';
+export { RULES_VERSION, LEVELS, isTechnical, ENGINEERING, THERMAL_MODELS } from './models';
 export type { ModelParameter, ThermalModel } from './models';
 
 export * from './journey';

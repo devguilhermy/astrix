@@ -199,7 +199,7 @@ export function CameraRig({ identity, kit, kind, mode, radius, orbit, reducedMot
   if (!snap && camera.position.distanceToSquared(scratch.desired) > radius * radius * 1e-7) invalidate();
  });
  return <OrbitControls ref={controls} domElement={gl.domElement} makeDefault enabled={interactive} enableDamping={!reducedMotion} dampingFactor={.12}
-  minDistance={close ? Math.max(.0000005, radius * .5) : viewer ? 2.1 : kind === 'transfer' ? 1e5 : kit.radiusKm * 1.02}
+  minDistance={close ? Math.max(.0000005, radius * .5) : viewer ? 2.1 : kind === 'transfer' ? 1e5 : kind === 'flight' ? Math.max(radius * .02, .05) : kit.radiusKm * 1.02}
   maxDistance={mode === 'CINEMATIC' && kind === 'assembly' ? kit.radiusKm * 6 : Math.max(radius * 30, close ? .1 : 24)} minPolarAngle={.08} maxPolarAngle={Math.PI - .08} enablePan screenSpacePanning
   onStart={() => { moved.current = true; idleSince.current = performance.now(); }} onChange={constrain} onEnd={() => { idleSince.current = performance.now(); save(); }} keyEvents={false}/>;
 }

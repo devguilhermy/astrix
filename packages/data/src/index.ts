@@ -10,5 +10,6 @@ export const USGS_MISSIONS: readonly UsgsMission[] = usgs.missions;
 export const EXTRA_SOURCES = sources;
 export { SCIENCE_TOPICS } from './science';
 export { SCIENCE_BINDINGS } from './scienceBindings';
+export { TRAJECTORY_SCIENCE_EN, TRAJECTORY_SCIENCE_PT_BR } from './scienceTrajectory';
 export type { ScienceTopicId } from './science';
 export type * from './contracts';

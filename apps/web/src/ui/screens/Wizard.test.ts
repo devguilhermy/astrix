@@ -7,7 +7,7 @@ test('invalid persisted selections cannot become a mission attempt',()=>{
 });
 
 test('single-screen setup starts with Aspiring and requires an explicit mission choice',()=>{expect(emptyDraft.level).toBe('ASPIRING');expect(emptyDraft.mission).toBeNull();expect(emptyDraft.players).toBe(1);});
-test('mission, level and hot-seat assignments survive device-local draft persistence',()=>{const descriptor=Object.getOwnPropertyDescriptor(globalThis,'localStorage');let stored='';Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:()=>stored,setItem:(_key:string,value:string)=>{stored=value;}}});try{const draft={...emptyDraft,mission:'FIRST_LIGHT' as const,level:'EXPERT' as const,players:2,assignments:{SCIENCE:0,SPACECRAFT:1,LAUNCH_ORBIT:0,GROUND_COMMS:1}};saveDraft('draft',draft);expect(readDraft('draft')).toEqual(draft);}finally{if(descriptor)Object.defineProperty(globalThis,'localStorage',descriptor);else Reflect.deleteProperty(globalThis,'localStorage');}});
+test('mission, level and hot-seat assignments survive device-local draft persistence',()=>{const descriptor=Object.getOwnPropertyDescriptor(globalThis,'localStorage');let stored='';Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:()=>stored,setItem:(_key:string,value:string)=>{stored=value;}}});try{const draft={...emptyDraft,track:'CHALLENGE' as const,mission:'FIRST_LIGHT' as const,level:'EXPERT' as const,players:2,assignments:{SCIENCE:0,SPACECRAFT:1,LAUNCH_ORBIT:0,GROUND_COMMS:1}};saveDraft('draft',draft);expect(readDraft('draft')).toEqual(draft);}finally{if(descriptor)Object.defineProperty(globalThis,'localStorage',descriptor);else Reflect.deleteProperty(globalThis,'localStorage');}});
 
 test('player-column role changes swap owners without losing or duplicating a responsibility',()=>{
  for(const players of [2,3,4]) {
@@ -27,4 +27,19 @@ test('additional responsibility preserves the existing multi-role and empty-play
  expect(draft.assignments.SPACECRAFT).toBe(1);
  expect(moveDraftRole(next,'SPACECRAFT',0)).toBe(next);
  expect(swapDraftRole(next,0,'SCIENCE','SPACECRAFT')).toBe(next);
+});
+
+test('a version 1 draft migrates to the Challenges track with its preset kept',()=>{
+ const descriptor=Object.getOwnPropertyDescriptor(globalThis,'localStorage');
+ Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:()=>JSON.stringify({version:1,level:'EXPERT',mission:'RED_RELAY',players:2,assignments:{SCIENCE:1}})}});
+ try{const draft=readDraft('draft');expect(draft?.version).toBe(2);expect(draft?.track).toBe('CHALLENGE');expect(draft?.mission).toBe('RED_RELAY');expect(draft?.level).toBe('EXPERT');expect(draft?.assignments.SCIENCE).toBe(1);}
+ finally{if(descriptor)Object.defineProperty(globalThis,'localStorage',descriptor);else Reflect.deleteProperty(globalThis,'localStorage');}
+});
+test('a saved-mission choice survives only on the Create track',()=>{
+ const descriptor=Object.getOwnPropertyDescriptor(globalThis,'localStorage');
+ let stored='';Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:()=>stored,setItem:(_key:string,value:string)=>{stored=value;}}});
+ try{
+  saveDraft('draft',{...emptyDraft,track:'CREATE',level:'EXPERT',mission:'user.my-mission'});expect(readDraft('draft')?.mission).toBe('user.my-mission');
+  saveDraft('draft',{...emptyDraft,track:'LEARN',mission:'user.my-mission'});expect(readDraft('draft')?.mission).toBeNull();
+ }finally{if(descriptor)Object.defineProperty(globalThis,'localStorage',descriptor);else Reflect.deleteProperty(globalThis,'localStorage');}
 });

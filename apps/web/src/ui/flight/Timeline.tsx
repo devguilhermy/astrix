@@ -17,7 +17,7 @@ export function useTimelineForecast() {
   if (!sim || !design?.orbit || activeStage !== 'IMPLEMENT' || telemetry?.ended) return null;
   const horizon = design.orbit.body === 'MARS' ? 88775.244 : orbitalPeriod(design.orbit.smaKm, CONSTANTS[design.orbit.body].mu.v);
   return forecastTimeline(sim, horizon);
- }, [attempt, liveMission.generation, design?.scenarioId, design?.revision, bucket, telemetry?.ended, activeStage]);
+ }, [attempt, liveMission.generation, design?.definitionDigest, design?.revision, bucket, telemetry?.ended, activeStage]);
 }
 export function Timeline({forecast}:{forecast:TimelineForecast|null}) {
  const { t, i18n } = useTranslation();

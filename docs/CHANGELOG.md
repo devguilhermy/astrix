@@ -2,6 +2,18 @@
 
 Shipped changes, newest first. Evidence for each entry is in [VERIFICATION.md](./VERIFICATION.md); scope and decisions are in the linked plans.
 
+## Unreleased — Mission definitions, learning progression and concept tours
+
+**Integration in progress; not a shipped or verified release.**
+
+- Rules v5: resolved immutable mission definitions/digests, objective evidence and definition-scoped run identity replace scenario-bound authority.
+- Expert Mission Studio: editable drafts, immutable publication, validated JSON import/export and explicit storage errors.
+- Learning catalogue: short data-return, suborbital/orbit/maneuver lessons, lunar encounter and Earth-to-Moon orbiter.
+- Physical flight: staged reduced ascent, frame-qualified conics, lunar patches and fuel-limited impulsive burns; previews/recommendations run in workers.
+- Tours: 15 concept cards total, curriculum-wide opt-out and presentation-only navigation; LAN tours do not pause the room.
+- LAN migration: protocol/build compatibility, larger bounded definition frames and credential-preserving request failures are being integrated.
+- Canonical docs updated now at the owner's request. Combined typecheck, regression tests, browser workflows and final host rehearsal remain pending.
+
 ## 2026-11-15 — Bottom mission control and LAN groundwork
 
 ### Interface

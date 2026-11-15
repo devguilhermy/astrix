@@ -3,7 +3,7 @@ import { computeBudgets } from '../design';
 import { crewReturnWindow, crewReturnFuel } from '../return';
 import { scoreMission } from '../score';
 import { missionRequirements } from '../journey';
-import { createStarterDesign } from '../catalog';
+import { createStarterDesign, missionById } from '../mission/library';
 import { createSim } from './state';
 import { issueCommand } from './commands';
 import { history, nextBoundary, telemetry } from './selectors';
@@ -11,7 +11,7 @@ import { stepSim } from './step';
 
 describe('crew support transaction boundaries', () => {
  it('consumes time for onboard procedures without radio and retains mass during metabolism', () => {
-  const initial = createSim(createStarterDesign('CREW_PATHFINDER', 'ASPIRING'), 73);
+  const initial = createSim(createStarterDesign(missionById('CREW_PATHFINDER'), 'ASPIRING'), 73);
   const issued = issueCommand(initial, { kind: 'CREW_FAN', on: false }, 'SPACECRAFT', { role: 'SPACECRAFT', playerId: 'operator' });
   expect(issued.ok).toBe(true);
   if (!issued.ok) return;
@@ -26,7 +26,7 @@ describe('crew support transaction boundaries', () => {
  });
 });
  it('exposes a finite unpowered-scrubber CO₂ rise without changing retained mass', () => {
-  let state = createSim(createStarterDesign('CREW_PATHFINDER', 'ASPIRING'), 73);
+  let state = createSim(createStarterDesign(missionById('CREW_PATHFINDER'), 'ASPIRING'), 73);
   const issued = issueCommand(state, { kind: 'CREW_FAN', on: false }, 'SPACECRAFT');
   if (!issued.ok) throw new Error(issued.code);
   state = issued.value;
@@ -40,7 +40,7 @@ describe('crew support transaction boundaries', () => {
  });
 
 it('guards deorbit by the authored window and computes a positive fuel reserve', () => {
- const d = createStarterDesign('CREW_PATHFINDER', 'ASPIRING');
+ const d = createStarterDesign(missionById('CREW_PATHFINDER'), 'ASPIRING');
  const state = createSim(d, 73);
  const early = issueCommand(state, { kind: 'CREW_DEORBIT' }, 'LAUNCH_ORBIT');
  expect(early).toMatchObject({ ok: false, code: 'NOT_READY', values: { nextSec: 12 * 3600 } });
@@ -49,7 +49,7 @@ it('guards deorbit by the authored window and computes a positive fuel reserve',
 });
 
 it('records recovered early success only when actual data and support are achieved', () => {
- const d = createStarterDesign('CREW_PATHFINDER', 'ASPIRING');
+ const d = createStarterDesign(missionById('CREW_PATHFINDER'), 'ASPIRING');
  const advance = (initial: ReturnType<typeof createSim>, target: number) => {
   let s = initial, guard = 0;
   while (s.t < target && !telemetry(s).ended) { s = stepSim(s, Math.min(1000, target - s.t - telemetry(s).remainderSec)).state; if (++guard > 50000) throw new Error('no progress'); }
@@ -76,7 +76,7 @@ it('records recovered early success only when actual data and support are achiev
 });
 
 it('does not award success for recovery without the data objective', () => {
- const d = createStarterDesign('CREW_PATHFINDER', 'ASPIRING');
+ const d = createStarterDesign(missionById('CREW_PATHFINDER'), 'ASPIRING');
  let s = createSim(d, 73), guard = 0;
  while (s.t < 12 * 3600 && !telemetry(s).ended) { s = stepSim(s, Math.min(1000, 12 * 3600 - s.t - telemetry(s).remainderSec)).state; if (++guard > 50000) throw new Error('no progress'); }
  const q = issueCommand(s, { kind: 'CREW_DEORBIT' }, 'ALL'); if (!q.ok) throw new Error(q.code); s = q.value;
@@ -90,7 +90,7 @@ it('does not award success for recovery without the data objective', () => {
 });
 
 it('integrates crew metabolism consistently across advance partitions', () => {
- const initial = createSim(createStarterDesign('CREW_PATHFINDER', 'ASPIRING'), 73);
+ const initial = createSim(createStarterDesign(missionById('CREW_PATHFINDER'), 'ASPIRING'), 73);
  const run = (chunk: number) => {
   let s = initial, guard = 0;
   while (s.t < 1800 && !telemetry(s).ended) {
@@ -110,7 +110,7 @@ it('uses explicit return window edges and finite positive rocket-equation fuel',
  expect(crewReturnWindow(12 * 3600 - 1)).toMatchObject({ open: false, nextSec: 1 });
  expect(crewReturnWindow(12 * 3600)).toMatchObject({ open: true, remainingSec: 600 });
  expect(crewReturnWindow(12 * 3600 + 600)).toMatchObject({ open: false, nextSec: 4800 });
- const d = createStarterDesign('CREW_PATHFINDER', 'ASPIRING');
+ const d = createStarterDesign(missionById('CREW_PATHFINDER'), 'ASPIRING');
  const fuel = crewReturnFuel(d.orbit!, computeBudgets(d).massKg.used, 320);
  expect(fuel).toBeGreaterThan(0);
  expect(fuel).toBeLessThan(d.parts.find(p => p.partId === 'CREW_PROPULSION')!.propellantKg!);

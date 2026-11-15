@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import type { Command, LevelId, SimEvent, SimState } from '../contracts';
-import { createStarterDesign, scenarioById } from '../catalog';
+import { createStarterDesign, missionById } from '../mission/library';
 import { launchReadiness } from '../design';
 import { missionRequirements } from '../journey';
 import { scoreMission } from '../score';
@@ -14,9 +14,9 @@ const team = { roles: 1, signoffs: 1, blockedSignoffAttempts: 0, sev3Raised: 0, 
 
 /** Reference crew procedures use only public requests, receipts, telemetry and time advances. */
 function flyCrew(level: LevelId): void {
- const design = createStarterDesign('CREW_PATHFINDER', level);
+ const design = createStarterDesign(missionById('CREW_PATHFINDER'), level);
  expect(launchReadiness(design, signed)).toEqual([]);
- let state: SimState = createSim(design, scenarioById('CREW_PATHFINDER').seed);
+ let state: SimState = createSim(design, missionById('CREW_PATHFINDER').environment.seed);
  const events: SimEvent[] = [];
  const executed = new Set<string>();
  const receipts = new Set<string>();

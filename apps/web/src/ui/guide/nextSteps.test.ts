@@ -1,8 +1,8 @@
 import { expect, test } from 'bun:test';
-import { createStarterDesign,createMissionArtifacts,quoteAddPart,computeBudgets,missionRequirements,designSnapshot,evaluateCues,createSim,endMission,telemetry as readTelemetry,type RoleId } from '@astrix/core';
+import { createStarterDesign,missionById,createMissionArtifacts,quoteAddPart,computeBudgets,missionRequirements,designSnapshot,evaluateCues,createSim,endMission,telemetry as readTelemetry,type RoleId } from '@astrix/core';
 import { nextSteps,type GuideContext } from './nextSteps';
 const signoffs:Record<RoleId,boolean>={SCIENCE:false,SPACECRAFT:false,LAUNCH_ORBIT:false,GROUND_COMMS:false};
-function context():GuideContext {const design=createStarterDesign('FIRST_LIGHT','ASPIRING');return {design,artifacts:createMissionArtifacts(design),stage:'DESIGN',signoffs,cues:[],sim:null,telemetry:null,decisions:[]};}
+function context():GuideContext {const design=createStarterDesign(missionById('FIRST_LIGHT'),'ASPIRING');return {design,artifacts:createMissionArtifacts(design),stage:'DESIGN',signoffs,cues:[],sim:null,telemetry:null,decisions:[]};}
 test('First Light missing camera outranks severity three and ritual blockers',()=>{
  const c=context();c.cues=[{id:'urgent',ruleId:'POWER_NEGATIVE',severity:3,category:'alert',role:'SPACECRAFT',params:{},firstRaisedSec:0}];
  const steps=nextSteps(c);expect(steps[0].id).toBe('SCI-PAYLOAD-01');expect(steps[0].owner).toBe('SCIENCE');expect(steps[0].sceneTarget).toBe('INSTRUMENT');expect(steps.findIndex(step=>step.id==='urgent')).toBeLessThan(steps.findIndex(step=>step.id==='TRADE'));
@@ -60,4 +60,16 @@ test('terminal flights replace stale operational cues with debrief, replay and r
  expect(debrief.map(step=>step.target)).toEqual(['replay','redesign']);
  expect(debrief.some(step=>step.id==='old-storage-warning')).toBe(false);
  expect(JSON.stringify(sim)).toBe(before);
+});
+test('a surface-launch mission asks for a launch plan, never a provided orbit',()=>{
+ const base=createStarterDesign(missionById('UP_AND_BACK'),'ASPIRING');
+ const missing:GuideContext={...context(),design:{...base,launch:null},artifacts:createMissionArtifacts(base)};
+ const ids=nextSteps(missing).map(step=>step.id);
+ expect(ids).toContain('launch-plan');expect(ids).not.toContain('orbit-choice');
+ const planned:GuideContext={...missing,design:base};
+ if(base.launch)expect(nextSteps(planned).map(step=>step.id)).not.toContain('launch-plan');
+});
+test('a provided-orbit mission keeps the orbit choice step',()=>{
+ const c=context(),ids=nextSteps({...c,design:{...c.design,orbit:null}}).map(step=>step.id);
+ expect(ids).toContain('orbit-choice');expect(ids).not.toContain('launch-plan');
 });

@@ -3,6 +3,7 @@ const copy={
  readyHint:['Every participant must acknowledge the current roles and check Ready before starting design.','Cada participante deve reconhecer as funções atuais e marcar Pronto antes de iniciar o projeto.'],
  pauseRoles:['Pause the shared mission before transferring a role.','Pause a missão compartilhada antes de transferir uma função.'],
  BAD_MESSAGE:['This request is not supported. Reload the page and reconnect.','Esta solicitação não é compatível. Recarregue a página e reconecte.'],
+ MESSAGE_TOO_LARGE:['This request exceeds the room message limit and was not sent. Reduce the mission definition before trying again.','Esta solicitação excede o limite de mensagem da sala e não foi enviada. Reduza a definição da missão antes de tentar novamente.'],
  VERSION_MISMATCH:['App and host versions differ. Reload before pairing.','As versões do aplicativo e anfitrião diferem. Recarregue antes de parear.'],
  STALE_ATTEMPT:['This action belongs to a previous attempt. Review the current mission.','Esta ação pertence a uma tentativa anterior. Confira a missão atual.'],
  STALE_EPOCH:['This room restarted. Pair with the new room.','Esta sala reiniciou. Pareie com a nova sala.'],

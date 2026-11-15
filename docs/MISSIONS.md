@@ -1,6 +1,6 @@
 # Missions
 
-The rules-v4 catalogue has four scenario identities: First Light, Storm Watch, Red Relay and Crew Pathfinder. The expansion research below is not additional playable content. Goals, costs and hardware ratings are authored assumptions; budget units are not dollars. Source/model limits are in [Resources](./RESOURCES.md) and [Simulation](./SIMULATION.md). This update makes no new verification claim.
+Rules v5 replaces fixed scenario identity with immutable mission definitions. The catalogue separates the four built-in challenges below from short learning missions; Expert also authors custom definitions. Goals, costs and hardware ratings remain teaching assumptions, not flight qualification. **Current status: source integration and acceptance checks are pending.** The older expansion research remains proposed work unless explicitly listed in the new learning catalogue.
 
 | Scenario | Destination and class | Objective | Operational horizon |
 |---|---|---|---|
@@ -9,9 +9,28 @@ The rules-v4 catalogue has four scenario identities: First Light, Storm Watch, R
 | `RED_RELAY` | Mars, SmallSat | Deliver 5,000 MB of qualifying maps after capture | 60 days after capture; analytical cruise separate |
 | `CREW_PATHFINDER` | Earth, crew capsule | Maintain support for 72 hours, deliver 100 MB of observation data and complete six hours of abstracted recovery | 72 hours orbit plus return/recovery |
 
-A run requires `levelId` `ASPIRING` or `EXPERT` and `rulesVersion: 4`. Both levels physically slew a quaternion attitude using paid ADCS. Aspiring has explicit assisted checkpoints and contextual teaching; Expert adds bounded engineering faults. `GUIDED`/`DETAILED` is independent presentation depth. Both use paid hardware, actual resources and explicit commands; neither repairs failures. Budget factors are 1.30 and 1.275 respectively. Mission or level replacement creates a new attempt.
+A run requires `ASPIRING` or `EXPERT`, rules version 5, and the resolved definition/digest. Both levels use paid hardware, real resource accounting and finite quaternion slew; neither repairs failures automatically. Budget factors remain 1.30 and 1.275. Presentation depth is independent. Changing the mission creates a new attempt; changing an authored definition creates a distinct content identity.
 
 The journey starts with a measurable need and four-segment storyboard, then requirements, design/trade, build and verification, explicit launch/operation, and terminal Review. Requirements state targets, units, method, owner, revision and results; unmodeled scientific quality stays Not evaluated. The baseline and verification are revision-bound and launch rechecks readiness and role approvals. One actual baseline-versus-proposal quote is a trade; no duplicate vehicle or quiz is required.
+
+## Learning catalogue and Expert authoring
+
+| Definition | Lesson |
+|---|---|
+| `FIRST_SIGNAL` | Generate and return a small useful product |
+| `UP_AND_BACK` | Reach a suborbital apogee and return to a boundary |
+| `STAY_IN_ORBIT` | Gain enough sideways speed for a safe bound orbit |
+| `RAISE_YOUR_ORBIT` | Raise an orbit and circularize with planned burns |
+| `LEAVE_ORBIT_SAFELY` | Lower the orbit to an explicit entry interface |
+| `PAST_EARTH` | Escape Earth; an optional branch, not synonymous with orbit |
+| `MEET_THE_MOON` | Time a lunar encounter |
+| `EARTH_TO_MOON` | Launch, establish parking orbit, inject, encounter, capture and return data |
+
+Lessons expose their relevant choices and declare any precompleted scaffolding in the definition. They use the same physics and evidence as custom missions. Reaching space, orbiting and escaping are different objectives. A failed ascent, missed encounter or insufficient-fuel burn must remain an observable outcome.
+
+Expert **Create** edits identity, spacecraft constraints/budget, epoch/environment, provided-orbit or surface start, trajectory/maneuver permissions, objectives and termination rules. The editor uses a closed schema, not executable scripts or unrestricted celestial mechanics. Drafts can be saved while invalid, but publishing, export and execution require validation. Published revisions are immutable; imports preserve provenance and avoid overwriting existing IDs. Opening a built-in as an editable copy creates custom identity.
+
+Supported objective kinds are delivered product, instrument hours, apogee band, return boundary, bound orbit, escape, entry interface, lunar encounter distance, propellant reserve, crew support through recovery and crew orbit hours. Required flags, owners, deadlines and dwell requirements are explicit. Review reports per-objective evidence and full definition/run identity; a title alone cannot redefine success.
 
 ## Operations
 
@@ -26,7 +45,7 @@ CubeSat wings and antenna have stowed/deployed/anomalous states; deployment and 
 
 Crew Pathfinder is a fictional four-person exercise, not a vehicle replica or health simulator. It tracks finite oxygen, nitrogen, water, dry food and scrubber capacity, cabin gases, powered fan, retained waste and modeled leakage. Crew procedures are onboard actions independent of radio; deorbit burns finite propellant and recovery advances elapsed time and consumption. Recovery is abstracted rather than an entry dynamics solution. `CREW_SUPPORT_LOST` means an authored support requirement was lost, not an injury or diagnosis. A successful score requires objective data, support and completed recovery; an early return can succeed while the separate 72-hour duration requirement remains unmet; a confirmed team end is not success.
 
-Ground requests, onboard procedures and session actions have distinct transports and actor receipts. Unsent attitude targets may coalesce by actor/gesture, but transmitted targets cannot be recalled or rewritten. Core `nextBoundary` predicts known opportunities/deadlines, not a guarantee against other events. Long attempts retain bounded, decimated samples (including actual attitude) and audit information; sampling and causality limits are disclosed. Earlier results cannot be relabelled as rules-v4 scores.
+Ground requests, onboard procedures and session actions retain distinct transports and actor receipts. Unsent attitude targets may coalesce by actor/gesture; transmitted requests cannot be recalled. History and audit are bounded and may be decimated. Older rules-v4 results remain historical and cannot become comparable rules-v5/custom-definition scores.
 
 ## Collaboration and session authority
 
@@ -38,7 +57,7 @@ Optional phone reading/visibility changes are device-local; shared decisions and
 
 ## Expansion research — not implemented
 
-The following twelve entries preserve the original mission concepts, numerical research and links. Their goals, proposed events, explanatory topics and “engine features” are **requirements for possible future work**, not descriptions of the current runtime. Proposed IDs are not members of `ScenarioId`; current `BodyId` supports only Earth and Mars. Sources still needed are research gaps, not hidden runtime dependencies. “Real missions like yours” counts below are historical `nasa.json` search/facet context, not automatically shipped report panels or verified mission attribution.
+The following twelve entries preserve original mission concepts and research links; they are not the learning catalogue above. Their proposed events, topics and engine features remain future-work requirements. `BodyId` now includes Earth, Mars and Moon, but that does not implement every lunar concept or other planetary environment below. Historical `nasa.json` counts are search/facet context, not verified mission attribution or automatically shipped result panels.
 
 Research provenance rules:
 

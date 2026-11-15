@@ -36,7 +36,7 @@ export function AssemblyScene({ design, previewEquipment, reducedMotion: overrid
   useLayoutEffect(() => {
     if (root.current) root.current.rotation.set(0, 0, 0);
     invalidate();
-  }, [design.busId, design.scenarioId, invalidate]);
+  }, [design.busId, design.definitionDigest, invalidate]);
   useLayoutEffect(() => { invalidate(); }, [turntable, reducedMotion, hovered, invalidate]);
   useFrame((state, delta) => {
     if (!root.current || !turntable || reducedMotion) return;

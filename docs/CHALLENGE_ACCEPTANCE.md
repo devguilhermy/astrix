@@ -6,20 +6,20 @@ The challenge explicitly encourages simplified models and explanations accessibl
 
 | Official objective | ASTRIX acceptance scenario |
 |---|---|
-| Define an objective and mission requirements | Choose First Light, Storm Watch, Crew Pathfinder or Red Relay; confirm the measurable goal and inspect linked requirements and verification methods |
+| Define an objective and mission requirements | Built-in challenges, short learning definitions and Expert-authored measurable objectives/constraints, all using one evaluator; rules-v5 acceptance pending |
 | Configure spacecraft and instruments | Start with a fully costed editable bus or crew capsule; compare payload, power, computer, pointing, radio and supported propulsion changes on a true-proportion model with a mount point per part; click any part for its specifications and constraints |
 | Interacting mass, power, budget, data and communications limits | Quotes expose coupled budgets; the always-visible seven-resource badge grid distinguishes forecast from telemetry, W from Wh, stored from returned data, and crew support from store runway, and shows before → after deltas for a real quote |
-| Choose launch and orbit | Provider-specific fit and deployment checks, supported orbital presets or bounded precise controls; explicit epoch, plane and phase; calculated Mars capture fuel |
+| Choose launch and orbit | Provided-orbit or surface-launch start, staged ascent, planned fuel-limited burns and Earth/Moon patched-conic trajectory; original analytical Mars capture remains separate |
 | Manage a mission from concept to operation | Need & goals → Concept → Requirements → Design → Build & verify → Implement → terminal Review, presented as five chapters with a CAPCOM next step; guarded completion, baseline invalidation, a pre-launch dry-run forecast and explicit launch |
 | Strategic decisions | Contextual pauses for contacts, storage, energy, radiation, arrival and crew recovery; normal commands retain costs, ownership, transport and execution times; a timeline shows sunlight, eclipse and contact windows; manual steering is a contact-gated ground command (light-time delayed at Mars, onboard for crew) |
-| Feedback and mission evaluation | Requirement-level Pass/Fail/Not evaluated, rules-v4 scores, actor receipts, sampled history and qualified causal advice; redesign creates a clean attempt |
+| Feedback and mission evaluation | Per-objective evidence, full definition/digest/run identity, actor receipts and planned-versus-flown records; rules-v5 checks pending |
 | Solo or collaboration up to four | Static shared-screen responsibilities, concerns, proposal impacts, facilitator rotation, handoffs and sign-offs remain complete; LAN groundwork adds host-plus-three-phone admission, ownership/Ready and authoritative room continuity, not yet phone design/flight consoles |
-| Different scientific knowledge levels | Aspiring starts step-by-step spotlight tours and keeps primary prose brief; Expert gets the same HUD with detailed engineering and opens the same concepts on demand. Guided/Detailed changes presentation, not physics or teaching policy |
+| Different scientific knowledge levels | Short scoped learning missions and 15 concept cards across automatic onboarding; Expert authoring and detailed engineering; independent Guided/Detailed presentation |
 | Understand why a decision changes mission performance | Before/after quotes, contextual definitions, current design/flight values, cited evidence and explicit model limitations |
 | Repeat and learn | Redesign or repeat without carrying operational state; reproducible seeds and separated scenario/level scores; assisted practice is labelled |
 | Optional realistic interchange | Bounded OEM/ReportFile visualization and supported GMAT initial-state scripts; no arbitrary script execution or claim of reproducing GMAT dynamics |
 
-The lane is an educational integrated mission-design game, not unrestricted mission-authoring software or flight qualification. The four authored briefs are configurable designs; creating arbitrary custom mission definitions is not implemented. Crew Pathfinder uses four virtual crew and reduced support/recovery models, not individual physiology or an atmospheric-entry trajectory.
+The product remains a bounded educational mission-design game, not unrestricted astrodynamics or flight qualification. Expert definitions use a closed schema and supported objective/trajectory families. Ascent and lunar flight are reduced models; no lunar landing or crew lunar return is implied. Crew Pathfinder retains abstracted support/recovery, not individual physiology. The new rules-v5 implementation is under integration and must pass its own checks before acceptance is claimed.
 
 ## Evidence policy
 

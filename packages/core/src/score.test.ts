@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import type { TeamStats } from './contracts';
-import { createStarterDesign } from './catalog';
+import { createStarterDesign, missionById } from './mission/library';
 import { computeBudgets } from './design';
 import { scoreMission, scoreStars, summarizeMission } from './score';
 import { referenceDesign } from './sim/testSupport';
@@ -32,7 +32,7 @@ describe('explained score model', () => {
   expect(score.total).toBeLessThanOrEqual(100);
  });
  it('keeps weight/room and generation/eclipse statuses separate with revision identity', () => {
-  const d = createStarterDesign('FIRST_LIGHT', 'ASPIRING'), b = computeBudgets(d);
+  const d = createStarterDesign(missionById('FIRST_LIGHT'), 'ASPIRING'), b = computeBudgets(d);
   const summary = summarizeMission(d, { ...b, power: { avgGenW: 100, avgLoadW: 10, marginPct: 900, eclipseWh: 20, usableBatteryWh: 8 } }, null);
   expect(summary.fit).toEqual({ mass: 'FITS', room: 'FITS' });
   expect(summary.energy).toEqual({ generation: 'ENOUGH', eclipseBattery: 'SHORT' });

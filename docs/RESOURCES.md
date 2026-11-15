@@ -2,11 +2,13 @@
 
 Core owns paid mass, room, budget, power, storage, communications and fuel calculations. Budget units and hardware ratings are authored educational assumptions, not real vendor quotes. The model distinguishes forecasts, accepted requests, executed actions and observed outcomes. [Simulation](./SIMULATION.md) describes integration; [Verification](./VERIFICATION.md) records observed checks, not implied validation.
 
-## Rules-v4 identity and budget
+## Rules-v5 identity and budget
 
-`Design.levelId` is required: `ASPIRING` or `EXPERT`. `rulesVersion` is 4. Budget is scenario base × 1.30 or × 1.275 respectively; there is no independently selectable difficulty or profile. Display depth is independent. The CubeSat dispenser has a selected strict under-4-kg and 3-U contract; SmallSat has the authored under-180-kg and 8-bay class. The crew capsule is a separate class. These are screening constraints, not CAD clearance or certification.
+`Design.levelId` remains `ASPIRING` or `EXPERT`; rules version is 5. Budget is the resolved definition's `vehicle.budget` multiplied by 1.30 or 1.275 respectively. Required hardware, minimum recording capacity and minimum link rate belong to that same immutable definition. Display depth is independent. CubeSat, SmallSat and crew constraints remain authored class/provider screening limits, not CAD clearance or certification. The new definition/launch integration is not yet verified.
 
 Mass includes structure, purchased parts and loaded propellant. Flight telemetry distinguishes launch mass and current retained mass. Propellant exhaust and modeled leaks reduce retained mass; consumed crew stores and retained waste do not disappear. W is instantaneous generation/load; Wh is battery energy/capacity. Shadow, pointing, power aging and installed hardware determine power. Decimal MB and kbps describe storage and data transfer; collected bytes are not necessarily qualifying delivered bytes. Operations remain constrained by actual contact, link, power and requested state.
+
+Launch-stage fuel and spacecraft fuel are separate inventories. Finite ascent and impulsive trajectory burns must debit their selected inventory and update retained mass. Planning forecasts are not flown fuel or objective evidence; a rejected maneuver cannot spend fuel or move the spacecraft. Definition revisions and digests travel with the design so resource calculations never depend on a mutable browser library lookup.
 
 Crew Pathfinder includes finite O₂/N₂, food, water, scrubber and cabin gas inventories. The per-person BVAD Rev. 2 baseline is 0.895 kg oxygen, 1.085 kg CO₂, 3.217 kg water and 0.800 kg dry food per day. Metabolic heat is not electrical consumption. Crew support calculations, fan operation and recovery-inclusive time continue during elapsed flight. Store runway assumes working support hardware and cannot mask a failed fan. Cabin gas uses an authored free volume and temperature; this is not individual physiology or a medical outcome model.
 

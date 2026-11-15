@@ -1,10 +1,12 @@
 import type { Command, Design, MissionForecast, SimState, TimelineForecast, TimelineWindow } from '../contracts';
-import { PART_BY_ID, scenarioById } from '../catalog';
+import { PART_BY_ID } from '../catalog';
 import { DAY } from '../physics';
 import { isTechnical } from '../models';
 import { issueCommand } from './commands';
 import { environmentAt } from './environment';
-import { createSim, flight, objectiveValue, stormBounds } from './state';
+import { createSim, flight, stormBounds } from './state';
+import { allRequiredMet, evidenceOf, objectiveValue, primaryObjective } from './objectives';
+import { ascentActive, nextTrajectoryBoundary } from './trajectory';
 import { skipCruise, stepSim } from './step';
 import { crewReturnWindow } from '../return';
 
@@ -12,8 +14,9 @@ import { crewReturnWindow } from '../return';
 export function forecastTimeline(state: SimState, horizonSec: number): TimelineForecast {
  if (!Number.isFinite(horizonSec) || horizonSec < 0) throw new RangeError('Timeline horizon must be finite and non-negative');
  const s = flight(state), startSec = s.t, requestedEnd = startSec + Math.min(horizonSec,7*DAY);
- const missionEnd = s.crew?.phase === 'RECOVERY' ? s.t+s.crew.recoveryRemainingSec : s.arrivalT + scenarioById(s.design.scenarioId).durationDays.v*DAY + (s.crew ? 21610 : 0);
- const endSec = s.ended ? startSec : Math.max(startSec,Math.min(requestedEnd,missionEnd,s.cruise ? s.arrivalT : Infinity));
+ const missionEnd = s.crew?.phase === 'RECOVERY' ? s.t+s.crew.recoveryRemainingSec : s.arrivalT + s.design.definition.environment.durationSec + (s.crew ? 21610 : 0);
+ // A state-vector coast is only valid until its next frame change, impact or burn; later geometry belongs to another segment.
+ const endSec = s.ended || ascentActive(s) ? startSec : Math.max(startSec,Math.min(requestedEnd,missionEnd,s.cruise ? s.arrivalT : Infinity,nextTrajectoryBoundary(s)));
  const windows: TimelineWindow[] = [];
  const point = (at: number, labelKey?: string, kind: TimelineWindow['kind'] = 'EVENT') => {
   if (Number.isFinite(at) && at >= startSec && at <= endSec) windows.push({ kind, startSec: at, endSec: at, labelKey });
@@ -46,7 +49,7 @@ export function forecastTimeline(state: SimState, horizonSec: number): TimelineF
   const [stormStart,stormEnd] = stormBounds(s), a = Math.max(startSec,s.arrivalT+stormStart), b = Math.min(endSec,s.arrivalT+stormEnd);
   if (b > a) windows.push({ kind: 'STORM',startSec: a,endSec: b,labelKey: 'event.SOLAR_STORM_START.title' });
   if (!s.aged) point(s.arrivalT+s.agingAt,'event.BATTERY_AGING.title');
-  if (!s.outageStarted && s.design.orbit!.body === 'EARTH') point(s.arrivalT+s.outageAt,'event.GROUND_OUTAGE.title');
+  if (!s.outageStarted && !s.mars) point(s.arrivalT+s.outageAt,'event.GROUND_OUTAGE.title');
   if (isTechnical(s.design.levelId)) {
    if (!s.pointingFaultSeen) point(s.arrivalT+s.pointingFaultAt,'event.POINTING_DEGRADED.title');
    if (!s.resetSeen) point(s.arrivalT+s.resetAt,'event.COMPUTER_RESET.title');
@@ -69,14 +72,15 @@ export function forecastTimeline(state: SimState, horizonSec: number): TimelineF
  */
 export function forecastMission(design: Design, policy: 'DEFAULT', horizonSec: number): MissionForecast {
  if (policy !== 'DEFAULT' || !Number.isFinite(horizonSec) || horizonSec < 0) throw new RangeError('Unsupported forecast policy/horizon');
- const scenario = scenarioById(design.scenarioId), horizon = Math.min(horizonSec,90*DAY);
- let state = createSim(structuredClone(design),scenario.seed);
+ const def = design.definition, horizon = Math.min(horizonSec,90*DAY);
+ // structuredClone drops nothing a design needs; the embedded definition is plain data.
+ let state = createSim(structuredClone(design),def.environment.seed);
  if (flight(state).cruise) {
   state = skipCruise(state).state;
   const capture = issueCommand(state,{ kind: 'CAPTURE_CONFIRM' },'ALL');
   if (capture.ok) state = capture.value;
  }
- const arrival = flight(state).arrivalT, fullCrew = design.scenarioId === 'CREW_PATHFINDER' && horizon >= scenario.durationDays.v*DAY;
+ const arrival = flight(state).arrivalT, fullCrew = def.support.crew && horizon >= def.environment.durationSec;
  const end = arrival+horizon+(fullCrew ? 21610 : 0), interval = Math.max(60,(end-arrival)/510);
  const samples: { t: number; socWh: number; storedMB: number; downlinkedMB: number }[] = [];
  let nextSample = arrival, guard = 0;
@@ -99,7 +103,7 @@ export function forecastMission(design: Design, policy: 'DEFAULT', horizonSec: n
    if (s.crew.scrubberKg < .1 && s.crew.spareScrubberKg > s.crew.scrubberKg) request({ kind: 'CREW_CARTRIDGE' });
    if (s.crew.leakActive && !s.crew.isolated) request({ kind: 'CREW_ISOLATE',isolated: true });
    else if (s.crew.isolated && s.crew.cabinNitrogenKg < 6) request({ kind: 'CREW_REPRESSURIZE' });
-   if (s.elapsed >= scenario.durationDays.v*DAY && s.crew.phase === 'ON_ORBIT' && crewReturnWindow(s.elapsed).open) request({ kind: 'CREW_DEORBIT' });
+   if (s.elapsed >= def.environment.durationSec && s.crew.phase === 'ON_ORBIT' && crewReturnWindow(s.elapsed).open) request({ kind: 'CREW_DEORBIT' });
   }
   if (s.computerState === 'REBOOTING') { if (s.t >= s.cooldownUntil) request({ kind: 'RECOVER_COMPUTER' }); }
   else if (s.computerState === 'RUNNING') {
@@ -110,10 +114,10 @@ export function forecastMission(design: Design, policy: 'DEFAULT', horizonSec: n
      const mode = s.linkQuality < 1 ? 'ROBUST' : 'NORMAL';
      if (s.linkMode !== mode) request({ kind: 'LINK_MODE',mode });
     }
-    const done = objectiveValue(s) >= scenario.target.v;
+    const done = objectiveValue(s) >= primaryObjective(s).target;
     const send = s.inContact && s.storedMB > 0;
-    const observe = !done && (scenario.metric === 'RADIATION_HOURS' || s.sunlit && s.storedMB < s.storageMB*.8);
-    const hold = send ? 'EARTH' : observe && scenario.metric !== 'RADIATION_HOURS' ? 'TARGET' : 'SUN';
+    const hoursMode = def.objectives.some(o => o.spec.kind === 'INSTRUMENT_HOURS'), observe = !done && (hoursMode || s.sunlit && s.storedMB < s.storageMB*.8);
+    const hold = send ? 'EARTH' : observe && !hoursMode ? 'TARGET' : 'SUN';
     if (s.attitude.hold !== hold) request({ kind: 'POINT',mode: hold });
     for (const i of s.instruments) if (i.on !== observe) request({ kind: 'INSTRUMENT',partId: i.partId,on: observe });
     if (send && !s.downlinkRequested) request({ kind: 'DOWNLINK',on: true });
@@ -124,7 +128,7 @@ export function forecastMission(design: Design, policy: 'DEFAULT', horizonSec: n
   // it twice when an event has stopped progress at the same simulation instant.
   // Land exactly at the nominal onboard return decision. Event-aligned ticks
   // can offset a 60 s review cadence; overshooting would cut real recovery short.
-  const policyBoundary = fullCrew && s.crew?.phase === 'ON_ORBIT' && s.elapsed < scenario.durationDays.v*DAY ? Math.min(end,arrival+scenario.durationDays.v*DAY) : end;
+  const policyBoundary = fullCrew && s.crew?.phase === 'ON_ORBIT' && s.elapsed < def.environment.durationSec ? Math.min(end,arrival+def.environment.durationSec) : end;
   const remaining = policyBoundary-s.t-s.remainderSec;
   const dt = Math.max(0,Math.min(60,remaining));
   const result = stepSim(state,dt);
@@ -134,6 +138,6 @@ export function forecastMission(design: Design, policy: 'DEFAULT', horizonSec: n
   if (++guard > 150000) throw new RangeError('Forecast exceeded bounded operations work');
  }
  record();
- const s = flight(state), value = objectiveValue(s);
- return { policy,samples,outcome: s.firstFailure ? 'FAILURE' : s.ended && !s.sessionEnded && value >= scenario.target.v ? 'SUCCESS' : 'INCOMPLETE',objectiveValue: value,objectiveTarget: scenario.target.v,endedAtSec: s.t };
+ const s = flight(state), primary = primaryObjective(s);
+ return { policy,samples,outcome: s.firstFailure ? 'FAILURE' : s.ended && !s.sessionEnded && allRequiredMet(s) ? 'SUCCESS' : 'INCOMPLETE',objectiveValue: primary.value,objectiveTarget: primary.target,endedAtSec: s.t,evidence: evidenceOf(s),events: s.traj.events.slice() };
 }

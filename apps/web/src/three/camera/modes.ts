@@ -25,10 +25,10 @@ export const useCameraMode = create<{
 }));
 
 export function resolveCameraMode(mode: CameraMode | null, kind: SceneKind, warp: number, advancing: boolean, reducedMotion: boolean, source: 'AUTO' | 'USER' = 'AUTO'): CameraMode {
- if (kind === 'transfer' || advancing || (kind === 'orbit' && warp > 100)) return 'MAP';
+ if (kind === 'transfer' || advancing || ((kind === 'orbit' || kind === 'flight') && warp > 100)) return 'MAP';
  if (kind === 'assembly') return mode === 'MAP' ? 'MAP' : mode === 'CINEMATIC' && !reducedMotion ? 'CINEMATIC' : 'WORKBENCH';
  if (kind === 'launch') return reducedMotion ? 'INSPECT' : 'CINEMATIC';
- if (kind === 'orbit' && source === 'AUTO' && mode === 'WORKBENCH') return 'CHASE';
+ if ((kind === 'orbit' || kind === 'flight') && source === 'AUTO' && mode === 'WORKBENCH') return 'CHASE';
  const selected = mode ?? 'CHASE';
  return reducedMotion && selected === 'CINEMATIC' ? 'INSPECT' : selected;
 }

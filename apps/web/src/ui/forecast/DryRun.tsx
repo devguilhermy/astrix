@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { listScenarios, type MissionForecast } from '@astrix/core';
+import type { MissionForecast } from '@astrix/core';
 import { DAY } from '@astrix/core/physics';
 import { useMission } from '../../store';
+import { missionDurationDays, progressMetric } from '../missions/definitionView';
+import { EvidenceList } from '../missions/EvidenceList';
 import './forecast.css';
 
 type ForecastSample = MissionForecast['samples'][number];
@@ -31,6 +33,7 @@ function ForecastChart({ samples, field, label }: {
 /** Read-only device-local forecast. Terminating the worker cancels all simulation work. */
 export function DryRun() {
   const design = useMission(state => state.design);
+  const definition = useMission(state => state.definition);
   const { t, i18n } = useTranslation();
   const [status, setStatus] = useState<Status>('idle');
   const [result, setResult] = useState<MissionForecast | null>(null);
@@ -51,7 +54,7 @@ export function DryRun() {
     };
   }, [design]);
   if (!design) return null;
-  const scenario = listScenarios().find(item => item.id === design.scenarioId)!;
+  const metric = progressMetric(definition);
   const format = (value: number) => new Intl.NumberFormat(i18n.resolvedLanguage, { maximumFractionDigits: 1 }).format(value);
   const run = () => {
     const id = ++request.current;
@@ -81,7 +84,7 @@ export function DryRun() {
         next.terminate();
         if (worker.current === next) worker.current = null;
       };
-      next.postMessage({ id, design, horizonSec: scenario.durationDays.v * DAY });
+      next.postMessage({ id, design, definition, horizonSec: missionDurationDays(definition) * DAY });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
       setStatus('error');
@@ -104,10 +107,12 @@ export function DryRun() {
       {status === 'cancelled' && <p>{t('forecast.cancelled')}</p>}
       {status === 'error' && <><p>{t('forecast.failed')}</p><details><summary>{t('forecast.errorDetails')}</summary><pre>{error}</pre></details></>}
       {result && <>
-        <p className="forecast-verdict">{t('forecast.verdict', {
+        {metric && <p className="forecast-verdict">{t('forecast.verdict', {
           value: format(result.objectiveValue), target: format(result.objectiveTarget),
-          unit: t(scenario.metric === 'DOWNLINK_MB' ? 'forecast.mb' : 'forecast.hours'),
-        })} · {t(`forecast.${result.outcome}`)}</p>
+          unit: t(metric === 'DOWNLINK_MB' ? 'forecast.mb' : 'forecast.hours'),
+        })} · {t(`forecast.${result.outcome}`)}</p>}
+        {!metric && <p className="forecast-verdict">{t(`forecast.${result.outcome}`)}</p>}
+        <EvidenceList evidence={result.evidence} label={t('forecast.evidence')} predicted/>
       </>}
     </div>
     {result && <>

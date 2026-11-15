@@ -1,5 +1,5 @@
-import type { Command, Design, LevelId, Quote, ScenarioId, SimState } from '../contracts';
-import { createStarterDesign } from '../catalog';
+import type { BuiltinMissionId, Command, Design, LevelId, Quote, SimState } from '../contracts';
+import { createStarterDesign, missionById } from '../mission/library';
 import { planPropellant, previewOrbit, quoteAddPart, quoteRemovePart } from '../design';
 import { issueCommand } from './commands';
 import { telemetry } from './selectors';
@@ -7,8 +7,8 @@ import { stepSim } from './step';
 
 export function accepted<T>(q: Quote<T>): T { if (!q.ok) throw new Error(`${q.code}: ${JSON.stringify(q.values)}`); return q.value; }
 /** Test-only reference hardware; production UI never installs this loadout automatically. */
-export function referenceDesign(scenario: ScenarioId, levelId: LevelId = 'ASPIRING'): Design {
- let d = createStarterDesign(scenario, levelId);
+export function referenceDesign(scenario: BuiltinMissionId, levelId: LevelId = 'ASPIRING'): Design {
+ let d = createStarterDesign(missionById(scenario), levelId);
  if (scenario === 'FIRST_LIGHT') {
   for (const id of ['RADIO_UHF', 'SOLAR_BODY']) d = accepted(quoteRemovePart(d, id, 'ALL')).next;
   for (const id of ['RADIO_SBAND', 'SOLAR_WINGS', 'BATT_40', 'CAM_EO']) d = accepted(quoteAddPart(d, id, 'ALL')).next;

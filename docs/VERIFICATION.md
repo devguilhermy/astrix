@@ -2,6 +2,16 @@
 
 This records observed checks, not inferred product claims. Challenge alignment is tracked in [CHALLENGE_ACCEPTANCE.md](./CHALLENGE_ACCEPTANCE.md). The application is served as a production static build for browser verification; no app state was injected to manufacture mission outcomes.
 
+## Rules-v5 mission-design integration — pending
+
+The current implementation adds mission definitions, Expert authoring, short learning missions, physical ascent/lunar flight and a 15-concept curriculum. Canonical docs were updated during integration at the owner's request. **No completed combined typecheck, test suite, production build or browser acceptance is claimed for this revision.**
+
+An independent GMAT R2025a console run produced orbit-raise, Earth-escape and lunar circular-coast reference outputs using `scripts/validate-flight.script`; see [reference scope](./research/gmat-validation.md#mission-design-expansion-independent-conic-references). This establishes external reference outputs only. Comparison against the integrated application, ascent, sphere-of-influence continuity, targeting and resource validation remain pending.
+
+The multiplayer review found stale production-build acceptance, mismatched definition-frame bounds and credential loss on protocol errors in its historical baseline. Corrections are being integrated; baseline review results are not proof of the current protocol-2 build. Shared Wi-Fi testing does not establish isolated-network security or physical-phone support.
+
+Earlier sections below retain their original build-specific evidence.
+
 ## Bottom mission control and LAN groundwork (2026-11-15)
 
 This section supersedes earlier shell-placement observations. The Impeccable UI plan was reviewed before source edits; a frozen build of commit `5ab4440` supplied baseline measurements independently of concurrent HMR. UI source was then built and copied to a separate production-preview directory for visual checks.

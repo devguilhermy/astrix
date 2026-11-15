@@ -9,7 +9,7 @@ import { BUS_GEOMETRY } from './spacecraft/slots';
 
 const snapshots = new Map<string, string>(), listeners = new Set<() => void>();
 export function snapshotKey(design: Design) {
- return `${design.scenarioId}:${design.levelId}:${design.rulesVersion}:${design.busId}:${design.revision}:${design.parts.map(part => `${part.partId}:${part.qty}:${part.propellantKg ?? 0}`).join('|')}`;
+ return `${design.definitionDigest}:${design.levelId}:${design.rulesVersion}:${design.busId}:${design.revision}:${design.parts.map(part => `${part.partId}:${part.qty}:${part.propellantKg ?? 0}`).join('|')}`;
 }
 export function usePreviewSnapshot(design: Design | null) {
  const key = design ? snapshotKey(design) : '';

@@ -3,7 +3,7 @@ import { createSim, telemetry, quoteAddPart, type JourneyStage } from '@astrix/c
 import { STAGES, useMission, type MissionStore } from '../../store';
 import { canVisitStage, primaryAction } from './missionControlModel';
 
-beforeEach(()=>{useMission.getState().resetMission();useMission.getState().setTeam(1);useMission.getState().startScenario('FIRST_LIGHT','ASPIRING');});
+beforeEach(()=>{useMission.getState().resetMission();useMission.getState().setTeam(1);useMission.getState().startMission('FIRST_LIGHT','ASPIRING');});
 test('one primary reveals the actual blocker, then becomes Continue without changing state',()=>{
  const s=useMission.getState(),before=JSON.stringify(s.artifacts);
  expect(primaryAction(s).kind).toBe('guide');expect(primaryAction(s).step?.target).toBe('objective');expect(JSON.stringify(s.artifacts)).toBe(before);

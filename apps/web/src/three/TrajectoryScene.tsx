@@ -3,7 +3,7 @@ import { useThree } from '@react-three/fiber';
 import { CONSTANTS } from '@astrix/core';
 import { MAX_INTERPOLATION_GAP_MS, sampleTrajectory, type TrajectorySample } from '@astrix/core/interop/gmat';
 import { trajectoryViewer } from '../ui/advanced/trajectoryStore';
-import { MISSION_SCENES, type SceneVector } from './missionScenes';
+import { planetKit, type SceneVector } from './missionScenes';
 import { PlanetBody, SceneLine } from './ScenePrimitives';
 
 export function TrajectoryScene() {
@@ -31,5 +31,5 @@ export function TrajectoryScene() {
  useEffect(()=>{invalidate();},[time,trajectory,invalidate]);
  if (!trajectory) return null;
  const radius = CONSTANTS[trajectory.body].radius.v, position = sampleTrajectory(trajectory,time);
- return <group scale={1.65}><ambientLight intensity={.5}/><directionalLight position={[-8,0,0]} intensity={2}/><PlanetBody kit={trajectory.body === 'EARTH' ? MISSION_SCENES.FIRST_LIGHT : MISSION_SCENES.RED_RELAY}/>{paths.map((points,i)=><SceneLine key={i} points={points} color="#71e5ed"/>)}{position && <mesh name="mission-spacecraft" position={[position[0]/radius,position[2]/radius,-position[1]/radius]}><sphereGeometry args={[.06,12,8]}/><meshBasicMaterial color="#fff2b4"/></mesh>}</group>;
+ return <group scale={1.65}><ambientLight intensity={.5}/><directionalLight position={[-8,0,0]} intensity={2}/><PlanetBody kit={planetKit(trajectory.body === 'MARS' ? 'MARS' : 'EARTH')}/>{paths.map((points,i)=><SceneLine key={i} points={points} color="#71e5ed"/>)}{position && <mesh name="mission-spacecraft" position={[position[0]/radius,position[2]/radius,-position[1]/radius]}><sphereGeometry args={[.06,12,8]}/><meshBasicMaterial color="#fff2b4"/></mesh>}</group>;
 }

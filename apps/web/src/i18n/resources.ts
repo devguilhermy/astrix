@@ -16,6 +16,9 @@ import { inspectorEnglish, inspectorPortuguese } from '../ui/inspector/copy';
 import { multiplayerEnglish, multiplayerPortuguese } from '../ui/multiplayer/copy';
 import { controlEnglish, controlPortuguese } from '../ui/guide/copy';
 import { wizardEnglish, wizardPortuguese } from '../ui/screens/wizardCopy';
+import { tourEnglish, tourPortuguese } from '../ui/tour/copy';
+import { createEnglish, createPortuguese } from '../ui/create/copy';
+import { flightPlanEnglish, flightPlanPortuguese } from '../ui/flightplan/copy';
 
-export const english:Readonly<Record<string,string>> = {...en,...CORE_I18N_DEFAULTS,...modelEnglish,...refinementEnglish,...shellEnglish,...sceneTranslations.en,...windowResources.en,...learningEnglish,...flowEnglish,...forecastEnglish,...flightEnglish,...recoveryEnglish,...inspectorEnglish,...multiplayerEnglish,...controlEnglish,...wizardEnglish};
-export const portuguese:Readonly<Record<string,string>> = {...pt,...CORE_TECHNICAL_PT,...modelPortuguese,...refinementPortuguese,...shellPortuguese,...sceneTranslations['pt-BR'],...windowResources['pt-BR'],...learningPortuguese,...flowPortuguese,...forecastPortuguese,...flightPortuguese,...recoveryPortuguese,...inspectorPortuguese,...multiplayerPortuguese,...controlPortuguese,...wizardPortuguese};
+export const english:Readonly<Record<string,string>> = {...en,...CORE_I18N_DEFAULTS,...modelEnglish,...refinementEnglish,...shellEnglish,...sceneTranslations.en,...windowResources.en,...learningEnglish,...flowEnglish,...forecastEnglish,...flightEnglish,...recoveryEnglish,...inspectorEnglish,...multiplayerEnglish,...controlEnglish,...wizardEnglish,...tourEnglish,...createEnglish,...flightPlanEnglish};
+export const portuguese:Readonly<Record<string,string>> = {...pt,...CORE_TECHNICAL_PT,...modelPortuguese,...refinementPortuguese,...shellPortuguese,...sceneTranslations['pt-BR'],...windowResources['pt-BR'],...learningPortuguese,...flowPortuguese,...forecastPortuguese,...flightPortuguese,...recoveryPortuguese,...inspectorPortuguese,...multiplayerPortuguese,...controlPortuguese,...wizardPortuguese,...tourPortuguese,...createPortuguese,...flightPlanPortuguese};

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test';
-import type { LevelId, ScenarioId, SimState } from '../contracts';
-import { MODEL, scenarioById } from '../catalog';
+import type { LevelId, BuiltinMissionId, SimState } from '../contracts';
+import { MODEL } from '../catalog';
+import { missionById } from '../mission/library';
 import { computeBudgets, launchReadiness } from '../design';
 import { DAY } from '../physics';
 import { scoreMission } from '../score';
@@ -10,7 +11,7 @@ import { skipCruise, stepSim } from './step';
 import { command, referenceDesign } from './testSupport';
 
 /** Reference pilot uses only public commands and visible onboard telemetry. */
-function fly(scenario: ScenarioId, level: LevelId): SimState {
+function fly(scenario: BuiltinMissionId, level: LevelId): SimState {
  const d = referenceDesign(scenario, level);
  expect(launchReadiness(d, { SCIENCE: true, SPACECRAFT: true, LAUNCH_ORBIT: true, GROUND_COMMS: true })).toEqual([]);
  let s = createSim(d, 42), stage: 'OBSERVE' | 'SEND' | 'DONE' = 'OBSERVE';
@@ -26,7 +27,7 @@ function fly(scenario: ScenarioId, level: LevelId): SimState {
    expect(telemetry(s).deployment[key]).toBe('DEPLOYED');
   }
  }
- const arrival = mars ? s.t : 0, target = scenarioById(scenario).target.v;
+ const arrival = mars ? s.t : 0, target = telemetry(s).objective.target;
  let guard = 0;
  while (!telemetry(s).ended) {
   const t = telemetry(s);
@@ -61,7 +62,7 @@ function fly(scenario: ScenarioId, level: LevelId): SimState {
  if (final.objective.value + 1e-8 < target || failureReport(s)) throw new Error(JSON.stringify({ scenario, level, elapsedDays: (final.t - arrival) / DAY, progress: final.objective, failure: failureReport(s), battery: final.socWh, temperatureK: final.thermal?.temperatureK, receipts: final.commandQueue.filter(q => q.status !== 'DELIVERED') }));
  expect(final.objective.value).toBeGreaterThanOrEqual(target - 1e-8);
  expect(failureReport(s)).toBeNull();
- expect(final.t - arrival).toBeCloseTo(scenarioById(scenario).durationDays.v * DAY, 5);
+ expect(final.t - arrival).toBeCloseTo(missionById(scenario).environment.durationSec, 5);
  expect(history(s).length).toBeLessThanOrEqual(MODEL.historyCap.v);
  const score = scoreMission(s, d, { roles: 1, signoffs: 1, blockedSignoffAttempts: 0, sev3Raised: 0, sev3ResolvedBeforeLaunch: 0 });
  expect(score.outcome).toBe('SUCCESS'); expect(score.identity.levelId).toBe(level);

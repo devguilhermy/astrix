@@ -2,7 +2,7 @@ import { Component, useCallback, useEffect, useLayoutEffect, useMemo, useRef, us
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Mesh, MeshStandardMaterial, WebGLRenderer } from 'three';
 import { useTranslation } from 'react-i18next';
-import { CONSTANTS, createStarterDesign, listScenarios, type Design, type HistorySample, type Telemetry } from '@astrix/core';
+import { CONSTANTS, createStarterDesign, listMissions, type Design, type HistorySample, type Telemetry } from '@astrix/core';
 import { liveMission, useMission } from '../store';
 import { OrbitScene } from './OrbitScene';
 import { TransferScene, type TransferPlayback } from './TransferScene';
@@ -14,7 +14,10 @@ import { WebGLFailureNotice } from './WebGLFailureNotice';
 import { ApplicationErrorPanel } from '../ui/primitives/ApplicationErrorPanel';
 import { PreviewSnapshot } from './previewSnapshots';
 import { CameraRig, type CameraBridge } from './camera/CameraRig';
-import { prepareMissionScene, sceneKind, sceneRadius, type SceneKind } from './missionScenes';
+import { sceneKind, sceneKitFor, sceneRadius, usesFlightScene, type SceneKind } from './missionScenes';
+import { FlightScene } from './FlightScene';
+import { flightRegime, padPose, poseFromSample, poseFromTelemetry } from './flight/flightState';
+import { startsOnSurface, usesMoon } from '../ui/missions/definitionView';
 import { CameraControls } from '../ui/scene/CameraControls';
 import { SceneCaption } from '../ui/scene/SceneCaption';
 import { trajectoryViewer } from '../ui/advanced/trajectoryStore';
@@ -74,15 +77,15 @@ function MissionComposition({ design, kind, mode, live, preview, telemetry, revi
  useEffect(() => { invalidate(); }, [design, kind, mode, live, preview, telemetry, reviewSample, referenceOnly, presentation, reducedMotion, invalidate]);
  return <>
   <ambientLight intensity={.09}/><SpaceBackdrop design={design} live={live} planet={kind !== 'transfer'} sunDisc={kind !== 'transfer'} body={kind === 'launch' ? 'EARTH' : undefined}/>
-  {kind === 'assembly' ? <AssemblyScene design={design} previewEquipment reducedMotion={reducedMotion}/> : kind === 'launch' ? <LaunchScene design={design} presentation={presentation} reducedMotion={reducedMotion} previewEquipment={preview} onComplete={onComplete} onStage={onStage}/> : kind === 'transfer' ? <TransferScene design={design} playback={transferPlayback} onComplete={onTransferComplete}/> : <OrbitScene design={design} live={live} previewEquipment={preview} telemetry={telemetry} reviewSample={reviewSample} referenceOnly={referenceOnly} mode={mode} reducedMotion={reducedMotion}/>}
+  {kind === 'assembly' ? <AssemblyScene design={design} previewEquipment reducedMotion={reducedMotion}/> : kind === 'launch' ? <LaunchScene design={design} presentation={presentation} reducedMotion={reducedMotion} previewEquipment={preview} onComplete={onComplete} onStage={onStage}/> : kind === 'transfer' ? <TransferScene design={design} playback={transferPlayback} onComplete={onTransferComplete}/> : kind === 'flight' ? <FlightScene design={design} live={live} preview={preview} telemetry={telemetry} reviewSample={reviewSample} mode={mode} reducedMotion={reducedMotion}/> : <OrbitScene design={design} live={live} previewEquipment={preview} telemetry={telemetry} reviewSample={reviewSample} referenceOnly={referenceOnly} mode={mode} reducedMotion={reducedMotion}/>}
  </>;
 }
 
 export function AppCanvas({ onReady, onFailure: reportFailure }: AppCanvasProps) {
  const { t } = useTranslation();
  const stage = useMission(state => state.activeStage), substep = useMission(state => state.activeSubstep), activeView = useMission(state => state.activeView);
- const activeDesign = useMission(state => state.design), scenarioId = useMission(state => state.scenarioId), levelId = useMission(state => state.levelId);
- const previewMissionId = useMission(state => state.previewMissionId), previewLevelId = useMission(state => state.previewLevelId);
+ const activeDesign = useMission(state => state.design), storeDefinition = useMission(state => state.definition), levelId = useMission(state => state.levelId);
+ const previewDefinition = useMission(state => state.previewDefinition), previewLevelId = useMission(state => state.previewLevelId);
  const viewer = trajectoryViewer(state => state.active), external = trajectoryViewer(state => state.trajectory);
  const selectedSample = reviewPlayback(state => state.sample);
  const sim = useMission(state => state.sim), telemetry = useMission(state => state.telemetry), running = useMission(state => state.running), reducedMotion = useMission(state => state.settings.reducedMotion);
@@ -99,28 +102,35 @@ export function AppCanvas({ onReady, onFailure: reportFailure }: AppCanvasProps)
  const [surfaceError, setSurfaceError] = useState('');
  const [touch, setTouch] = useState(() => typeof matchMedia === 'function' && matchMedia('(any-pointer: coarse)').matches);
  const [presentation, setPresentation] = useState<LaunchPresentation>('IDLE');
- const preview = previewMissionId !== null, mission = previewMissionId ?? activeDesign?.scenarioId ?? scenarioId;
+ const preview = previewDefinition !== null, definition = previewDefinition ?? activeDesign?.definition ?? storeDefinition, mission = definition.id, flightMission = usesFlightScene(definition);
  const selectedLevel = preview ? previewLevelId ?? levelId : activeDesign?.levelId ?? levelId;
- const starter = useMemo(() => createStarterDesign(mission, selectedLevel), [mission, selectedLevel]);
+ const starter = useMemo(() => createStarterDesign(definition, selectedLevel), [definition, selectedLevel]);
  const design = preview ? starter : activeDesign ?? starter;
- const kit = prepareMissionScene(mission);
+ const kit = useMemo(() => sceneKitFor(definition), [definition]);
  const live = !preview && !!sim && (stage === 'IMPLEMENT' || stage === 'REVIEW');
  const reviewSample = !viewer && stage === 'REVIEW' && !preview ? selectedSample : null;
  const crewPhase = reviewSample?.phase ?? (live ? telemetry?.crew?.phase : undefined);
- const referenceOnly = !viewer && mission === 'CREW_PATHFINDER' && (crewPhase === 'DEORBIT' || crewPhase === 'RECOVERY' || crewPhase === 'COMPLETE');
- const baseKind = transferPlayback ? 'transfer' : reviewSample ? (reviewSample.phase === 'CRUISE' ? 'transfer' : 'orbit') : stage === 'IMPLEMENT' && !sim ? 'launch' : stage === 'DESIGN' && (substep === 'orbit' || activeView === 'LAUNCH_ORBIT') ? 'orbit' : sceneKind(stage, mission, live && !!telemetry?.cruise);
- const mode = viewer ? 'MAP' : resolveCameraMode(requestedMode, baseKind, live ? warp : 1, advancing, reducedMotion, cameraSource);
- const kind: SceneKind = baseKind === 'assembly' && mode === 'MAP' ? 'orbit' : baseKind;
+ const referenceOnly = !viewer && definition.support.crew && (crewPhase === 'DEORBIT' || crewPhase === 'RECOVERY' || crewPhase === 'COMPLETE');
+ const baseKind: SceneKind = transferPlayback ? 'transfer' : reviewSample ? (flightMission && reviewSample.flight ? 'flight' : reviewSample.phase === 'CRUISE' ? 'transfer' : 'orbit') : stage === 'IMPLEMENT' && !sim ? (startsOnSurface(definition) ? 'flight' : definition.origin === 'LEARNING' ? 'orbit' : 'launch') : stage === 'DESIGN' && (substep === 'orbit' || activeView === 'LAUNCH_ORBIT') ? (flightMission && startsOnSurface(definition) ? 'flight' : 'orbit') : sceneKind(stage, definition, live && !!telemetry?.cruise, live && !!telemetry?.flight);
+ const regime = useMemo(() => {
+  if (!flightMission || (baseKind !== 'flight' && baseKind !== 'assembly')) return null;
+  const pose = live && telemetry ? poseFromTelemetry(telemetry) : reviewSample ? poseFromSample(reviewSample) : padPose(design, 0);
+  return pose ? flightRegime(pose, usesMoon(definition)) : null;
+ }, [baseKind, flightMission, live, telemetry, reviewSample, design, definition]);
+ const autoMap = baseKind === 'flight' && (regime?.id === 'transfer' || regime?.id === 'moon') && cameraSource === 'AUTO';
+ const mode = viewer ? 'MAP' : resolveCameraMode(requestedMode ?? (autoMap ? 'MAP' : null), baseKind, live ? warp : 1, advancing, reducedMotion, cameraSource);
+ const kind: SceneKind = baseKind === 'assembly' && mode === 'MAP' ? (flightMission && startsOnSurface(definition) ? 'flight' : 'orbit') : baseKind;
+
  const externalRadius = useMemo(() => {
   if (!external) return 0;
   let max = 1;
   for (const segment of external.segments) for (const sample of segment.samples) max = Math.max(max, Math.hypot(...sample.positionKm) / CONSTANTS[external.body].radius.v);
   return max * 1.65 * 1.1;
  }, [external]);
- const radius = viewer ? externalRadius : isCloseShot(mode, kind) && kind !== 'launch' ? Math.max(...BUS_GEOMETRY[design.busId].dimensions) * .001 * 1.25 : sceneRadius(kit, kind, design);
- const identity = viewer ? `viewer:${external?.source}:${external?.object}:${external?.body}` : `${reviewSample ? 'review' : preview ? 'preview' : 'active'}:${mission}:${selectedLevel}:${kind}:${liveMission.generation}`;
+ const craftRadius = Math.max(...BUS_GEOMETRY[design.busId].dimensions) * .001 * 1.25, radius = viewer ? externalRadius : isCloseShot(mode, kind) && kind !== 'launch' ? (regime && (regime.id === 'pad' || telemetry?.flight?.phase === 'ASCENT') ? Math.max(craftRadius, .06) : craftRadius) : kind === 'flight' && regime ? regime.radiusKm : sceneRadius(kit, kind, design);
+ const identity = viewer ? `viewer:${external?.source}:${external?.object}:${external?.body}` : `${reviewSample ? 'review' : preview ? 'preview' : 'active'}:${definition.digest}:${selectedLevel}:${kind}:${regime?.id ?? ''}:${liveMission.generation}`;
  const readyIdentity = `${identity}:${stage}:${design.revision}`;
- const starters = useMemo(() => listScenarios().map(scenario => createStarterDesign(scenario.id, selectedLevel)), [selectedLevel]);
+ const starters = useMemo(() => listMissions().map(item => createStarterDesign(item, selectedLevel)), [selectedLevel]);
  const onFailure = useCallback((error?: unknown) => { setFailed(true); reportFailure?.(error); }, [reportFailure]);
  const onDomMounted = useCallback(() => { setDomReady(true); }, []);
  const onCameraMounted = useCallback(() => { setCameraReady(true); }, []);
@@ -162,8 +172,8 @@ export function AppCanvas({ onReady, onFailure: reportFailure }: AppCanvasProps)
    catch (error) { queueMicrotask(() => onFailure(error)); throw error; }
   }} camera={{ position: [5, 3.6, 6.8], fov: 43, near: .0000001, far: 1e9 }} onCreated={({ gl }) => { gl.setClearColor('#02050b', 0); detectQuality(gl.getContext()); }} fallback={<ApplicationErrorPanel renderer/>}>
    {viewer ? <><SpaceBackdrop design={design} planet={false}/><TrajectoryScene/></> : <MissionComposition design={design} kind={kind} mode={mode} live={live} preview={preview} telemetry={live ? telemetry : null} reviewSample={reviewSample} referenceOnly={referenceOnly} presentation={presentation} reducedMotion={reducedMotion} onComplete={onComplete} onStage={setLaunchStage} transferPlayback={transferPlayback} onTransferComplete={onTransferComplete}/>}
-   {!viewer && starters.map(item => <PreviewSnapshot key={`${item.scenarioId}:${item.levelId}`} design={item}/>)}
-   {!viewer && activeDesign && <PreviewSnapshot key={`built:${activeDesign.scenarioId}:${activeDesign.levelId}`} design={activeDesign}/>}
+   {!viewer && starters.map(item => <PreviewSnapshot key={`${item.missionId}:${item.levelId}`} design={item}/>)}
+   {!viewer && activeDesign && <PreviewSnapshot key={`built:${activeDesign.definitionDigest}:${activeDesign.levelId}`} design={activeDesign}/>}
    <CameraRig identity={identity} kit={kit} kind={viewer ? 'orbit' : kind} mode={mode} radius={radius} orbit={viewer ? null : design.orbit} reducedMotion={reducedMotion} interactive={(!touch || exploring) && !pilot} bridge={bridge} onMounted={onCameraMounted} viewer={viewer}/>
    {!viewer && <PartTracker/>}
    <CommittedDraw identity={readyIdentity} ready={domReady && cameraReady && !failed} onReady={onReady} onFailure={onFailure}/>
@@ -174,7 +184,7 @@ export function AppCanvas({ onReady, onFailure: reportFailure }: AppCanvasProps)
    <CameraControls bridge={bridge} effectiveMode={mode} exploring={exploring} touch={touch} ready={cameraReady && !failed} onExplore={setExploring} onMounted={onDomMounted}/>
    {!viewer && kind === 'launch' && <section className="scene-launch-presentation" aria-label={t('scene.launch')}><p role="status">{t(`flight.launchStage${launchStage}`)}</p><p>{t(reducedMotion ? 'flight.launchStatic' : 'scene.launch')}</p><div className="button-wrap"><button type="button" onClick={() => setPresentation(presentation === 'PLAYING' ? 'COMPLETE' : 'PLAYING')}>{t(presentation === 'PLAYING' ? 'scene.skip' : presentation === 'COMPLETE' ? 'scene.replay' : 'scene.play')}</button>{presentation !== 'COMPLETE' && <button type="button" onClick={onComplete}>{t('scene.skip')}</button>}</div></section>}
    {transferPlayback && <section className="scene-launch-presentation"><p>{t('flight.timeLapse')}</p><button type="button" onClick={onTransferComplete}>{t('scene.skip')}</button></section>}
-   {!viewer && <SceneCaption design={design} mission={mission} stage={stage} kind={kind} preview={preview} hasFlight={!!sim} running={running} telemetry={live && !reviewSample ? telemetry : null} technical={selectedLevel === 'EXPERT'} reviewing={!!reviewSample} referenceOnly={referenceOnly}/>}
+   {!viewer && <SceneCaption design={design} definition={definition} stage={stage} kind={kind} preview={preview} hasFlight={!!sim} running={running} telemetry={live && !reviewSample ? telemetry : null} technical={selectedLevel === 'EXPERT'} reviewing={!!reviewSample} referenceOnly={referenceOnly}/>}
    {reviewSample && <p role="status">{t('scene.recorded')} · t={reviewSample.t.toFixed(1)} s · {t(`flow.phase.${reviewSample.phase}`, {defaultValue: reviewSample.phase})}. {t(referenceOnly ? 'scene.recordedReference' : reviewSample.phase === 'CRUISE' ? 'flight.transferLimits' : 'scene.recordedPose')}</p>}
    {surfaceError && <p role="status">{t('scene.surfaceUnavailable', {file: surfaceError})}</p>}
   </section>

@@ -1,0 +1,10 @@
+/* Shared by the studio, Goal, Operate, forecast and Report: objective and evidence rows. */
+.chip.state-MET { color: #8fe6bc; border-color: #4c8f6f; }
+.chip.state-FAILED { color: #f6a49b; border-color: #a5584f; }
+.chip.state-IN_PROGRESS { color: var(--cyan); border-color: #4e8f95; }
+.chip.required { color: var(--orange); border-color: #987343; }
+.objective-list ul, .evidence-list ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .55rem; }
+.objective-list li, .evidence-list li { border: 1px solid #31465a; border-radius: 6px; padding: .6rem .8rem; display: grid; gap: .25rem; background: #0b1724; }
+.evidence-list[data-predicted] li { border-style: dashed; }
+.evidence-list progress { width: 100%; accent-color: var(--cyan); }
+.learning-provided { border: 1px solid #3a6670; border-radius: 6px; padding: .6rem .8rem; display: grid; gap: .25rem; font-size: .92rem; }

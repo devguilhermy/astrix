@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'bun:test';
 import * as api from './index';
 import type { CoreAPI, Design, LevelId, Quote, RoleId } from './contracts';
-import { BUSES, CAPTURE_ORBITS, MODEL, PARTS, RIDES, SCENARIOS, createStarterDesign, listAssumptions, listSources } from './catalog';
+import { BUSES, CAPTURE_ORBITS, MODEL, PARTS, RIDES, listAssumptions, listSources } from './catalog';
+import { createStarterDesign, listMissions, missionById } from './mission/library';
 import { computeBudgets, launchReadiness, planPropellant, previewOrbit, quoteAddPart, quoteRemovePart, quoteSetOrbit, quoteSetPropellant, quoteSetRide, rolesAffectedBy } from './design';
 import { CORE_I18N_DEFAULTS, I18N_KEYS, CATALOG_I18N_KEYS } from './i18nKeys';
 import { CONSTANTS, withOrbitAltitudes, makeOrbit } from './physics';
-import { LEVELS, MISSION_REQUIREMENTS } from './models';
+import { LEVELS } from './models';
 import { summarizeMission } from './score';
 
 const implementation: CoreAPI = api;
@@ -24,7 +25,7 @@ describe('catalogue provenance and stable consumer API', () => {
     if (q.p.kind === 'source') expect(sources.has(q.p.src!)).toBe(true); else { expect(q.p.kind).toBe('assumption'); expect(q.p.note!.length).toBeGreaterThan(10); }
    } else for (const item of Object.values(value)) walk(item);
   };
-  walk(PARTS); walk(BUSES); walk(MODEL); walk(LEVELS); walk(CONSTANTS); walk(RIDES); walk(SCENARIOS);
+  walk(PARTS); walk(BUSES); walk(MODEL); walk(LEVELS); walk(CONSTANTS); walk(RIDES); walk(listMissions({ origin: 'BUILTIN' }));
   for (const p of PARTS) for (const field of ['massKg', 'volume', 'cost', 'powerW'] as const) expect(p[field]).toHaveProperty('p');
   expect(new Set(PARTS.map(p => p.id)).size).toBe(PARTS.length);
  });
@@ -35,11 +36,15 @@ describe('catalogue provenance and stable consumer API', () => {
 });
 describe('design refusals, boundaries and complete starter behavior', () => {
  it('supplies editable charged-for starter hardware valid at every difficulty', () => {
-  for (const scenario of SCENARIOS) for (const difficulty of Object.keys(LEVELS) as LevelId[]) {
-   const design = createStarterDesign(scenario.id, difficulty), budgets = computeBudgets(design);
+  for (const scenario of listMissions({ origin: 'BUILTIN' })) for (const difficulty of Object.keys(LEVELS) as LevelId[]) {
+   const design = createStarterDesign(scenario, difficulty), budgets = computeBudgets(design);
    const readiness = launchReadiness(design, signoffs);
    expect(readiness.some(r => r.code === 'UNSUPPORTED_RULES')).toBe(false);
-   if (scenario.id !== 'CREW_PATHFINDER') expect(readiness).toContainEqual(expect.objectContaining({ code: 'REQUIRES_PART', values: { needs: MISSION_REQUIREMENTS[scenario.id].payload } }));
+   if (scenario.id !== 'CREW_PATHFINDER') {
+    const missing = scenario.vehicle.requiredPartIds.find(id => !design.parts.some(part => part.partId === id));
+    expect(missing).toBeDefined();
+    expect(readiness).toContainEqual(expect.objectContaining({ code: 'REQUIRES_PART', values: { needs: missing } }));
+   }
    expect(budgets.cost.used).toBeGreaterThan(BUSES[design.busId].cost.v);
    expect(budgets.cost.used).toBeLessThanOrEqual(budgets.cost.limit);
    expect(budgets.massKg.used).toBeLessThan(budgets.massKg.limit);
@@ -50,7 +55,7 @@ describe('design refusals, boundaries and complete starter behavior', () => {
   }
  });
  it('uses required role, compatibility, uniqueness, volume, mass, cost, dependency order', () => {
-  const d = createStarterDesign('FIRST_LIGHT', 'ASPIRING');
+  const d = createStarterDesign(missionById('FIRST_LIGHT'), 'ASPIRING');
   expect(quoteAddPart(d, 'SS_XBAND', 'SCIENCE')).toMatchObject({ ok: false, code: 'ROLE_LOCKED' });
   expect(quoteAddPart(d, 'SS_XBAND', 'ALL')).toMatchObject({ ok: false, code: 'RIDE_MISMATCH' });
   expect(quoteAddPart(d, 'ADCS_WHEELS', 'ALL')).toMatchObject({ ok: false, code: 'DUPLICATE_UNIQUE' });
@@ -64,7 +69,7 @@ describe('design refusals, boundaries and complete starter behavior', () => {
   expect(quoteAddPart(noAdcs, 'RADIO_SBAND', 'ALL')).toMatchObject({ ok: false, code: 'REQUIRES_PART' });
  });
  it('enforces strict SmallSat mass, tank and non-negative finite fuel with atomic refusal', () => {
-  let d = accepted(quoteAddPart(createStarterDesign('RED_RELAY', 'ASPIRING'), 'SS_PROP_MONO', 'ALL')).next;
+  let d = accepted(quoteAddPart(createStarterDesign(missionById('RED_RELAY'), 'ASPIRING'), 'SS_PROP_MONO', 'ALL')).next;
   const original = structuredClone(d), dry = computeBudgets(d).massKg.used;
   expect(quoteSetPropellant(d, 180 - dry, 'ALL')).toMatchObject({ ok: false, code: 'MASS_OVER_LIMIT' });
   expect(quoteSetPropellant(d, 121, 'ALL')).toMatchObject({ ok: false, code: 'PROPELLANT_OVER_TANK' });
@@ -75,7 +80,7 @@ describe('design refusals, boundaries and complete starter behavior', () => {
   expect(quoteSetPropellant(d, 1, 'LAUNCH_ORBIT')).toMatchObject({ ok: false, code: 'ROLE_LOCKED' });
  });
  it('validates ride and exact offered paths without silently swapping orbits', () => {
-  const d = createStarterDesign('FIRST_LIGHT', 'ASPIRING');
+  const d = createStarterDesign(missionById('FIRST_LIGHT'), 'ASPIRING');
   expect(quoteSetRide(d, 'RIDE_MARS_TRANSFER', 'ALL')).toMatchObject({ ok: false, code: 'RIDE_MISMATCH' });
   expect(quoteSetOrbit(d, withOrbitAltitudes(d.orbit!, 421, 421, 51.6), 'ALL')).toMatchObject({ ok: false, code: 'ORBIT_NOT_OFFERED' });
   const custom = accepted(quoteSetRide(d, 'RIDE_SMALL_LAUNCHER', 'ALL')).next;
@@ -85,7 +90,7 @@ describe('design refusals, boundaries and complete starter behavior', () => {
   expect(quoteSetRide(d, 'RIDE_SMALL_LAUNCHER', 'SCIENCE')).toMatchObject({ code: 'ROLE_LOCKED' });
  });
  it('reports missing hardware and every unsigned role without power-based launch coercion', () => {
-  const d = createStarterDesign('FIRST_LIGHT', 'ASPIRING');
+  const d = createStarterDesign(missionById('FIRST_LIGHT'), 'ASPIRING');
   const noRadio = accepted(quoteRemovePart(d, 'RADIO_UHF', 'ALL')).next;
   expect(launchReadiness(noRadio, { ...signoffs, SCIENCE: false })).toEqual(expect.arrayContaining([expect.objectContaining({ code: 'NOT_READY', values: { missing: 'radio' } }), expect.objectContaining({ code: 'SIGNOFF_BLOCKED', values: { role: 'SCIENCE' } })]));
   const withPayload = accepted(quoteAddPart(d, 'CAM_EO', 'ALL')).next;
@@ -94,7 +99,7 @@ describe('design refusals, boundaries and complete starter behavior', () => {
   expect(launchReadiness(noSolar, signoffs)).toEqual([]);
  });
  it('uses the same quotes for Guided paths and Technical manual edits', () => {
-  const d = createStarterDesign('RED_RELAY', 'ASPIRING');
+  const d = createStarterDesign(missionById('RED_RELAY'), 'ASPIRING');
   for (const preset of api.listOrbitPresets(d)) {
    const preview = accepted(previewOrbit(d, preset.id, 'ALL'));
    const manual = accepted(quoteSetOrbit(d, preset.orbit, 'ALL'));
@@ -105,7 +110,7 @@ describe('design refusals, boundaries and complete starter behavior', () => {
   expect(previewOrbit(d, 'MARS_CLOSE', 'SCIENCE')).toMatchObject({ code: 'ROLE_LOCKED' });
  });
  it('plans fuel for actual dry hardware and never bypasses mass/tank/cost checks', () => {
-  let d = accepted(quoteAddPart(createStarterDesign('RED_RELAY', 'ASPIRING'), 'SS_PROP_MONO', 'ALL')).next;
+  let d = accepted(quoteAddPart(createStarterDesign(missionById('RED_RELAY'), 'ASPIRING'), 'SS_PROP_MONO', 'ALL')).next;
   d = accepted(quoteAddPart(d, 'SS_MAPPER', 'ALL')).next;
   const fuel = accepted(planPropellant(d, 'ALL'));
   expect(fuel.requiredKg).toBeGreaterThan(0);
@@ -116,7 +121,7 @@ describe('design refusals, boundaries and complete starter behavior', () => {
   expect(planPropellant(d, 'LAUNCH_ORBIT')).toMatchObject({ code: 'ROLE_LOCKED' });
  });
  it('keeps forecast unknown when the path is missing and recomputes custom paths exactly', () => {
-  const d = createStarterDesign('FIRST_LIGHT', 'ASPIRING'), unknown = { ...d, orbit: null };
+  const d = createStarterDesign(missionById('FIRST_LIGHT'), 'ASPIRING'), unknown = { ...d, orbit: null };
   const b = computeBudgets(unknown);
   expect(b.power).toBeNull(); expect(b.data).toBeNull(); expect(b.orbit).toBeNull();
   expect(summarizeMission(unknown, b, null).energy).toEqual({ generation: 'UNKNOWN', eclipseBattery: 'UNKNOWN' });

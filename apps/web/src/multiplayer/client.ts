@@ -1,4 +1,4 @@
-import { PROTOCOL_VERSION, type ClientMessage, type ServerMessage, type SessionIntent, type SessionActor } from '@astrix/session';
+import { PROTOCOL_VERSION, MAX_CLIENT_FRAME_BYTES, MAX_DEFINITION_FRAME_BYTES, type ClientMessage, type ServerMessage, type SessionIntent, type SessionActor } from '@astrix/session';
 import { backoffDelayMs, terminalClose, terminalHttp, RECONNECT_MAX_ATTEMPTS } from './reconnect';
 import { bindRoomSink, projectSnapshot, readCredential, roomSession, saveCredential, updateRoom, clearRoom, type DeviceCredential } from './session';
 import { applyRemoteResult } from '../store';
@@ -41,8 +41,8 @@ export class RoomClient {
       const socket=new WebSocket(url);this.socket=socket;
       socket.onopen=()=>{if(socket!==this.socket)return;this.lastPong=Date.now();this.send({type:'HELLO',protocol:PROTOCOL_VERSION,buildId:info.buildId,lastSeq:roomSession().snapshot?.seq??0});};
       socket.onmessage=event=>{if(socket!==this.socket)return;try{this.receive(JSON.parse(event.data));}catch{this.stop('ended','BAD_MESSAGE');}};
-      socket.onclose=event=>{if(socket!==this.socket||this.stopped)return;this.socket=null;clearInterval(this.heartbeat);if(terminalClose(event.code)){this.stop(event.code===4409?'replaced':event.code===4406?'version':'repair',event.reason||'UNAUTHORIZED');return;}this.retry();};
-    }catch(error){if(this.stopped||generation!==this.generation)return;if(error instanceof ApiError&&terminalHttp(error.status)){this.stop(error.status===426?'version':'repair',error.code);return;}this.retry();}
+      socket.onclose=event=>{if(socket!==this.socket||this.stopped)return;this.socket=null;clearInterval(this.heartbeat);if(terminalClose(event.code)){this.stop(event.code===4409?'replaced':event.code===4406?'version':'repair',event.reason||'BAD_MESSAGE',event.code===4401||event.code===4403);return;}this.retry();};
+    }catch(error){if(this.stopped||generation!==this.generation)return;if(error instanceof ApiError&&terminalHttp(error.status)){this.stop(error.status===426?'version':'repair',error.code,error.status===401||error.status===403);return;}this.retry();}
   }
   private receive(raw:unknown):void {
     if(!raw||typeof raw!=='object'||!('type'in raw))throw new Error('BAD_MESSAGE');
@@ -77,22 +77,27 @@ export class RoomClient {
     if(message.type==='PONG'){this.lastPong=Date.now();return;}
     if(message.type==='ROOM_CLOSED'){this.stop('ended','ROOM_CLOSED');return;}
   }
-  send(message:ClientMessage):boolean {if(this.socket?.readyState!==WebSocket.OPEN)return false;this.socket.send(JSON.stringify(message));return true;}
+  send(message:ClientMessage):boolean {
+    if(this.socket?.readyState!==WebSocket.OPEN){updateRoom({error:'OFFLINE'});return false;}
+    const definition=message.type==='INTENT'&&(message.intent.kind==='START_DEFINITION'||message.intent.kind==='SUBMIT_DEFINITION');
+    const encoded=JSON.stringify(message),limit=definition?MAX_DEFINITION_FRAME_BYTES:MAX_CLIENT_FRAME_BYTES;
+    if(new TextEncoder().encode(encoded).length>limit){updateRoom({error:'MESSAGE_TOO_LARGE'});return false;}
+    try{this.socket.send(encoded);return true;}catch{updateRoom({error:'OFFLINE'});return false;}
+  }
   intent(intent:SessionIntent,actor:SessionActor):void {
     const state=roomSession();if(state.status!=='connected'||!state.snapshot||!state.identity){updateRoom({error:'OFFLINE'});return;}
     if(this.pending.size>=64){updateRoom({error:'RATE_LIMITED'});return;}
-    const id=requestId();this.pending.add(id);const entries=Object.entries(state.outcomes).slice(-127);
+    const id=requestId(),commit=intent.kind==='COMMIT_DESIGN'&&!intent.quoteId?intent:null;
+    const transmitted=commit?{...commit,kind:'QUOTE_DESIGN' as const}:intent;
+    if(!this.send({type:'INTENT',id,epoch:state.snapshot.epoch,attemptId:state.snapshot.attemptId,rosterRevision:state.snapshot.rosterRevision,actor:{role:actor.role,playerId:state.identity.playerId},intent:transmitted}))return;
+    this.pending.add(id);
+    if(commit)this.commits.set(id,{intent:commit,actor});
     this.journal();
-    if(intent.kind==='COMMIT_DESIGN'&&!intent.quoteId){
-      this.commits.set(id,{intent,actor});
-      intent={...intent,kind:'QUOTE_DESIGN'};
-    }
-    updateRoom({outcomes:{...Object.fromEntries(entries),[id]:'pending'}});
-    if(!this.send({type:'INTENT',id,epoch:state.snapshot.epoch,attemptId:state.snapshot.attemptId,rosterRevision:state.snapshot.rosterRevision,actor:{role:actor.role,playerId:state.identity.playerId},intent})){this.pending.delete(id);updateRoom({error:'OFFLINE',outcomes:{...roomSession().outcomes,[id]:'unknown'}});}
+    updateRoom({outcomes:{...Object.fromEntries(Object.entries(state.outcomes).slice(-127)),[id]:'pending'}});
   }
   private retry():void {if(this.stopped)return;this.commits.clear();updateRoom({status:'reconnecting',error:'OFFLINE'});if(this.attempts>=RECONNECT_MAX_ATTEMPTS){this.stop('reconnecting','RETRY_EXHAUSTED');return;}clearTimeout(this.reconnectTimer);this.reconnectTimer=window.setTimeout(()=>void this.connect(),backoffDelayMs(this.attempts++));}
   resync():void {if(this.stopped)return;this.commits.clear();this.attempts=0;clearTimeout(this.reconnectTimer);clearInterval(this.heartbeat);const old=this.socket;this.socket=null;old?.close();updateRoom({status:'reconnecting'});void this.connect();}
-  private stop(status:'reconnecting'|'repair'|'ended'|'version'|'replaced',error:string):void {this.stopped=true;++this.generation;clearTimeout(this.reconnectTimer);clearInterval(this.heartbeat);const old=this.socket;this.socket=null;old?.close();updateRoom({status,error});if(status==='repair')saveCredential(null);}
+  private stop(status:'reconnecting'|'repair'|'ended'|'version'|'replaced',error:string,forgetCredential=false):void {this.stopped=true;++this.generation;clearTimeout(this.reconnectTimer);clearInterval(this.heartbeat);const old=this.socket;this.socket=null;old?.close();updateRoom({status,error});if(forgetCredential)saveCredential(null);}
   exit():void {this.stopped=true;++this.generation;clearTimeout(this.reconnectTimer);clearInterval(this.heartbeat);this.socket?.close(1000,'LEFT');this.socket=null;this.commits.clear();this.pending.clear();this.journal();window.removeEventListener('pageshow',this.pageshow);document.removeEventListener('visibilitychange',this.visible);clearRoom();client=null;}
   retryNow():void {const identity=roomSession().identity??readCredential();if(identity){this.stopped=false;this.resync();}}
 }

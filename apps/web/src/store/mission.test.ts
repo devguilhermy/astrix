@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
-import { attemptAudit, computeBudgets, history, listScenarios, makeOrbit, planPropellant, quoteAddPart, rolesAffectedBy, telemetry } from '@astrix/core';
-import { applyRemoteResult, applyRemoteSnapshot, getSessionState, liveMission, ROLES, STAGES, SUBSTEPS, readBest, setIntentSink, tickLocalSession, useMission } from './index';
+import { attemptAudit, computeBudgets, history, makeOrbit, missionById, planPropellant, quoteAddPart, rolesAffectedBy, telemetry, validateMissionDefinition } from '@astrix/core';
+import { applyRemoteResult, applyRemoteSnapshot, getSessionState, liveMission, ROLES, STAGES, SUBSTEPS, bestKey, readBest, setIntentSink, tickLocalSession, useMission } from './index';
 import { toPublicSnapshot } from '@astrix/session';
 import type { SessionIntent } from '@astrix/session';
 
@@ -10,7 +10,7 @@ function reachLaunch(){
  s.recordTrade(candidate,d.revision,computeBudgets(d),computeBudgets(quote.value.next),'ALL');expect(s.freezeBaseline()).toBe(true);expect(s.completeStage()).toBe(true);s.signOff();expect(s.verifyBaseline()).toBe(true);expect(s.completeStage()).toBe(true);
 }
 function launchEarth() {
- const store=useMission.getState();store.startScenario('FIRST_LIGHT','ASPIRING');store.addPart('CAM_EO');reachLaunch();store.launch();
+ const store=useMission.getState();store.startMission('FIRST_LIGHT','ASPIRING');store.addPart('CAM_EO');reachLaunch();store.launch();
  expect(useMission.getState().sim).not.toBeNull();expect(useMission.getState().activeView).toBe('OPERATE');expect(useMission.getState().activeStage).toBe('IMPLEMENT');
 }
 beforeEach(()=>{
@@ -21,7 +21,7 @@ beforeEach(()=>{
 
 describe('design authority and signoffs',()=>{
  test('quotes refuse another role without changing design or budgets',()=>{
-  const store=useMission.getState();store.setTeam(2);store.startScenario('FIRST_LIGHT');store.dismissHandoff();store.setActiveRole('SCIENCE');
+  const store=useMission.getState();store.setTeam(2);store.startMission('FIRST_LIGHT');store.dismissHandoff();store.setActiveRole('SCIENCE');
   const before=useMission.getState().design,budgets=useMission.getState().budgets;
   store.addPart('SOLAR_WINGS');
   expect(useMission.getState().lastRefusal?.code).toBe('ROLE_LOCKED');
@@ -29,7 +29,7 @@ describe('design authority and signoffs',()=>{
   expect(useMission.getState().budgets).toBe(budgets);
  });
  test('successful real edits clear every affected signoff',()=>{
-  const store=useMission.getState();store.startScenario('FIRST_LIGHT');store.addPart('CAM_EO');store.signOff();
+  const store=useMission.getState();store.startMission('FIRST_LIGHT');store.addPart('CAM_EO');store.signOff();
   expect(Object.values(useMission.getState().signoffs).every(Boolean)).toBe(true);
   const before=useMission.getState().design!;
   store.addPart('STORAGE_32G');
@@ -38,14 +38,14 @@ describe('design authority and signoffs',()=>{
   for(const role of rolesAffectedBy(before,after))expect(useMission.getState().signoffs[role]).toBe(false);
  });
  test('critical current-domain cue blocks signing and increments the attempt count',()=>{
-  const store=useMission.getState();store.setTeam(2);store.startScenario('FIRST_LIGHT');store.dismissHandoff();store.setActiveRole('GROUND_COMMS');store.removePart('RADIO_UHF');
+  const store=useMission.getState();store.setTeam(2);store.startMission('FIRST_LIGHT');store.dismissHandoff();store.setActiveRole('GROUND_COMMS');store.removePart('RADIO_UHF');
   store.signOff();
   expect(useMission.getState().lastRefusal?.code).toBe('SIGNOFF_BLOCKED');
   expect(useMission.getState().signoffs.GROUND_COMMS).toBe(false);
   expect(useMission.getState().team.blockedSignoffAttempts).toBe(1);
  });
  test('future stages and review cannot be opened before their gates',()=>{
-  const store=useMission.getState();store.startScenario('FIRST_LIGHT');
+  const store=useMission.getState();store.startMission('FIRST_LIGHT');
   const design=useMission.getState().design,budgets=useMission.getState().budgets;
   for(const stage of STAGES){store.setStage(stage);for(const step of SUBSTEPS[stage])store.setSubstep(step);}
   store.setView('OPERATE');store.setView('REPORT');
@@ -154,7 +154,7 @@ describe('atomic reset',()=>{
   expect(reset.sim).toBeNull();expect(reset.running).toBe(false);expect(liveMission.state).toBeNull();
  });
  test('retaining hardware cannot skip a briefing the player never accepted',()=>{
-  const store=useMission.getState();store.startScenario('FIRST_LIGHT','ASPIRING');
+  const store=useMission.getState();store.startMission('FIRST_LIGHT','ASPIRING');
   store.resetMission(true);
   const reset=useMission.getState();
   expect(reset.activeStage).toBe('NEED_GOALS');expect(reset.artifacts?.objectiveConfirmed).toBe(false);
@@ -164,16 +164,16 @@ describe('atomic reset',()=>{
 
 describe('Mars arrival and delayed authority',()=>{
  test('a Mars design without a viable capture plan cannot pass verification',()=>{
-  const store=useMission.getState();store.startScenario('RED_RELAY');store.addPart('SS_MAPPER');
+  const store=useMission.getState();store.startMission('RED_RELAY');store.addPart('SS_MAPPER');
   store.updateArtifacts({objectiveConfirmed:true});expect(store.completeStage()).toBe(true);expect(store.completeStage()).toBe(true);expect(store.completeStage()).toBe(true);
   const design=useMission.getState().design!,quote=quoteAddPart(design,'SS_RAD','ALL');expect(quote.ok).toBe(true);if(!quote.ok)throw new Error('Expected comparison');
   store.recordTrade('SS_RAD',design.revision,computeBudgets(design),computeBudgets(quote.value.next),'ALL');expect(store.freezeBaseline()).toBe(true);expect(store.completeStage()).toBe(true);store.signOff();
   expect(store.verifyBaseline()).toBe(false);expect(useMission.getState().sim).toBeNull();
  });
  test('queued Mars pointing remains unapplied during a learning pause',()=>{
-  const store=useMission.getState();store.startScenario('RED_RELAY','ASPIRING');
+  const store=useMission.getState();store.startMission('RED_RELAY','ASPIRING');
   store.setRide('RIDE_MARS_TRANSFER');store.addPart('SS_PROP_MONO');store.addPart('SS_MAPPER');
-  store.setOrbit(makeOrbit('MARS',400,33000,0,listScenarios().find(s=>s.id==='RED_RELAY')!.epoch));
+  store.setOrbit(makeOrbit('MARS',400,33000,0,missionById('RED_RELAY').environment.epochUTC));
   const fuel=planPropellant(useMission.getState().design!,'ALL');expect(fuel.ok).toBe(true);
   store.applyDesign(fuel);reachLaunch();store.launch();
   store.skipCruise();store.decide([{kind:'CAPTURE_CONFIRM'}]);
@@ -217,18 +217,18 @@ describe('independent lifecycle and practice orchestration',()=>{
  test('chooser preview and cancel retain flight, telemetry, view and generation',()=>{
   launchEarth();const store=useMission.getState();store.setView('DESIGN');store.resume();
   const sim=liveMission.state,design=store.design,generation=liveMission.generation;
-  store.previewScenario('RED_RELAY','EXPERT');
-  expect(useMission.getState().previewMissionId).toBe('RED_RELAY');
+  store.previewMission(missionById('RED_RELAY'),'EXPERT');
+  expect(useMission.getState().previewDefinition?.id).toBe('RED_RELAY');
   expect(useMission.getState().running).toBe(false);
   expect(liveMission.state).toBe(sim);expect(useMission.getState().design).toBe(design);
   store.cancelPreview();
-  expect(useMission.getState().previewMissionId).toBeNull();
+  expect(useMission.getState().previewDefinition).toBeNull();
   expect(useMission.getState().activeView).toBe('OPERATE');
   expect(liveMission.generation).toBe(generation);
   expect(liveMission.state).toBe(sim);expect(useMission.getState().running).toBe(false);
  });
  test('launch confirmation rejects a changed revision',()=>{
-  const store=useMission.getState();store.startScenario('FIRST_LIGHT');store.addPart('CAM_EO');reachLaunch();const revision=useMission.getState().design!.revision;
+  const store=useMission.getState();store.startMission('FIRST_LIGHT');store.addPart('CAM_EO');reachLaunch();const revision=useMission.getState().design!.revision;
   store.addPart('STORAGE_32G');
   expect(store.launch(revision)).toBe(false);expect(useMission.getState().sim).toBeNull();
   expect(useMission.getState().lastRefusal?.code).toBe('NOT_READY');
@@ -280,16 +280,20 @@ describe('independent lifecycle and practice orchestration',()=>{
    expect(useMission.getState().telemetry!.t).toBe(10);
   }finally{globalThis.requestAnimationFrame=original;}
  });
- test('best scores are namespaced by mission, level and rules',()=>{
+ test('best scores are namespaced by definition digest, level, rules and policy',()=>{
   const descriptor=Object.getOwnPropertyDescriptor(globalThis,'localStorage'),values=new Map<string,string>();
   Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:(key:string)=>values.get(key)??null}});
   try{
-   values.set('astrix.best.FIRST_LIGHT.EDUCATIVE.ENGINEER.2','99');
-   values.set('astrix.best.FIRST_LIGHT.ASPIRING.3','7');
-   values.set('astrix.best.FIRST_LIGHT.EXPERT.3','11');
-   expect(readBest('FIRST_LIGHT','ASPIRING',3)).toBe(7);
-   expect(readBest('FIRST_LIGHT','EXPERT',3)).toBe(11);
-   expect(readBest('FIRST_LIGHT','ASPIRING',2)).toBe(0);
+   const digest=missionById('FIRST_LIGHT').digest,other=missionById('RED_RELAY').digest;
+   values.set(bestKey(digest,'ASPIRING',2,'STANDARD'),'99');
+   values.set(bestKey(digest,'ASPIRING',3,'STANDARD'),'7');
+   values.set(bestKey(digest,'EXPERT',3,'STANDARD'),'11');
+   values.set(bestKey(digest,'EXPERT',3,'EXPERIMENTAL'),'55');
+   expect(readBest(digest,'ASPIRING',3)).toBe(7);
+   expect(readBest(digest,'EXPERT',3)).toBe(11);
+   expect(readBest(digest,'EXPERT',3,'EXPERIMENTAL')).toBe(55);
+   expect(readBest(digest,'ASPIRING',4)).toBe(0);
+   expect(readBest(other,'ASPIRING',3)).toBe(0);
   }finally{if(descriptor)Object.defineProperty(globalThis,'localStorage',descriptor);else Reflect.deleteProperty(globalThis,'localStorage');}
  });
 });
@@ -308,5 +312,31 @@ describe('remote projection boundary',()=>{
    applyRemoteResult({ok:true,seq:2,receiptIds:[]});expect(useMission.getState().lastRefusal).toBeNull();
   }finally{setIntentSink(null);}
   expect(useMission.getState().remoteMode).toBe(false);expect(useMission.getState().running).toBe(false);
+ });
+});
+
+describe('definition-based missions',()=>{
+ beforeEach(()=>{useMission.getState().resetMission();useMission.getState().setTeam(1);});
+ test('a surface-launch learning mission starts with its launch plan, no provided orbit and the definition by reference',()=>{
+  useMission.getState().startMission('UP_AND_BACK','ASPIRING');
+  const s=useMission.getState();
+  expect(s.design?.orbit).toBeNull();expect(s.design?.launch?.launcherId).toBeString();
+  expect(s.definition.id).toBe('UP_AND_BACK');expect(s.design?.definitionDigest).toBe(s.definition.digest);
+ });
+ test('a validated custom definition starts an attempt that keeps the definition it began with',()=>{
+  const { digest: _digest, ...source } = structuredClone(missionById('FIRST_SIGNAL'));
+  const draft={...source,id:'user.flown',origin:'CUSTOM'};
+  const checked=validateMissionDefinition(draft);if(!checked.ok)throw new Error(JSON.stringify(checked.issues));
+  useMission.getState().startDefinition(checked.definition,'EXPERT');
+  const s=useMission.getState();
+  expect(s.definition.id).toBe('user.flown');expect(s.definition.digest).toBe(checked.definition.digest);expect(s.levelId).toBe('EXPERT');
+ });
+ test('previewing a definition changes nothing about the attempt and cancel restores it',()=>{
+  useMission.getState().startMission('FIRST_LIGHT','ASPIRING');
+  const before=useMission.getState().design;
+  useMission.getState().previewMission(missionById('EARTH_TO_MOON'),'EXPERT');
+  expect(useMission.getState().previewDefinition?.id).toBe('EARTH_TO_MOON');expect(useMission.getState().design).toBe(before);
+  useMission.getState().cancelPreview();
+  expect(useMission.getState().previewDefinition).toBeNull();expect(useMission.getState().design).toBe(before);
  });
 });

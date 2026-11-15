@@ -1,5 +1,5 @@
 import { expect, it } from 'bun:test';
-import { createStarterDesign } from '../catalog';
+import { createStarterDesign, missionById } from '../mission/library';
 import type { CrewTelemetry } from '../contracts';
 import { issueCommand } from './commands';
 import { telemetry } from './selectors';
@@ -12,7 +12,7 @@ function retainedCrewInventory(c: CrewTelemetry): number {
 }
 
 it('keeps rolling gas pressures nonnegative through a scrubbed early recovery without losing retained inventory', () => {
- let state = advanceTo(createSim(createStarterDesign('CREW_PATHFINDER', 'ASPIRING'), 73), 15 * 3600);
+ let state = advanceTo(createSim(createStarterDesign(missionById('CREW_PATHFINDER'), 'ASPIRING'), 73), 15 * 3600);
  const before = telemetry(state).crew!;
  const inventory = retainedCrewInventory(before);
  const assertAtmosphere = (crew: CrewTelemetry): void => {

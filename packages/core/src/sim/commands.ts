@@ -1,9 +1,10 @@
 import type { ActorRole, ActorContext, Command, Quote, Refusal, SimEvent, SimState } from '../contracts';
-import { PART_BY_ID, scenarioById } from '../catalog';
+import { PART_BY_ID } from '../catalog';
 import { commandRole, ownsRole, refusal } from '../design';
 import { ENGINEERING, isTechnical } from '../models';
 import { CONSTANTS, lightTime } from '../physics';
-import { cloneFlight, enterSafe, flight, recordAudit, type FlightState, transmittingRate, updateEnvironment, uplinkAvailable } from './state';
+import { addBurn, ascentActive, burnCapacityRefusal, burnSpecValid, cancelBurn, separateStage } from './trajectory';
+import { cloneFlight, enterSafe, flight, recordAudit, stationRangeKm, type FlightState, transmittingRate, updateEnvironment, uplinkAvailable } from './state';
 import { fail } from './failure';
 import { crewReturnFuel, crewReturnWindow, CREW_DEORBIT_BURN_SEC } from '../return';
 import { normalizeAttitude } from '../attitude';
@@ -14,6 +15,7 @@ export const bootPowerW = (s: FlightState): number => ENGINEERING.bootPower.v * 
 export const bootEnergyWh = (s: FlightState): number => bootPowerW(s) * ENGINEERING.bootSec.v / 3600;
 function validateCommand(s: FlightState, cmd: Command): Refusal | null {
  if (s.ended) return refusal('NOT_READY', { missing: 'active mission' });
+ if (ascentActive(s)) return refusal('NOT_READY', { missing: 'orbit insertion' });
  if (technicalCommand(cmd) && !isTechnical(s.design.levelId)) return refusal('LEVEL_FORBIDS', { levelId: s.design.levelId });
  if (cmd.kind === 'ATTITUDE_TARGET') {
   if (s.safe) return refusal('MODE_FORBIDS', { mode: 'SAFE' });
@@ -35,6 +37,9 @@ function validateCommand(s: FlightState, cmd: Command): Refusal | null {
  }
  if (s.computerState !== 'RUNNING') return refusal('COMPUTER_REBOOTING', { state: s.computerState });
  if (cmd.kind === 'ATTITUDE_TARGET') return null;
+ if (cmd.kind === 'BURN_SCHEDULE') { const code = burnCapacityRefusal(s, cmd.burn); return code ? refusal(code) : null; }
+ if (cmd.kind === 'BURN_CANCEL') return s.traj.burns.some(b => b.spec.id === cmd.id) ? null : refusal('BURN_UNKNOWN', { id: cmd.id });
+ if (cmd.kind === 'SEPARATE_STAGE') return s.traj.stage?.attached ? null : refusal('NO_STAGE');
  if (cmd.kind === 'SAFE') return null;
  if (cmd.kind === 'HEATER') return s.ratedHeaterW > 0 ? null : refusal('REQUIRES_PART', { needs: 'THERMAL' });
  if (cmd.kind === 'LINK_MODE') return null;
@@ -93,6 +98,9 @@ export function applyCommand(s: FlightState, cmd: Command, events: SimEvent[]): 
    if (cmd.mode === 'SAFE') enterSafe(s);
    else requestHold(s,cmd.mode);
    break;
+  case 'BURN_SCHEDULE': addBurn(s, cmd.burn); break;
+  case 'BURN_CANCEL': cancelBurn(s, cmd.id); break;
+  case 'SEPARATE_STAGE': separateStage(s, events); break;
   case 'HEATER': s.heaterMode = cmd.mode; break;
   case 'LINK_MODE': s.linkMode = cmd.mode; break;
   case 'DUTY_CYCLE': s.instruments.find(i => i.partId === cmd.partId)!.dutyFraction = cmd.fraction; break;
@@ -119,6 +127,9 @@ export function issueCommand(state: SimState, cmd: Command, role: ActorRole, act
  if (actor && actor.role !== role) return refusal('ROLE_LOCKED', { role });
  if (!ownsRole(role, owner) && !(cmd.kind === 'POINT' && role === 'SPACECRAFT')) return refusal('ROLE_LOCKED', { role: owner });
  if (old.ended) return refusal('NOT_READY', { missing: 'active mission' });
+ if (ascentActive(old)) return refusal('NOT_READY', { missing: 'orbit insertion' });
+ if (cmd.kind === 'BURN_SCHEDULE' && !burnSpecValid(cmd.burn)) return refusal('INVALID_PARAMETER', { parameter: 'burn' });
+ if (cmd.kind === 'BURN_CANCEL' && (typeof cmd.id !== 'string' || cmd.id.length === 0 || cmd.id.length > 24)) return refusal('INVALID_PARAMETER', { parameter: 'id' });
  if (technicalCommand(cmd) && !isTechnical(old.design.levelId)) return refusal('LEVEL_FORBIDS', { levelId: old.design.levelId });
  if (cmd.kind === 'ATTITUDE_TARGET') {
   try { cmd = { ...cmd, q: normalizeAttitude(cmd.q) }; }
@@ -182,7 +193,7 @@ export function applyDueCommands(s: FlightState, events: SimEvent[]): void {
   }
   if (entry.status === 'WAITING_CONTACT') {
    if (!uplinkAvailable(s)) continue;
-   entry = { ...entry, transmittedAt: s.t, applyAt: s.t + (scenarioById(s.design.scenarioId).body === 'MARS' ? lightTime(s.t, s.design.orbit!.epochUTC) : 0), status: 'IN_TRANSIT' };
+   entry = { ...entry, transmittedAt: s.t, applyAt: s.t + (s.mars ? lightTime(s.t, s.epochUTC) : s.design.definition.environment.commLightTime ? stationRangeKm(s) / CONSTANTS.c.v : 0), status: 'IN_TRANSIT' };
    s.queue[i] = entry;
   }
   if (entry.applyAt === null || entry.applyAt > s.t + 1e-8) continue;

@@ -31,13 +31,13 @@ Open the loopback control URL printed by Bun on the host computer. Its lobby sup
 
 ## Play
 
-Four missions: First Light (Earth imaging), Storm Watch (radiation measurements), Red Relay (Mars mapping), and Crew Pathfinder (four virtual crew in Earth orbit).
+**Rules-v5 integration in progress:** setup adds Learn, Challenge and Expert Create. Challenge retains First Light, Storm Watch, Red Relay and Crew Pathfinder. Learn adds short data-return, ascent/orbit/maneuver lessons and Earth-to-Moon flight. Expert Create edits validated mission definitions with local drafts, immutable revisions and JSON import/export. The combined acceptance pass is pending; earlier verification results do not cover these additions.
 
 Choose a mission and level using the setup cards; the expanded team section optionally divides responsibilities in player columns. Start with the local-play card or open the separate LAN lobby. The journey appears as **Briefing → Build → Test & launch → Fly → Debrief**, backed by seven core stages and their gates. Bottom **Mission control** combines the next action/Continue, Requirements, Spacecraft slots, Checklist, Flight options, chapter/substep navigation and panel buttons. **Show me** reveals the real control. Starting design does not launch, and time advances only when explicitly requested.
 
 **Aspiring** offers spotlight tours, short primary copy, self-paced advances and assisted practice checkpoints. **Expert** uses the same HUD with detailed engineering and on-demand explanations. Guided / Detailed remains independently changeable in Settings. Preview changes on the spacecraft and seven-resource grid before installing them; freeze, verify and approve the actual revision before launch. **Dry run** forecasts the design in a background worker without changing or scoring the flight.
 
-Closed tools consume no scene area; the bottom controller's panel buttons reopen them. Expanded desktop tools retain draggable/resizable headers. Compact screens use one adjustable bottom sheet; short/high-zoom views use a reading layout. Help replays the control-by-control tours and exposes model limits.
+Closed tools consume no scene area; bottom panel buttons reopen them. Desktop tools retain draggable/resizable headers; compact screens use one sheet and short/high-zoom views use document flow. Automatic onboarding is capped at 15 concept cards across the first mission, not per stage. Skip suppresses the remaining automatic curriculum; Help replay and model limits remain available.
 
 Click any component on the spacecraft (or a bottom Spacecraft slot) to open its **Component** panel, anchored beside that part and following it as you turn the view: catalogue specifications, the simulator's constraints and, in flight, live readings from the simulation. Keyboard users reach the same panel from **Spacecraft slots → Components** while building and from **As flown** in flight. Inspecting never changes the design or the flight.
 

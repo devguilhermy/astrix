@@ -7,6 +7,7 @@ export const TAU = Math.PI * 2;
 export const CONSTANTS = {
  EARTH: { mu: sourced(398600, 'nssdc-earth'), radius: sourced(6378.137, 'nssdc-earth'), rotationSec: sourced(23.9345 * 3600, 'nssdc-earth'), distanceKm: sourced(149598000, 'nssdc-earth'), yearSec: sourced(365.256 * DAY, 'nssdc-earth'), irradiance: sourced(1361, 'nssdc-earth') },
  MARS: { mu: sourced(42828, 'nssdc-mars'), radius: sourced(3396.2, 'nssdc-mars'), rotationSec: sourced(24.6229 * 3600, 'nssdc-mars'), distanceKm: sourced(227956000, 'nssdc-mars'), yearSec: sourced(686.980 * DAY, 'nssdc-mars'), irradiance: sourced(586.2, 'nssdc-mars') },
+ MOON: { mu: sourced(4902.8, 'nssdc-moon'), radius: sourced(1737.4, 'nssdc-moon'), rotationSec: sourced(27.321661 * DAY, 'nssdc-moon'), distanceKm: sourced(384400, 'nssdc-moon'), yearSec: sourced(27.321661 * DAY, 'nssdc-moon'), irradiance: sourced(1361, 'nssdc-earth') },
  sunMu: sourced(132712e6, 'nssdc-sun'), c: sourced(299792.458, 'si-c'), g0: sourced(9.80665, 'si-gn'),
 } as const;
 export type Vec3 = [number, number, number];
@@ -129,7 +130,7 @@ function equatorialPosition(longitude: number, radius: number): Vec3 {
 }
 /** Circular Mars path is phased for an ideal transfer at the supplied departure epoch. */
 export function planetPosition(body: BodyId, t: number, epochUTC?: string): Vec3 {
- const longitude = body === 'EARTH' ? solarLongitude(t, epochUTC) + Math.PI : solarLongitude(0, epochUTC) + Math.PI + TRANSFER.leadAngleRad + TAU*t/CONSTANTS.MARS.yearSec.v;
+ const longitude = body !== 'MARS' ? solarLongitude(t, epochUTC) + Math.PI : solarLongitude(0, epochUTC) + Math.PI + TRANSFER.leadAngleRad + TAU*t/CONSTANTS.MARS.yearSec.v;
  return equatorialPosition(longitude, CONSTANTS[body].distanceKm.v);
 }
 /** Ideal two-body Earth→Mars transfer; t is clamped to departure/arrival. */
@@ -142,7 +143,7 @@ export function transferPosition(t: number, epochUTC: string): readonly [number,
  return [x*c-y*s, ey*Math.cos(obliquity), ey*Math.sin(obliquity)];
 }
 export function sunDirection(body: BodyId, t: number, out: Vec3 = [0, 0, 0], epochUTC?: string): Vec3 {
- const p = planetPosition(body,t,epochUTC), r = CONSTANTS[body].distanceKm.v;
+ const p = planetPosition(body,t,epochUTC), r = CONSTANTS[body === 'MOON' ? 'EARTH' : body].distanceKm.v;
  out[0] = -p[0]/r; out[1] = -p[1]/r; out[2] = -p[2]/r;
  return out;
 }
@@ -160,4 +161,11 @@ export function marsLineOfSight(position: Vec3, t: number, epochUTC?: string): b
  return !(along < 0 && dot(position,position)-along*along < CONSTANTS.MARS.radius.v**2);
 }
 export function marsContact(position: Vec3, t: number, epochUTC?: string): boolean { return (((t % DAY) + DAY) % DAY < DAY / 3) && marsLineOfSight(position, t, epochUTC); }
-export function linkRateKbps(referenceKbps: number, body: BodyId, t: number, epochUTC?: string): number { return body === 'EARTH' ? referenceKbps : Math.min(6000, referenceKbps * (CONSTANTS.EARTH.distanceKm.v / earthMarsDistance(t, epochUTC)) ** 2); }
+/** Authored rates are quoted at the mission's reference range: LEO (no scaling), 1 AU for Mars, mean Earth-Moon distance for lunar missions. */
+export function linkRateKbps(referenceKbps: number, body: BodyId, t: number, epochUTC?: string, rangeKm?: number): number {
+ if (body === 'EARTH') return referenceKbps;
+ if (body === 'MOON') return rangeKm !== undefined && rangeKm > 0 ? Math.min(6000, referenceKbps * (CONSTANTS.MOON.distanceKm.v / rangeKm) ** 2) : referenceKbps;
+ return Math.min(6000, referenceKbps * (CONSTANTS.EARTH.distanceKm.v / earthMarsDistance(t, epochUTC)) ** 2);
+}
+/** Seconds from J2000 for a UTC epoch string (reduced astronomical model reference). */
+export const epochSecondsUTC = (epochUTC: string): number => epochSeconds(epochUTC);

@@ -11,6 +11,7 @@ export function isKnownLocation(pathname: string, hash: string, basePath = '/'):
   if (hash === '' || hash === '#' || hash === '#home') return true;
   const route = hash.slice(1).split('/');
   if (route.length > 2) return false;
+  if (route[0] === 'studio') return route.length === 1;
   if (route[0] === 'setup') return setupPages[route[1] ?? ''] === true;
   return route[0] === 'mission' && stages[route[1] ?? ''] === true;
 }

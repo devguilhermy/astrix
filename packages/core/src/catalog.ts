@@ -1,7 +1,9 @@
-import type { BodyId, BusId, Design, LevelId, OrbitChoice, OrbitPreset, PartDef, Q, RideDef, ScenarioDef, ScenarioId, SourceRef } from './contracts';
+import type { BodyId, BusId, Design, OrbitChoice, OrbitPreset, PartDef, Q, RideDef, SourceRef } from './contracts';
 import { EXTRA_SOURCES, RADLAB_PROFILE } from '@astrix/data';
-import { assumed, DAY, sourced, makeOrbit } from './physics';
-import { ENGINEERING, LEVELS, RULES_VERSION, THERMAL_MODELS } from './models';
+import { assumed, DAY, sourced, makeOrbit, orbitAltitudes } from './physics';
+import { ENGINEERING, LEVELS, THERMAL_MODELS } from './models';
+import { BUILTIN_DEFINITIONS } from './mission/builtins';
+import { LAUNCHERS } from './flight/launchers';
 
 const a = (v: number): Q => assumed(v, 'Authored gameplay hardware abstraction, not a flight-qualified manufacturer specification; units follow the catalogue.');
 export const BUSES = {
@@ -80,40 +82,29 @@ export const RIDES: readonly RideDef[] = [
  { id: 'RIDE_CREW', nameKey: 'ride.RIDE_CREW.name', descKey: 'ride.RIDE_CREW.desc', busIds: ['CREW_CAPSULE'], body: 'EARTH', cost: a(300), fixedOrbits: [LEO_ORBITS[0]] },
  { id: 'RIDE_CUBESAT_DISPENSER', nameKey: 'ride.RIDE_CUBESAT_DISPENSER.name', descKey: 'ride.RIDE_CUBESAT_DISPENSER.desc', busIds: ['CUBESAT_3U'], body: 'EARTH', cost: a(20), fixedOrbits: LEO_ORBITS },
  { id: 'RIDE_SMALL_LAUNCHER', nameKey: 'ride.RIDE_SMALL_LAUNCHER.name', descKey: 'ride.RIDE_SMALL_LAUNCHER.desc', busIds: ['CUBESAT_3U', 'SMALLSAT'], body: 'EARTH', cost: a(60) },
+ { id: 'RIDE_LEO_STAGE', nameKey: 'ride.RIDE_LEO_STAGE.name', descKey: 'ride.RIDE_LEO_STAGE.desc', busIds: ['CUBESAT_3U', 'SMALLSAT'], body: 'EARTH', cost: a(50), fixedOrbits: [makeOrbit('EARTH', 200, 200, 28.5, EARTH_EPOCH)] },
  { id: 'RIDE_MARS_TRANSFER', nameKey: 'ride.RIDE_MARS_TRANSFER.name', descKey: 'ride.RIDE_MARS_TRANSFER.desc', busIds: ['SMALLSAT'], body: 'MARS', cost: a(300), fixedOrbits: CAPTURE_ORBITS },
 ];
 export const STATIONS = [{ id: 'GS_MIDLAT', latitudeDeg: MODEL.stationLat, longitudeDeg: MODEL.stationLon, minElevationDeg: MODEL.minElevation }, { id: 'DSN', hoursPerDay: MODEL.dsnHours }] as const;
-function scenario(id: ScenarioId, body: BodyId, busId: BusId, budget: number, durationDays: number, target: number, metric: ScenarioDef['metric'], epoch: string, orbit: OrbitChoice, seed: number, allocationStartHours = 0): ScenarioDef {
- return { id, body, busId, nameKey: `scenario.${id}.name`, descKey: `scenario.${id}.desc`, objectiveKey: `scenario.${id}.objective`, budget: assumed(budget, 'Authored game-budget units, adjusted to permit complete science loadouts at every difficulty; not dollars.'), durationDays: a(durationDays), target: assumed(target, metric === 'DOWNLINK_MB' ? 'Mission target in decimal MB, delivered to Earth, not merely collected.' : 'Twenty-four powered radiation-monitor hours during the 48-hour replay interval.'), metric, epoch, stationAllocationStartSec: assumed(allocationStartHours * 3600, 'Authored station allocation start within each operational Earth day, not a real service reservation.'), defaultOrbit: { ...orbit, epochUTC: epoch }, seed };
-}
-export const SCENARIOS: readonly ScenarioDef[] = [
- scenario('FIRST_LIGHT', 'EARTH', 'CUBESAT_3U', 120, 14, 1500, 'DOWNLINK_MB', '2026-11-14T00:00:00Z', LEO_ORBITS[0], 42),
- scenario('STORM_WATCH', 'EARTH', 'CUBESAT_3U', 100, 21, 24, 'RADIATION_HOURS', '2024-05-01T00:00:00Z', LEO_ORBITS[0], 20240510, 12),
- scenario('CREW_PATHFINDER', 'EARTH', 'CREW_CAPSULE', 3000, 3, 100, 'DOWNLINK_MB', EARTH_EPOCH, LEO_ORBITS[0], 73),
- scenario('RED_RELAY', 'MARS', 'SMALLSAT', 900, 60, 5000, 'DOWNLINK_MB', '2026-11-14T00:00:00Z', CAPTURE_ORBITS[3], 20240520),
-];
-export function scenarioById(id: ScenarioId): ScenarioDef { return SCENARIOS.find(s => s.id === id)!; }
 export function rideCost(ride: RideDef, bus: BusId): number { return ride.id === 'RIDE_SMALL_LAUNCHER' && bus === 'SMALLSAT' ? 250 : ride.cost.v; }
-export const listScenarios = (): readonly ScenarioDef[] => SCENARIOS;
 export const listParts = (bus: BusId): readonly PartDef[] => PARTS.filter(p => p.busId === bus);
 export const listRides = (bus: BusId, body: BodyId): readonly RideDef[] => RIDES.filter(r => r.busIds.includes(bus) && r.body === body).map(r => r.id === 'RIDE_SMALL_LAUNCHER' && bus === 'SMALLSAT' ? { ...r, cost: a(250) } : r);
 export const captureOrbits = (): readonly OrbitChoice[] => CAPTURE_ORBITS;
 
-export function createStarterDesign(scenarioId: ScenarioId, levelId: LevelId): Design {
- const s = scenarioById(scenarioId), small = s.busId === 'SMALLSAT', crew = s.busId === 'CREW_CAPSULE';
- const ids = crew ? ['CREW_BATTERY', 'CREW_SOLAR', 'CREW_COMPUTER', 'CREW_ADCS', 'CREW_RADIO', 'CREW_OBSERVER', 'CREW_SUPPORT', 'CREW_HEATER', 'CREW_PROPULSION'] : small ? ['SS_BATT_300', 'SS_SOLAR_400', 'SS_OBC', 'SS_ADCS', 'SS_XBAND'] : ['EPS_BATT_20', 'SOLAR_BODY', 'OBC', 'ADCS_MAG', 'RADIO_UHF'];
- return { scenarioId, levelId, rulesVersion: RULES_VERSION, busId: s.busId, parts: ids.map(partId => ({ partId, qty: 1, ...(partId === 'CREW_PROPULSION' ? { propellantKg: 500 } : {}) })), orbit: { ...s.defaultOrbit, epochUTC: s.epoch }, rideId: crew ? 'RIDE_CREW' : small ? 'RIDE_MARS_TRANSFER' : 'RIDE_CUBESAT_DISPENSER', stationId: crew ? 'CREW_RELAY' : small ? 'DSN' : 'GS_MIDLAT', revision: 0 };
-}
 export function listOrbitPresets(design: Design): readonly OrbitPreset[] {
- if (scenarioById(design.scenarioId).body === 'MARS') return CAPTURE_ORBITS.map((orbit, i) => ({ id: ['MARS_CLOSE', 'MARS_INTERMEDIATE', 'MARS_BALANCED', 'MARS_WIDE'][i], titleKey: `orbit.${['MARS_CLOSE', 'MARS_INTERMEDIATE', 'MARS_BALANCED', 'MARS_WIDE'][i]}`, orbit: { ...orbit, epochUTC: design.orbit?.epochUTC ?? scenarioById(design.scenarioId).epoch } }));
- const ride = RIDES.find(r => r.id === design.rideId);
- const options = ride?.fixedOrbits ?? LEO_ORBITS;
- return options.map((orbit, i) => ({ id: ['LEO_420', 'LEO_500', 'LEO_550'][i], titleKey: `orbit.${['LEO_420', 'LEO_500', 'LEO_550'][i]}`, orbit: { ...orbit, epochUTC: design.orbit?.epochUTC ?? scenarioById(design.scenarioId).epoch } }));
+ const start = design.definition.start, epoch = design.orbit?.epochUTC ?? design.definition.environment.epochUTC;
+ if (start.kind !== 'PROVIDED_ORBIT') return [];
+ if (start.body === 'MARS') return CAPTURE_ORBITS.map((orbit, i) => ({ id: ['MARS_CLOSE', 'MARS_INTERMEDIATE', 'MARS_BALANCED', 'MARS_WIDE'][i], titleKey: `orbit.${['MARS_CLOSE', 'MARS_INTERMEDIATE', 'MARS_BALANCED', 'MARS_WIDE'][i]}`, orbit: { ...orbit, epochUTC: epoch } }));
+ const ride = RIDES.find(r => r.id === design.rideId), options = ride?.fixedOrbits ?? LEO_ORBITS;
+ // A mission-specific parking orbit (plane, phase) replaces the ride's generic orbit of the same shape.
+ const shaped = options.map(orbit => Math.abs(orbit.smaKm - start.orbit.smaKm) < 1e-6 && Math.abs(orbit.ecc - start.orbit.ecc) < 1e-9 && Math.abs(orbit.inclinationDeg - start.orbit.inclinationDeg) < 1e-6 ? start.orbit : orbit);
+ const ids = ride?.fixedOrbits === LEO_ORBITS || !ride?.fixedOrbits ? ['LEO_420', 'LEO_500', 'LEO_550'] : shaped.map((_, i) => i === 0 ? 'PARKING' : `PARKING_${i + 1}`);
+ return shaped.map((orbit, i) => ({ id: ids[i], titleKey: `orbit.${ids[i]}`, orbit: { ...orbit, epochUTC: epoch } }));
 }
 
 const source = (id: string, title: string, url: string, publisher: string, listedByChallenge = false): SourceRef => ({ id, title, url, publisher, retrieved: '2026-11-14', listedByChallenge });
 export const SOURCES: readonly SourceRef[] = [
- ...(['earth', 'mars', 'sun'] as const).map(p => source(`nssdc-${p}`, `NASA ${p[0].toUpperCase() + p.slice(1)} Fact Sheet`, `https://nssdc.gsfc.nasa.gov/planetary/factsheet/${p}fact.html`, 'NASA NSSDCA')),
+ ...(['earth', 'moon', 'mars', 'sun'] as const).map(p => source(`nssdc-${p}`, `NASA ${p[0].toUpperCase() + p.slice(1)} Fact Sheet`, `https://nssdc.gsfc.nasa.gov/planetary/factsheet/${p}fact.html`, 'NASA NSSDCA')),
  source('cubesat101', 'CubeSat 101: Basic Concepts and Processes for First-Time CubeSat Developers', 'https://www.nasa.gov/wp-content/uploads/2017/03/nasa_csli_cubesat_101_508.pdf', 'NASA CSLI', true),
  source('nasa-smallsat', 'What are SmallSats and CubeSats?', 'https://www.nasa.gov/smallsat-institute/what-are-smallsats-and-cubesats/', 'NASA'),
  source('design-develop', 'Design and Develop Science Missions', 'https://www.nasa.gov/wp-content/uploads/2025/04/250323-design-and-develop-science-mission.pdf', 'NASA', true),
@@ -146,7 +137,12 @@ export function listAssumptions(): readonly { key: string; note: string; value: 
  walk(MODEL, 'model'); walk(BUSES, 'bus');  walk(ENGINEERING, 'engineering'); walk(THERMAL_MODELS, 'thermal'); walk(LEVELS, 'level');
  for (const p of PARTS) walk(p, `part.${p.id}`);
  for (const r of RIDES) walk(r, `ride.${r.id}`);
- for (const s of SCENARIOS) { walk(s, `scenario.${s.id}`); result.push({ key: `scenario.${s.id}.epoch`, value: s.epoch, note: 'Scenario epoch is an authored mission time reference; STORM_WATCH aligns its replay with historical May 2024 timestamps.' }, { key: `scenario.${s.id}.seed`, value: s.seed, note: 'Authored deterministic scenario seed.' }); }
+ for (const l of LAUNCHERS) walk(l.cost, `launcher.${l.id}.cost`);
+ for (const d of BUILTIN_DEFINITIONS) {
+  const k = `mission.${d.id}`;
+  result.push({ key: `${k}.budget`, value: d.vehicle.budget, note: 'Authored game-budget units, adjusted to permit complete science loadouts at every difficulty; not dollars.' }, { key: `${k}.durationSec`, value: d.environment.durationSec, note: 'Authored mission duration; learning missions end earlier when every required objective is met.' }, { key: `${k}.epoch`, value: d.environment.epochUTC, note: 'Mission epoch is an authored time reference; STORM_WATCH aligns its replay with historical May 2024 timestamps; lunar missions use a launch window chosen so the reduced Moon lies in the transfer plane.' }, { key: `${k}.seed`, value: d.environment.seed, note: 'Authored deterministic mission seed.' });
+  for (const o of d.objectives) result.push({ key: `${k}.objective.${o.id}`, value: JSON.stringify(o.spec), note: 'Authored objective threshold evaluated from physical state/delivered data; not a published mission requirement.' });
+ }
  result.push({ key: 'model.twoBody', value: 'two-body', note: 'No J2, drag, third-body perturbations or penumbra. Thermal is a single-bus model in Expert only. Planet paths use reference radii in a common ecliptic plane, rotated into equatorial axes; Mars phase is an authored ideal transfer window.' }, { key: 'model.radiationReplay', value: 'ISS DosTel1 replay', note: 'The ISS hourly record is replayed at the chosen Earth orbit as an environment approximation. Co-occurrence with a DONKI storm does not attribute each reading to that storm. SAFE changes powered electronics, not dose or shielding; no irreversible random dose-derived loss is modeled.' }, { key: 'model.rides', value: 'authored delivery choices', note: 'Fixed rides offer 420 km/51.6°, 500 km/45°, 550 km/97°. A custom launcher offers circular Earth 350–800 km, inclination 0–98°. Mars capture offers 400 km periapsis, apoapsis 400/5000/10000/33000 km, zero inclination. The ride supplies departure delta-v. These are game choices, not actual launch offers.' }, { key: 'model.smallLauncherCost', value: 250, note: 'SmallSat custom launcher price in abstract budget units (CubeSat price is 60).' }, { key: 'model.daySec', value: DAY, note: 'Operational durations use Earth days of 86,400 seconds; Mars operational objective time begins after capture, separate from cruise.' });
  result.push(
   { key: 'model.solarEphemeris', value: 'low-precision equatorial Sun', note: 'Mean longitude/anomaly with first two equation-of-center harmonics and fixed 23.439° J2000 obliquity. Precession, nutation, aberration and Earth distance variation omitted; Mars is a circular ideal-transfer approximation, not a real-date ephemeris.' },
@@ -154,4 +150,15 @@ export function listAssumptions(): readonly { key: string; note: string; value: 
   { key: 'model.forecasts', value: 'bounded DEFAULT policy', note: 'Timeline: at most seven days and 4096 sample intervals per lane, transitions within 0.25 s when detected; narrower windows may be missed. Dry run: at most 90 operational days after analytical cruise, <=512 chart samples, ordinary transported commands and real failures. DEFAULT reviews every 60 s and after pauses, observes in sunlight, sends in contact, Sun otherwise, explicitly deploys and handles authored recovery; no uploaded autonomous plan is implied.' },
  );
  return result;
+}
+
+export function sameOrbit(a: OrbitChoice, b: OrbitChoice): boolean { return a.body === b.body && Math.abs(a.smaKm - b.smaKm) < 1e-6 && Math.abs(a.ecc - b.ecc) < 1e-9 && Math.abs(a.inclinationDeg - b.inclinationDeg) < 1e-6; }
+/** Pure ride/orbit compatibility shared by design quotes and definition validation. */
+export function rideOffersOrbit(rideId: string | null, bus: BusId, body: BodyId, orbit: OrbitChoice): boolean {
+ const ride = RIDES.find(r => r.id === rideId);
+ if (!ride || ride.body !== orbit.body || orbit.body !== body || !ride.busIds.includes(bus)) return false;
+ if (orbit.frame !== 'MJ2000Eq' || !Number.isFinite(Date.parse(orbit.epochUTC)) || ![orbit.smaKm, orbit.ecc, orbit.inclinationDeg, orbit.raanDeg, orbit.argPeriapsisDeg, orbit.trueAnomalyDeg].every(Number.isFinite) || orbit.ecc < 0 || orbit.ecc >= 1) return false;
+ if (ride.fixedOrbits) return ride.fixedOrbits.some(o => sameOrbit(o, orbit));
+ const radius = orbitAltitudes(orbit);
+ return orbit.body === 'EARTH' && radius.altitudeKm >= 350 && radius.altitudeKm <= 800 && Math.abs(radius.apoapsisAltitudeKm - radius.altitudeKm) < 1e-6 && orbit.inclinationDeg >= 0 && orbit.inclinationDeg <= 98;
 }

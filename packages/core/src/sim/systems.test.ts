@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
-import type { Design, SimState } from '../contracts';
-import { createStarterDesign } from '../catalog';
+import type { BuiltinMissionId, Design, SimState } from '../contracts';
+import { createStarterDesign, missionById } from '../mission/library';
 import { computeBudgets, launchReadiness, planPropellant, previewOrbit, quoteSetOrbit } from '../design';
 import { ENGINEERING, RULES_VERSION, lifeFactor, thermalEquilibriumK, thermalStepK } from '../models';
 import { DAY, hohmann, lightTime, rocketDeltaV, sunDirection } from '../physics';
@@ -16,14 +16,14 @@ import { attitudeDistance } from '../attitude';
 const signed = { SCIENCE: true, SPACECRAFT: true, LAUNCH_ORBIT: true, GROUND_COMMS: true };
 /** Isolated contact fixture for subsystem unit cases; playability uses actual geometry. */
 function connected(state: SimState) { const s = flight(structuredClone(state)); s.inContact = true; s.lineOfSight = true; s.stationAvailable = true; return s; }
-function technical(scenario: Design['scenarioId'] = 'FIRST_LIGHT') { return flight(createSim(referenceDesign(scenario, 'EXPERT'), 42)); }
+function technical(scenario: BuiltinMissionId = 'FIRST_LIGHT') { return flight(createSim(referenceDesign(scenario, 'EXPERT'), 42)); }
 
 describe('immutable mission profile and shared launch authority', () => {
  it('freezes a paid design snapshot and rejects unsupported rules, while starters do not contain free mission payloads', () => {
   const d = referenceDesign('FIRST_LIGHT', 'EXPERT'), s = flight(createSim(d, 42));
   expect(Object.isFrozen(s.design)).toBe(true); expect(Object.isFrozen(s.design.parts)).toBe(true);
   expect(telemetry(s)).toMatchObject({ levelId: 'EXPERT', rulesVersion: RULES_VERSION, assisted: false });
-  const starter = createStarterDesign('FIRST_LIGHT', 'EXPERT');
+  const starter = createStarterDesign(missionById('FIRST_LIGHT'), 'EXPERT');
   expect(starter.parts.some(p => p.partId === 'CAM_EO' || p.partId === 'HEATER_6')).toBe(false);
   expect(launchReadiness(starter, signed).some(r => r.code === 'REQUIRES_PART')).toBe(true);
   expect(launchReadiness({ ...d, rulesVersion: RULES_VERSION + 1 }, signed)).toEqual(expect.arrayContaining([expect.objectContaining({ code: 'UNSUPPORTED_RULES' })]));
@@ -97,7 +97,8 @@ describe('T1 thermal conservation, convergence and paid heater control', () => {
   expect(failureReport(failed)?.causeKey).toBe('failure.THERMAL_SURVIVAL.title');
   expect(failureReport(failed)?.facts[0].values.dwellSec).toBeGreaterThanOrEqual(600);
   const score = scoreMission(failed, initial.design, { roles: 1, signoffs: 1, blockedSignoffAttempts: 0, sev3Raised: 0, sev3ResolvedBeforeLaunch: 0 });
-  expect(score).toMatchObject({ outcome: 'FAILURE', scienceAchieved: true, stars: 0 });
+  expect(score).toMatchObject({ outcome: 'FAILURE', stars: 0 });
+  expect(score.evidence).toContainEqual(expect.objectContaining({ kind: 'DELIVERED_PRODUCT', state: 'MET', actual: 1500 }));
  });
 });
 describe('T2 life envelope and T3 finite/degraded pointing', () => {

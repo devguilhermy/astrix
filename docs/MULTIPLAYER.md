@@ -2,6 +2,14 @@
 
 The Bun process is the only LAN mission authority. The host browser and phones project its snapshots; they never advance a second simulation. This release supplies admission, role ownership, readiness, presence and reconnect plumbing. Dedicated phone design/flight consoles (plan W5/W6) are outside this wave. Do not present their full multi-phone gameplay acceptance as demonstrated.
 
+## Rules-v5 integration status
+
+The mission-definition migration uses protocol 2 and a production `astrix-build.json` manifest containing schema, protocol, rules and flight-model versions. The host must reject missing or incompatible production metadata rather than serve a stale app. Built-ins start through `START_MISSION`; custom `START_DEFINITION`/`SUBMIT_DEFINITION` payloads carry declarative definitions that the authority validates. Full resolved definitions/digests must survive snapshots and reconnect; clients never supply live physics.
+
+The agreed bounds are 32,768 bytes per definition, 40,960 bytes for definition-bearing frames and 8,192 bytes for ordinary client frames. Browser preflight and server limits must agree. An oversized/unsupported request must produce explicit feedback, not silently lose a host credential; only actual credential revocation/authentication failures justify forgetting it. These changes are under integration, not yet a passed host/browser rehearsal.
+
+The current shared Wi-Fi is **not an isolated trusted LAN qualification**. Do not broaden firewall rules or expose other laptop services as part of game setup. Same-SSID reachability, native QR scanning, iOS/Android suspension and physical-device behavior still require explicit observed evidence.
+
 ## Prepare online
 
 Install Bun on the host, then run from the repository:

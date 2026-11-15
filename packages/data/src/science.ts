@@ -72,7 +72,23 @@ export const SCIENCE_TOPICS = {
   'initial-orbit-state': topic('initial-orbit-state', 'orbit', ['gmat-manual', 'nssdc-earth', 'nssdc-mars', 'model-assumptions'], ['orbit-shape', 'inclination', 'external-trajectories'], 'advanced-tools'),
   'viewer-provenance': topic('viewer-provenance', 'orbit', ['ccsds-odm', 'mission-viz', 'model-assumptions'], ['initial-orbit-state', 'scene-scale', 'source-evidence'], 'advanced-tools'),
   'scene-scale': topic('scene-scale', 'spacecraft', ['mission-viz', 'nasa-media', 'model-assumptions'], ['pointing', 'kepler-orbits', 'source-evidence'], 'scene'),
-  'outcome-replay': topic('outcome-replay', 'data', ['design-develop', 'model-assumptions'], ['science-return', 'mission-failure', 'requirements-verification'], 'report')
+  'outcome-replay': topic('outcome-replay', 'data', ['design-develop', 'model-assumptions'], ['science-return', 'mission-failure', 'requirements-verification'], 'report'),
+  // Powered ascent, burns and Earth-Moon flight (rules v5). Texts: scienceTrajectory.ts.
+  'orbital-speed': topic('orbital-speed', 'orbit', ['nssdc-earth', 'model-assumptions'], ['orbit-height', 'vis-viva', 'gravity-turn'], 'orbit'),
+  'gravity-turn': topic('gravity-turn', 'transfer', ['nssdc-earth', 'model-assumptions'], ['gravity-drag-losses', 'staging', 'orbital-speed'], 'ascent'),
+  'gravity-drag-losses': topic('gravity-drag-losses', 'energy', ['nssdc-earth', 'si-gn', 'model-assumptions'], ['rocket-equation', 'gravity-turn', 'dynamic-pressure'], 'ascent'),
+  'dynamic-pressure': topic('dynamic-pressure', 'spacecraft', ['nssdc-earth', 'model-assumptions'], ['gravity-drag-losses', 'gravity-turn'], 'ascent'),
+  'staging': topic('staging', 'spacecraft', ['si-gn', 'model-assumptions'], ['rocket-equation', 'gravity-drag-losses', 'mass-volume'], 'ascent'),
+  'vis-viva': topic('vis-viva', 'orbit', ['nssdc-earth', 'model-assumptions'], ['orbit-shape', 'hohmann-transfer', 'escape-velocity'], 'orbit'),
+  'burn-direction': topic('burn-direction', 'transfer', ['gmat', 'model-assumptions'], ['hohmann-transfer', 'deorbit-entry', 'rocket-equation'], 'burns'),
+  'hohmann-transfer': topic('hohmann-transfer', 'transfer', ['nssdc-earth', 'si-gn', 'model-assumptions'], ['vis-viva', 'burn-direction', 'rocket-equation'], 'burns'),
+  'escape-velocity': topic('escape-velocity', 'energy', ['nssdc-earth', 'model-assumptions'], ['vis-viva', 'trans-lunar-injection', 'orbital-speed'], 'burns'),
+  'deorbit-entry': topic('deorbit-entry', 'orbit', ['nssdc-earth', 'model-assumptions'], ['burn-direction', 'vis-viva', 'trajectory-model-limits'], 'burns'),
+  'sphere-of-influence': topic('sphere-of-influence', 'transfer', ['nssdc-earth', 'nssdc-moon', 'model-assumptions'], ['trans-lunar-injection', 'lunar-capture', 'trajectory-model-limits'], 'trajectory'),
+  'trans-lunar-injection': topic('trans-lunar-injection', 'transfer', ['nssdc-earth', 'nssdc-moon', 'gmat', 'model-assumptions'], ['escape-velocity', 'lunar-phasing', 'sphere-of-influence'], 'trajectory'),
+  'lunar-phasing': topic('lunar-phasing', 'transfer', ['nssdc-moon', 'model-assumptions'], ['trans-lunar-injection', 'inclination', 'sphere-of-influence'], 'trajectory'),
+  'lunar-capture': topic('lunar-capture', 'transfer', ['nssdc-moon', 'gmat', 'model-assumptions'], ['sphere-of-influence', 'burn-direction', 'rocket-equation'], 'trajectory'),
+  'trajectory-model-limits': topic('trajectory-model-limits', 'spacecraft', ['gmat', 'model-assumptions'], ['sphere-of-influence', 'burn-direction', 'model-assumptions'], 'trajectory'),
 } as const satisfies Readonly<Record<string, ScienceTopic>>;
 
 export type ScienceTopicId = keyof typeof SCIENCE_TOPICS;

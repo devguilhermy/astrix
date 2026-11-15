@@ -1,8 +1,8 @@
 import type { ActorContext, RoleId } from '@astrix/core';
 import type { HistoryPage, IntentEnvelope, IntentResult, SessionSnapshot } from './contracts';
-export const PROTOCOL_VERSION = 1 as const;
+export const PROTOCOL_VERSION = 2 as const;
 export type ClientMessage =
- | {type:'HELLO';protocol:1;buildId:string;lastSeq:number}
+ | {type:'HELLO';protocol:2;buildId:string;lastSeq:number}
  | ({type:'INTENT';actor:ActorContext}&IntentEnvelope)
  | {type:'READY';ready:boolean;rosterRevision:number}
  | {type:'ASSIGN_ROLE';id:string;role:RoleId;playerId:string;rosterRevision:number}
@@ -14,7 +14,7 @@ export type ClientMessage =
  | {type:'GET_RESULTS';ids:readonly string[]}
  | {type:'PING';nonce:string};
 export type ServerMessage =
- | {type:'WELCOME';protocol:1;buildId:string;deviceId:string;playerId:string;epoch:string;snapshot:SessionSnapshot}
+ | {type:'WELCOME';protocol:2;buildId:string;deviceId:string;playerId:string;epoch:string;snapshot:SessionSnapshot}
  | {type:'SNAPSHOT';snapshot:SessionSnapshot}
  | ({type:'RESULT';id:string}&IntentResult)
  | {type:'QUOTE';id:string;quoteId:string;baseRevision:number;before:NonNullable<SessionSnapshot['budgets']>;after:NonNullable<SessionSnapshot['budgets']>;affectedRoles:readonly RoleId[]}
@@ -22,4 +22,4 @@ export type ServerMessage =
  | {type:'PONG';nonce:string;seq:number}
  | {type:'ROOM_CLOSED';reason:'HOST_STOPPED'|'RESTARTED'};
 export type ParseResult = {ok:true;value:ClientMessage}|{ok:false;error:'BAD_MESSAGE'};
-export { parseClientMessage } from './validation';
+export { parseClientMessage, messageByteLimit } from './validation';

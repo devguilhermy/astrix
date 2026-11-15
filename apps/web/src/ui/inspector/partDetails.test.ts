@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'bun:test';
-import { createSim, createStarterDesign, listParts, quoteAddPart, telemetry } from '@astrix/core';
+import { createSim, createStarterDesign, missionById, listParts, quoteAddPart, telemetry } from '@astrix/core';
 import { liveReadings, partSpecs } from './partDetails';
 
 function flyingFirstLight() {
-  const quote = quoteAddPart(createStarterDesign('FIRST_LIGHT', 'ASPIRING'), 'CAM_EO', 'ALL');
+  const quote = quoteAddPart(createStarterDesign(missionById('FIRST_LIGHT'), 'ASPIRING'), 'CAM_EO', 'ALL');
   if (!quote.ok) throw new Error(`Expected the Earth camera to install: ${quote.code}`);
   const design = quote.value.next;
   return { design, x: telemetry(createSim(design, 42)) };

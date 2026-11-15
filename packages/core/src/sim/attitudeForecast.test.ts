@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import type { AttitudeQuaternion, SimState } from '../contracts';
-import { PARTS, scenarioById } from '../catalog';
+import { PARTS } from '../catalog';
+import { missionById } from '../mission/library';
 import { attitudeDistance, attitudeTargetForDirection, normalizeAttitude, rotateAttitudeVector, slewAttitude, antennaGain } from '../attitude';
 import { CONSTANTS, DAY, cylinderEclipse, norm, radians, sunDirection } from '../physics';
 import { RULES_VERSION } from '../models';
@@ -148,11 +149,11 @@ describe('solar ephemeris and physical bounded forecasts', () => {
  });
  for (const level of ['ASPIRING','EXPERT'] as const) for (const scenario of ['FIRST_LIGHT','STORM_WATCH','RED_RELAY','CREW_PATHFINDER'] as const) {
   it(`${scenario} ${level} dry run reaches a real whole-mission outcome within physical bounds`, () => {
-   const d = referenceDesign(scenario,level), target = scenarioById(scenario);
-   const result = forecastMission(d,'DEFAULT',target.durationDays.v*DAY);
+   const d = referenceDesign(scenario,level), target = missionById(scenario);
+   const result = forecastMission(d,'DEFAULT',target.environment.durationSec);
    expect(result.outcome).not.toBe('INCOMPLETE');
    expect(result.samples.length).toBeLessThanOrEqual(512);
-   expect(result.objectiveTarget).toBe(target.target.v);
+   expect(result.objectiveTarget).toBe(telemetry(createSim(d,42)).objective.target);
    for (const s of result.samples) {
     expect(Number.isFinite(s.t+s.socWh+s.storedMB+s.downlinkedMB)).toBe(true);
     expect(s.socWh).toBeGreaterThanOrEqual(0); expect(s.storedMB).toBeGreaterThanOrEqual(0); expect(s.downlinkedMB).toBeGreaterThanOrEqual(0);
@@ -160,7 +161,7 @@ describe('solar ephemeris and physical bounded forecasts', () => {
    if (result.outcome === 'SUCCESS') expect(result.objectiveValue).toBeGreaterThanOrEqual(result.objectiveTarget);
    if (scenario === 'CREW_PATHFINDER' && level === 'ASPIRING') {
     expect(result.outcome).toBe('SUCCESS');
-    expect(result.endedAtSec).toBe(target.durationDays.v*DAY+10+21600);
+    expect(result.endedAtSec).toBe(target.environment.durationSec+10+21600);
    }
   },180000);
  }

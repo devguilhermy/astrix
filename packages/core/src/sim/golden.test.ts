@@ -3,6 +3,7 @@ import type { Command, Design, SimEvent, SimState } from '../contracts';
 import { listOrbitPresets } from '../catalog';
 import { computeBudgets, previewOrbit, quoteSetOrbit } from '../design';
 import { DAY } from '../physics';
+import { RULES_VERSION } from '../models';
 import { scoreMission } from '../score';
 import { issueCommand } from './commands';
 import { createSim } from './state';
@@ -44,7 +45,7 @@ describe('rules-v4 consumer replay invariants rather than incidental serialized 
    expect(a).toEqual(b);
    expect(a.state.t).toBe(3 * DAY);
    expect(a.commands.some(c => c.result === 'OK')).toBe(true);
-   expect(a.score.identity).toMatchObject({ levelId: profile, rulesVersion: 4, seed: 42 });
+   expect(a.score.identity).toMatchObject({ levelId: profile, rulesVersion: RULES_VERSION, seed: 42 });
    expect(Math.hypot(...telemetry(a.state).attitude.q)).toBeCloseTo(1,12);
   }, 30000);
  }

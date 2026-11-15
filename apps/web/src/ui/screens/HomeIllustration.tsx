@@ -1,9 +1,7 @@
-import type { ScenarioId } from '@astrix/core';
-
 /** Static, decorative mission diagrams; no renderer or simulation state. */
-export function HomeIllustration({ mission }: { mission?: ScenarioId }) {
- const mars = mission === 'RED_RELAY', storm = mission === 'STORM_WATCH', crew = mission === 'CREW_PATHFINDER';
- const surface = mars ? '#bd765d' : '#397c98', accent = mars ? '#f5a983' : storm ? '#f6bf75' : crew ? '#b6c9fa' : '#79e2e9';
+export function HomeIllustration({ mission }: { mission?: string }) {
+ const mars = mission === 'RED_RELAY', storm = mission === 'STORM_WATCH', crew = mission === 'CREW_PATHFINDER', moon = mission === 'EARTH_TO_MOON' || mission === 'MEET_THE_MOON';
+ const surface = mars ? '#bd765d' : moon ? '#8d969e' : '#397c98', accent = mars ? '#f5a983' : storm ? '#f6bf75' : crew ? '#b6c9fa' : moon ? '#dfe4e8' : '#79e2e9';
  return <svg className="home-orbit-art" viewBox="0 0 460 310" aria-hidden="true" focusable="false">
   <defs><radialGradient id={`planet-${mission ?? 'hero'}`} cx="32%" cy="24%"><stop stopColor={surface}/><stop offset="1" stopColor="#0a1726"/></radialGradient><linearGradient id={`sweep-${mission ?? 'hero'}`}><stop stopColor={accent} stopOpacity=".05"/><stop offset="1" stopColor={accent} stopOpacity=".7"/></linearGradient></defs>
   <g fill="none"><circle cx="229" cy="157" r="112" stroke="#607b8f" strokeOpacity=".18"/><circle cx="229" cy="157" r="132" stroke="#607b8f" strokeOpacity=".12" strokeDasharray="3 9"/><ellipse cx="229" cy="157" rx="187" ry="73" transform="rotate(-24 229 157)" stroke={`url(#sweep-${mission ?? 'hero'})`} strokeWidth="1.5"/><path d="M52 251h66m-33-8v16M352 55h48m-24-8v16" stroke={accent} strokeOpacity=".35"/><path d="M19 28h36M19 28v36M441 282h-36m36 0v-36" stroke="#6c91a4" strokeOpacity=".35"/></g>

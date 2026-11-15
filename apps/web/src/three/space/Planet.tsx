@@ -28,8 +28,8 @@ export const Planet = forwardRef<Group, PlanetProps>(function Planet({
  const tier = useQuality();
  const quality = useQualityProfile();
  const highEarth = body === 'EARTH' && tier !== 'LOW' && !lowResolution;
- const lowFile = body === 'EARTH' ? 'earth-blue-marble-1024.png' : 'mars-viking-1024.jpg';
- const image = useSpaceTexture(highEarth ? 'earth-blue-black-marble-4096.webp' : lowFile, highEarth ? lowFile : undefined);
+ const lowFile = body === 'EARTH' ? 'earth-blue-marble-1024.png' : body === 'MARS' ? 'mars-viking-1024.jpg' : null;
+ const image = useSpaceTexture(highEarth ? 'earth-blue-black-marble-4096.webp' : lowFile, highEarth ? lowFile ?? undefined : undefined);
  const initialSun = useMemo(() => coreSunDirection(body, 0), [body]);
  const uniforms = useMemo(() => ({
   uSurface: { value: null as Texture | null },
@@ -46,9 +46,9 @@ export const Planet = forwardRef<Group, PlanetProps>(function Planet({
  uniforms.uSurface.value = image?.texture ?? null;
  uniforms.uHasSurface.value = image !== null;
  uniforms.uPackedNight.value = image?.file === 'earth-blue-black-marble-4096.webp';
- uniforms.uFallback.value.set(body === 'EARTH' ? '#16466c' : '#a65d43');
+ uniforms.uFallback.value.set(body === 'EARTH' ? '#16466c' : body === 'MOON' ? '#8b9096' : '#a65d43');
  atmosphere.uRimColour.value.set(body === 'EARTH' ? '#438de6' : '#ba7755');
- atmosphere.uStrength.value = body === 'EARTH' ? 0.6 : 0.25;
+ atmosphere.uStrength.value = body === 'EARTH' ? 0.6 : body === 'MOON' ? 0 : 0.25;
  renderDirection(uniforms.uSunDirection.value, sunDirection ?? initialSun).normalize();
  useFrame(() => {
   renderDirection(uniforms.uSunDirection.value, sunDirection ?? initialSun).normalize();

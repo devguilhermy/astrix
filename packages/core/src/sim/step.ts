@@ -1,25 +1,27 @@
 import type { SimEvent, SimEventKind, SimState } from '../contracts';
-import { MODEL, PART_BY_ID, scenarioById } from '../catalog';
+import { MODEL, PART_BY_ID } from '../catalog';
 import { ENGINEERING, THERMAL_MODELS, isTechnical, lifeFactor, thermalStepK } from '../models';
 import { DAY, clamp, solarFactor } from '../physics';
 import { applyDueCommands, bootPowerW } from './commands';
 import { fail } from './failure';
 import { advanceCrew, CREW_MODEL } from './crew';
-import { cloneFlight, electricalLoadW, enterSafe, flight, generatedPowerW, heaterDemandW, objectiveValue, recordAudit, sample, stormBounds, transmittingRate, updateEnvironment, type FlightState } from './state';
+import { cloneFlight, electricalLoadW, enterSafe, flight, generatedPowerW, heaterDemandW, recordAudit, sample, stormBounds, transmittingRate, updateEnvironment, type FlightState } from './state';
+import { allRequiredMet, anyRequiredFailed, objectiveValue, primaryObjective, updateObjectives } from './objectives';
+import { advanceAscentTo, applyTrajectory, ascentActive, handoffAscent, nextAscentTime, nextTrajectoryBoundary } from './trajectory';
 import { advanceAttitude, attitudeHardware, refreshAttitude } from './attitude';
 
 function emit(s: FlightState, events: SimEvent[], kind: SimEventKind, autoPause: boolean, values: Record<string, number | string> = {}): void { events.push({ kind, t: s.t, autoPause, values }); }
 /** Faults win ties with command arrivals: a command never runs on a just-reset computer. */
 function scheduled(s: FlightState, events: SimEvent[]): void {
- const scenario = scenarioById(s.design.scenarioId), technical = isTechnical(s.design.levelId), [stormStart, stormEnd] = stormBounds(s);
- if (!s.stormStarted && s.elapsed >= stormStart) { s.stormStarted = true; emit(s, events, 'SOLAR_STORM_START', true, { doseUGyH: s.doseUGyH, source: scenario.body === 'EARTH' ? 'radlab-iss-2024-05-10' : 'model.marsStormDose' }); }
+ const technical = isTechnical(s.design.levelId), [stormStart, stormEnd] = stormBounds(s);
+ if (!s.stormStarted && s.elapsed >= stormStart) { s.stormStarted = true; emit(s, events, 'SOLAR_STORM_START', true, { doseUGyH: s.doseUGyH, source: s.mars ? 'model.marsStormDose' : 'radlab-iss-2024-05-10' }); }
  if (!s.stormEnded && s.elapsed >= stormEnd) { s.stormEnded = true; emit(s, events, 'SOLAR_STORM_END', true); }
  if (!s.aged && s.elapsed >= s.agingAt) {
   s.aged = true;
   if (!technical) { s.capacityWh *= 1 - MODEL.batteryAgingFraction.v; s.batteryFactor = s.capacityWh / s.nominalCapacityWh; s.socWh = Math.min(s.socWh, s.capacityWh); }
   emit(s, events, 'BATTERY_AGING', true, { capacityWh: s.capacityWh, arrayFactor: s.arrayFactor, batteryFactor: s.batteryFactor, continuous: technical ? 1 : 0 });
  }
- if (scenario.body === 'EARTH' && !s.outageStarted && s.elapsed >= s.outageAt) {
+ if (!s.mars && !s.outageStarted && s.elapsed >= s.outageAt) {
   s.outageStarted = true; s.outageActive = true; s.stationAvailable = false; s.inContact = false; s.downlinkActive = false; s.nextPassAt = null; s.nextPassCheckedAt = -DAY;
   emit(s, events, 'GROUND_OUTAGE', true, { durationHours: MODEL.outageHours.v });
  }
@@ -53,23 +55,25 @@ function scheduled(s: FlightState, events: SimEvent[]): void {
 }
 /** Absolute grid plus immutable event deadlines, never a fresh grid per RAF call. */
 function nextBoundary(s: FlightState): number {
+ if (ascentActive(s)) return nextAscentTime(s);
  let target = s.arrivalT + (Math.floor((s.t - s.arrivalT + 1e-7) / MODEL.fixedStepSec.v) + 1) * MODEL.fixedStepSec.v;
  const [start, stop] = stormBounds(s), technical = isTechnical(s.design.levelId);
  if (!s.stormStarted && start > s.elapsed + 1e-8) target = Math.min(target, s.arrivalT + start);
  if (!s.stormEnded && stop > s.elapsed + 1e-8) target = Math.min(target, s.arrivalT + stop);
  if (!s.aged && s.agingAt > s.elapsed + 1e-8) target = Math.min(target, s.arrivalT + s.agingAt);
- if (!s.outageStarted && s.design.orbit!.body === 'EARTH' && s.outageAt > s.elapsed + 1e-8) target = Math.min(target, s.arrivalT + s.outageAt);
+ if (!s.outageStarted && !s.mars && s.outageAt > s.elapsed + 1e-8) target = Math.min(target, s.arrivalT + s.outageAt);
  if (technical) {
   if (!s.pointingFaultSeen && s.pointingFaultAt > s.elapsed + 1e-8) target = Math.min(target, s.arrivalT + s.pointingFaultAt);
   if (!s.resetSeen && s.resetAt > s.elapsed + 1e-8) target = Math.min(target, s.arrivalT + s.resetAt);
   if (!s.linkDegradeSeen && s.linkDegradeAt > s.elapsed + 1e-8) target = Math.min(target, s.arrivalT + s.linkDegradeAt);
   if (!s.linkRestoreSeen && s.linkRestoreAt > s.elapsed + 1e-8) target = Math.min(target, s.arrivalT + s.linkRestoreAt);
  }
- if (technical || s.design.orbit!.body === 'MARS') {
-  const offset = scenarioById(s.design.scenarioId).stationAllocationStartSec.v, dayStart = Math.floor((s.t - offset) / DAY) * DAY + offset, allocationEnd = dayStart + ENGINEERING.allocationHours.v * 3600;
+ if (technical || s.mars) {
+  const offset = s.design.definition.environment.stationAllocationStartSec, dayStart = Math.floor((s.t - offset) / DAY) * DAY + offset, allocationEnd = dayStart + ENGINEERING.allocationHours.v * 3600;
   target = Math.min(target, allocationEnd > s.t + 1e-8 ? allocationEnd : dayStart + DAY);
  }
- if (!s.crew) target = Math.min(target, s.arrivalT + scenarioById(s.design.scenarioId).durationDays.v * DAY);
+ if (!s.crew) target = Math.min(target, s.arrivalT + s.design.definition.environment.durationSec);
+ target = Math.min(target, nextTrajectoryBoundary(s));
  if (s.crew?.phase === 'RECOVERY') target = Math.min(target, s.t + s.crew.recoveryRemainingSec);
  if (s.pointingReadyAt !== null && s.pointingReadyAt > s.t + 1e-8) target = Math.min(target, s.pointingReadyAt);
  if (s.bootReadyAt !== null && s.bootReadyAt > s.t + 1e-8) target = Math.min(target, s.bootReadyAt);
@@ -83,7 +87,7 @@ function nextBoundary(s: FlightState): number {
 /** Explicit midpoint radiative integration; minimum thermal time constant >10,000 s. */
 function integrateThermal(s: FlightState, dt: number, events: SimEvent[]): void {
  if (!isTechnical(s.design.levelId)) return;
- const m = THERMAL_MODELS[s.design.busId], body = scenarioById(s.design.scenarioId).body;
+ const m = THERMAL_MODELS[s.design.busId], body = s.centralBody;
  s.externalHeatW = m.bodyHeatW.v + (s.sunlit ? ENGINEERING.solarFlux.v * solarFactor(body) * m.absorbingM2.v : 0);
  // All modeled electrical draw ends as heat in this one-bus approximation.
  const suppliedW = Math.min(s.loadW, Math.max(0, s.genW + s.socWh * 3600 / dt));
@@ -101,7 +105,8 @@ function integrateThermal(s: FlightState, dt: number, events: SimEvent[]): void 
  if (s.thermalSurvivalSec >= ENGINEERING.thermalDwellSec.v && !s.ended) fail(s, 'THERMAL_SURVIVAL', events, s.t + dt);
 }
 function powerAndScience(s: FlightState, dt: number, oldElapsed: number, events: SimEvent[]): void {
- const scenario = scenarioById(s.design.scenarioId), technical = isTechnical(s.design.levelId);
+ const def = s.design.definition, technical = isTechnical(s.design.levelId);
+ const product = def.objectives.find(o => o.spec.kind === 'DELIVERED_PRODUCT')?.spec, hours = def.objectives.find(o => o.spec.kind === 'INSTRUMENT_HOURS')?.spec;
  s.genW = generatedPowerW(s); s.heaterW = heaterDemandW(s); s.heaterOn = s.heaterW > 0; s.loadW = electricalLoadW(s);
  const radioRate = transmittingRate(s);
  if (s.pointing.state === 'REACQUIRING') s.interventionEnergyWh += ENGINEERING.reacquirePower.v * (s.design.busId === 'SMALLSAT' ? 10 : 1) * dt / 3600;
@@ -121,7 +126,6 @@ function powerAndScience(s: FlightState, dt: number, oldElapsed: number, events:
   const sent = Math.min(s.storedMB, radioRate * dt / 8000), objectiveSent = sent * (s.storedMB > 0 ? s.missionStoredMB / s.storedMB : 0);
   s.storedMB = Math.max(0, s.storedMB - sent); s.missionStoredMB = Math.max(0, s.missionStoredMB - objectiveSent); s.downlinkedMB += sent; s.missionDownlinkedMB += objectiveSent;
  }
- const [start, end] = stormBounds(s);
  let radiationRecorded = false;
  for (const instrument of s.instruments) {
   if (!instrument.on || instrument.lost || s.safe || s.socWh <= 0 || s.thermalInhibited || s.computerState !== 'RUNNING' || s.ended) continue;
@@ -130,15 +134,15 @@ function powerAndScience(s: FlightState, dt: number, oldElapsed: number, events:
   const rate = p.rateKbps!.v * instrument.qty * instrument.dutyFraction;
   const generated = rate * dt / 8000, retained = Math.min(generated, Math.max(0, s.storageMB - s.storedMB));
   s.storedMB += retained; s.dataLostMB += generated - retained;
-  const required = scenario.id === 'FIRST_LIGHT' || scenario.id === 'CREW_PATHFINDER' ? p.metric === 'IMAGES' : scenario.id === 'RED_RELAY' ? p.metric === 'MAPS' : p.metric === 'RADIATION_HOURS';
+  const required = product && product.kind === 'DELIVERED_PRODUCT' ? (product.metric === 'ANY_SCIENCE' ? p.category === 'INSTRUMENT' : p.metric === product.metric) : !!hours && p.metric === 'RADIATION_HOURS';
   if (required) s.missionStoredMB += retained;
   if (required && p.metric === 'RADIATION_HOURS' && retained >= generated - 1e-9) radiationRecorded = true;
  }
- if (scenario.id === 'STORM_WATCH' && radiationRecorded) {
+ if (hours && hours.kind === 'INSTRUMENT_HOURS' && radiationRecorded) {
   // Multiple monitors do not multiply hours; fractional duty does scale exposure.
   let duty = 0;
   for (const i of s.instruments) if (i.on && !i.lost && PART_BY_ID[i.partId].metric === 'RADIATION_HOURS') duty = Math.max(duty, i.dutyFraction);
-  s.radiationHours += Math.max(0, Math.min(oldElapsed + dt, end) - Math.max(oldElapsed, start)) / 3600 * duty;
+  s.radiationHours += Math.max(0, Math.min(oldElapsed + dt, hours.windowEndSec) - Math.max(oldElapsed, hours.windowStartSec)) / 3600 * duty;
  }
  if (s.storageMB > 0 && s.storedMB >= s.storageMB * .9 && !s.storageLatched) { s.storageLatched = true; emit(s, events, 'STORAGE_NEAR_FULL', true, { storedMB: s.storedMB, storageMB: s.storageMB }); }
  else if (s.storedMB < s.storageMB * .8) s.storageLatched = false;
@@ -150,7 +154,7 @@ function powerAndScience(s: FlightState, dt: number, oldElapsed: number, events:
 }
 function updateLife(s: FlightState, events: SimEvent[]): void {
  if (!isTechnical(s.design.levelId)) return;
- const duration = scenarioById(s.design.scenarioId).durationDays.v * DAY;
+ const duration = s.design.definition.environment.durationSec;
  s.arrayFactor = lifeFactor(s.elapsed, duration, ENGINEERING.arrayEol.v); s.batteryFactor = lifeFactor(s.elapsed, duration, ENGINEERING.batteryEol.v);
  s.capacityWh = s.nominalCapacityWh * s.batteryFactor;
  if (s.socWh > s.capacityWh) {
@@ -165,6 +169,34 @@ export function skipCruise(state: SimState): { state: SimState; events: readonly
  s.t = s.arrivalT; s.elapsed = 0; s.remainderSec = 0; s.cruise = false; s.capturePending = true; s.nextSampleAt = s.t + MODEL.historyEverySec.v;
  updateEnvironment(s); s.samples = [...s.samples, sample(s, true)];
  return { state: s, events: [{ kind: 'CAPTURE_BURN', t: s.t, autoPause: true, values: { cruiseDays: s.arrivalT / DAY, requiredKms: s.captureRequiredKms, nominalKms: s.captureNominalKms, planningKms: s.capturePlanningKms, availableKms: s.captureAvailableKms, propellantKg: s.propellantKg } }] };
+}
+/** Evaluate every objective against physical evidence, then apply the definition's termination policy. */
+function evaluateMission(s: FlightState, dt: number, events: SimEvent[]): void {
+ const def = s.design.definition;
+ updateObjectives(s, dt, events);
+ if (!s.ended && anyRequiredFailed(s)) {
+  const late = def.objectives.some(o => o.required && o.deadlineSec !== null && s.elapsed + 1e-8 >= o.deadlineSec && s.objectives.find(r => r.id === o.id)?.state === 'FAILED');
+  fail(s, late ? 'DEADLINE_MISSED' : 'OBJECTIVE_MISSED', events);
+ }
+ if (!s.ended && def.termination.endOnSuccess && allRequiredMet(s)) { const p = primaryObjective(s); s.ended = true; emit(s, events, 'MISSION_END', true, { value: p.value, target: p.target }); }
+ if (!s.crew && s.elapsed + 1e-8 >= def.environment.durationSec && !s.ended) {
+  const p = primaryObjective(s);
+  if (!allRequiredMet(s)) fail(s, 'OBJECTIVE_MISSED', events);
+  s.ended = true; emit(s, events, 'MISSION_END', true, { value: p.value, target: p.target });
+ }
+ if (s.crew?.phase === 'COMPLETE' && s.ended) { const p = primaryObjective(s); if (!allRequiredMet(s)) fail(s, 'OBJECTIVE_MISSED', events); emit(s, events, 'MISSION_END', true, { value: p.value, target: p.target, earlyReturn: (s.crew.orbitEndSec ?? 0) < 72 * 3600 ? 1 : 0, orbitSec: s.crew.orbitEndSec ?? 0 }); }
+}
+/** Powered/atmospheric flight: spacecraft systems are not integrated until separation (battery held, no loads: declared model limit). */
+function ascentIteration(s: FlightState, end: number, events: SimEvent[]): void {
+ const a = s.traj.ascent!, t0 = s.t;
+ advanceAscentTo(s, end, events);
+ s.elapsed = s.t - s.arrivalT;
+ const phase = a.phase, powered = a.cutoff === 'NONE';
+ if (phase === 'HANDOFF') handoffAscent(s);
+ updateEnvironment(s);
+ evaluateMission(s, s.t - t0, events);
+ if (phase === 'FAILED' && !s.ended) { if (!allRequiredMet(s)) fail(s, powered ? 'ASCENT_FAILED' : 'SURFACE_IMPACT', events); s.ended = true; }
+ if (s.t + 1e-8 >= s.traj.lastAscentSampleAt + 10) { s.traj.lastAscentSampleAt = s.t; s.nextSampleAt = Math.min(s.nextSampleAt, s.t); }
 }
 export function stepSim(state: SimState, dtSec: number): { state: SimState; events: readonly SimEvent[] } {
  const old = flight(state);
@@ -188,10 +220,14 @@ export function stepSim(state: SimState, dtSec: number): { state: SimState; even
  while (s.t < target - 1e-8 && !s.ended && steps < MODEL.maxFrameSteps.v) {
   const eventCountAtStart = events.length;
   scheduled(s, events); auditEvents(); applyDueCommands(s, events); auditEvents();
+  const trajectoryMark = events.length;
+  applyTrajectory(s, events, { impact: ev => { if (!allRequiredMet(s)) fail(s, 'SURFACE_IMPACT', ev); s.ended = true; } });
+  if (events.length > trajectoryMark) { auditEvents(); evaluateMission(s, 0, events); auditEvents(); }
   if (events.some(e => e.autoPause)) break;
   const end = nextBoundary(s), dt = end - s.t;
   if (end > target + 1e-8) break;
   if (dt <= 0) break;
+  if (ascentActive(s)) { ascentIteration(s, end, events); auditEvents(); } else {
   const wasContact = s.inContact, oldElapsed = s.elapsed;
   // Integrate the left-hand state; no pre-fault or unsettled science leaks across a boundary.
   const priorEventCount = events.length;
@@ -208,13 +244,8 @@ export function stepSim(state: SimState, dtSec: number): { state: SimState; even
   scheduled(s, events); auditEvents(); applyDueCommands(s, events); auditEvents();
   if (s.pointingReadyAt !== null) s.pointing.remainingSec = Math.max(0, s.pointingReadyAt - s.t);
   if (s.inContact !== wasContact) { if (s.inContact) { emit(s, events, 'PASS_START', !s.firstPassSeen); s.firstPassSeen = true; } else emit(s, events, 'PASS_END', false); }
-  const scenario = scenarioById(s.design.scenarioId);
-  if (!s.objectiveSeen && objectiveValue(s) + 1e-9 >= scenario.target.v) { s.objectiveSeen = true; emit(s, events, 'OBJECTIVE_MET', true, { value: objectiveValue(s), target: scenario.target.v }); }
-  if (!s.crew && s.elapsed + 1e-8 >= scenario.durationDays.v * DAY && !s.ended) {
-   if (objectiveValue(s) + 1e-9 < scenario.target.v) fail(s, 'OBJECTIVE_MISSED', events);
-   s.ended = true; emit(s, events, 'MISSION_END', true, { value: objectiveValue(s), target: scenario.target.v });
+  evaluateMission(s, dt, events);
   }
-  if (s.crew?.phase === 'COMPLETE' && s.ended) { if (objectiveValue(s) + 1e-9 < scenario.target.v) fail(s, 'OBJECTIVE_MISSED', events); emit(s, events, 'MISSION_END', true, { value: objectiveValue(s), target: scenario.target.v, earlyReturn: (s.crew.orbitEndSec ?? 0) < 72 * 3600 ? 1 : 0, orbitSec: s.crew.orbitEndSec ?? 0 }); }
   auditEvents();
   if (s.t + 1e-8 >= s.nextSampleAt || s.ended || events.length > eventCountAtStart) {
    if (!historyCloned) { s.samples = s.samples.slice(); historyCloned = true; }

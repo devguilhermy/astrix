@@ -18,6 +18,13 @@ function revealTopic(target:string|undefined):{window:'mission'|'readiness'|'log
  if(target==='mission-goal'&&!state.sim)return {window:'mission',selector:'#mission-goal',stage:'NEED_GOALS',substep:'brief'};
  if(['design','parts'].includes(target)&&!state.sim)return {window:'mission',selector:`#${target}`,stage:'DESIGN',substep:'equipment'};
  if(['rides','orbit','fuel-planner'].includes(target)&&!state.sim)return {window:'mission',selector:`#${target}`,stage:'DESIGN',substep:'orbit'};
+ if(['ascent','burns','trajectory'].includes(target)){
+  const surface=state.design.definition.start.kind==='SURFACE_LAUNCH';
+  const maneuvers=state.design.definition.trajectory.model==='PATCHED_CONICS'&&state.design.definition.trajectory.maneuvers.allowed;
+  if(target==='ascent')return surface&&!state.sim?{window:'mission',selector:'#program-heading',stage:'DESIGN',substep:'trajectory'}:null;
+  if(!maneuvers)return null;
+  return {window:'mission',selector:target==='trajectory'?'#trajectory-forecast-heading':'#burns-heading',stage:state.sim?'IMPLEMENT':'DESIGN',substep:state.sim?'operations':'trajectory'};
+ }
  if(['report','dose-chart'].includes(target)&&state.telemetry?.ended)return {window:'mission',selector:`#${target}`,stage:'REVIEW',substep:'results'};
  if(target==='command-queue'&&state.sim)return {window:'log',selector:'#command-queue',stage:'IMPLEMENT',substep:'operations'};
  if(['commands','cruise'].includes(target)&&state.sim)return {window:'mission',selector:target==='commands'?'#science-return':'#cruise',stage:'IMPLEMENT',substep:'operations'};

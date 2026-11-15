@@ -3,7 +3,7 @@
 // VP world fixtures are replaced by pure ASTRIX snapshots; every engine behavior is retained.
 import { describe, expect, it } from 'bun:test';
 import type { CueEngineState, ReviewSnapshot } from '../contracts';
-import { createStarterDesign } from '../catalog';
+import { createStarterDesign, missionById } from '../mission/library';
 import { quoteRemovePart } from '../design';
 import { evaluateCues, evaluateRules, type CuePreferences } from './engine';
 import { designSnapshot, type CueRule } from './rules';
@@ -68,7 +68,7 @@ describe('pure cue evaluation', () => {
   expect(empty).toEqual({ lastRaised: {}, clearPending: {}, active: [] });
  });
  it('uses authored mission rules and removes cues outside applicable phases', () => {
-  const starter = createStarterDesign('FIRST_LIGHT', 'ASPIRING');
+  const starter = createStarterDesign(missionById('FIRST_LIGHT'), 'ASPIRING');
   const removed = quoteRemovePart(starter, 'RADIO_UHF', 'ALL');
   if (!removed.ok) throw new Error(removed.code);
   const cues = evaluateCues(empty, designSnapshot(removed.value.next), 0);
@@ -78,7 +78,7 @@ describe('pure cue evaluation', () => {
 });
 
 it('clears and re-raises discrete critical design reviews at the same simulated timestamp', () => {
- const healthy = createStarterDesign('FIRST_LIGHT', 'ASPIRING');
+ const healthy = createStarterDesign(missionById('FIRST_LIGHT'), 'ASPIRING');
  const removed = quoteRemovePart(healthy, 'RADIO_UHF', 'ALL');
  if (!removed.ok) throw new Error(removed.code);
  let cues = evaluateCues(empty, designSnapshot(removed.value.next), 0);

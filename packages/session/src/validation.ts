@@ -1,10 +1,12 @@
-import { listParts, listRides } from '@astrix/core';
-import type { ActorContext, Command, OrbitChoice } from '@astrix/core';
-import { ROLES, STAGES, WARPS } from './contracts';
+import { BUILTIN_DEFINITIONS, ascentProgramIssue, burnSpecValid, listLaunchers, listParts, listRides } from '@astrix/core';
+import type { ActorContext, AscentProgram, BuiltinMissionId, BurnSpec, BurnTrigger, Command, Digest, OrbitChoice } from '@astrix/core';
+import { MAX_CLIENT_FRAME_BYTES, MAX_DEFINITION_FRAME_BYTES, ROLES, STAGES, WARPS } from './contracts';
 import type { DesignEdit, PauseReason, SessionIntent } from './contracts';
 import type { ClientMessage, ParseResult } from './protocol';
 const buses=['CUBESAT_3U','SMALLSAT','CREW_CAPSULE'] as const;
 const parts=new Set(buses.flatMap(bus=>listParts(bus).map(p=>p.id)));
+const builtinIds=new Set<string>(BUILTIN_DEFINITIONS.map(d=>d.id));
+const launchers=new Set(listLaunchers().map(l=>l.id));
 const rides=new Set(buses.flatMap(bus=>(['EARTH','MARS'] as const).flatMap(body=>listRides(bus,body).map(r=>r.id))));
 function record(value:unknown):value is Record<string,unknown>{return typeof value==='object'&&value!==null&&!Array.isArray(value)&&Object.getPrototypeOf(value)===Object.prototype;}
 function shape(value:unknown,required:readonly string[],optional:readonly string[]=[]):value is Record<string,unknown>{return record(value)&&required.every(key=>Object.hasOwn(value,key))&&Object.keys(value).every(key=>required.includes(key)||optional.includes(key));}
@@ -13,8 +15,44 @@ function integer(value:unknown):value is number{return typeof value==='number'&&
 function finite(value:unknown,min=-1e12,max=1e12):value is number{return typeof value==='number'&&Number.isFinite(value)&&value>=min&&value<=max;}
 function member<T extends string>(value:unknown,values:readonly T[]):value is T{return typeof value==='string'&&values.some(item=>item===value);}
 function orbit(value:unknown):OrbitChoice|null {
- if(!shape(value,['body','epochUTC','frame','smaKm','ecc','inclinationDeg','raanDeg','argPeriapsisDeg','trueAnomalyDeg'])||!member(value.body,['EARTH','MARS'])||!text(value.epochUTC,40)||!Number.isFinite(Date.parse(value.epochUTC))||value.frame!=='MJ2000Eq'||!finite(value.smaKm,1,1e9)||!finite(value.ecc,0,.999999999)||!finite(value.inclinationDeg,0,180)||!finite(value.raanDeg,0,360)||!finite(value.argPeriapsisDeg,0,360)||!finite(value.trueAnomalyDeg,0,360))return null;
+ if(!shape(value,['body','epochUTC','frame','smaKm','ecc','inclinationDeg','raanDeg','argPeriapsisDeg','trueAnomalyDeg'])||!member(value.body,['EARTH','MARS','MOON'])||!text(value.epochUTC,40)||!Number.isFinite(Date.parse(value.epochUTC))||value.frame!=='MJ2000Eq'||!finite(value.smaKm,1,1e9)||!finite(value.ecc,0,.999999999)||!finite(value.inclinationDeg,0,180)||!finite(value.raanDeg,0,360)||!finite(value.argPeriapsisDeg,0,360)||!finite(value.trueAnomalyDeg,0,360))return null;
  return {body:value.body,epochUTC:value.epochUTC,frame:'MJ2000Eq',smaKm:value.smaKm,ecc:value.ecc,inclinationDeg:value.inclinationDeg,raanDeg:value.raanDeg,argPeriapsisDeg:value.argPeriapsisDeg,trueAnomalyDeg:value.trueAnomalyDeg};
+}
+function trigger(value:unknown):BurnTrigger|null {
+ if(!record(value))return null;
+ switch(value.kind){
+ case 'AT_TIME':return shape(value,['kind','tSec'])&&finite(value.tSec,0,1e9)?{kind:'AT_TIME',tSec:value.tSec}:null;
+ case 'AT_APSIS':return shape(value,['kind','apsis','notBeforeSec'],['body'])&&member(value.apsis,['PERIAPSIS','APOAPSIS'])&&finite(value.notBeforeSec,0,1e9)&&(value.body===undefined||member(value.body,['EARTH','MARS','MOON']))?{kind:'AT_APSIS',apsis:value.apsis,notBeforeSec:value.notBeforeSec,...(typeof value.body==='string'?{body:value.body}:{})}:null;
+ case 'AT_SOI_ENTRY':return shape(value,['kind','body','delaySec'])&&value.body==='MOON'&&finite(value.delaySec,0,1e9)?{kind:'AT_SOI_ENTRY',body:'MOON',delaySec:value.delaySec}:null;
+ default:return null;
+ }
+}
+/** Rebuilt field by field, then checked by the same predicate the flight engine uses. */
+function burn(value:unknown):BurnSpec|null {
+ if(!shape(value,['id','source','trigger','frame','dv','model'])||!text(value.id,24)||!member(value.source,['SPACECRAFT','UPPER_STAGE'])||!member(value.frame,['VNR','INERTIAL'])||value.model!=='IMPULSIVE')return null;
+ const dv=value.dv,t=trigger(value.trigger);
+ if(!t||!Array.isArray(dv)||dv.length!==3||!finite(dv[0],-12,12)||!finite(dv[1],-12,12)||!finite(dv[2],-12,12))return null;
+ const spec:BurnSpec={id:value.id,source:value.source,trigger:t,frame:value.frame,dv:[dv[0],dv[1],dv[2]],model:'IMPULSIVE'};
+ return burnSpecValid(spec)?spec:null;
+}
+function program(value:unknown):AscentProgram|null {
+ if(!shape(value,['azimuthDeg','verticalSec','kickDeg','kickSec','stage1LoadFraction','stage2CoastSec','insertionAltKm','holdUpperStage'])||ascentProgramIssue(value)!==null)return null;
+ const v=value as unknown as AscentProgram;
+ return {azimuthDeg:v.azimuthDeg,verticalSec:v.verticalSec,kickDeg:v.kickDeg,kickSec:v.kickSec,stage1LoadFraction:v.stage1LoadFraction,stage2CoastSec:v.stage2CoastSec,insertionAltKm:v.insertionAltKm,holdUpperStage:v.holdUpperStage};
+}
+/** Iterative (never recursive) shape bound for an untrusted JSON payload: finite numbers only, limited depth, fan-out and node count. Core validates meaning later. */
+function boundedJson(root:unknown,maxDepth=12,maxItems=256,maxNodes=5000):boolean{
+ const stack:[unknown,number][]=[[root,0]];let nodes=0;
+ while(stack.length){
+  const [value,depth]=stack.pop()!;
+  if(++nodes>maxNodes||depth>maxDepth)return false;
+  if(typeof value==='number'){if(!Number.isFinite(value))return false;continue;}
+  if(typeof value==='string'||typeof value==='boolean'||value===null)continue;
+  if(Array.isArray(value)){if(value.length>maxItems)return false;for(const item of value)stack.push([item,depth+1]);continue;}
+  if(record(value)){const keys=Object.keys(value);if(keys.length>maxItems)return false;for(const key of keys){if(key.length>64)return false;stack.push([value[key],depth+1]);}continue;}
+  return false;
+ }
+ return true;
 }
 function edit(value:unknown):DesignEdit|null {
  if(!record(value))return null;
@@ -23,6 +61,12 @@ function edit(value:unknown):DesignEdit|null {
  case 'SET_RIDE':return shape(value,['kind','rideId'])&&text(value.rideId)&&rides.has(value.rideId)?{kind:'SET_RIDE',rideId:value.rideId}:null;
  case 'SET_ORBIT':{const candidate=orbit(value.orbit);return shape(value,['kind','orbit'])&&candidate?{kind:'SET_ORBIT',orbit:candidate}:null;}
  case 'SET_PROPELLANT':return shape(value,['kind','kg'])&&finite(value.kg,0,1e6)?{kind:'SET_PROPELLANT',kg:value.kg}:null;
+ case 'SET_LAUNCHER':return shape(value,['kind','launcherId'])&&text(value.launcherId,48)&&launchers.has(value.launcherId)?{kind:'SET_LAUNCHER',launcherId:value.launcherId}:null;
+ case 'SET_ASCENT':{const p=program(value.program);return shape(value,['kind','program'])&&p?{kind:'SET_ASCENT',program:p}:null;}
+ case 'SET_BURNS':{
+  if(!shape(value,['kind','burns'])||!Array.isArray(value.burns)||value.burns.length>16)return null;
+  const burns:BurnSpec[]=[];for(const item of value.burns){const b=burn(item);if(!b)return null;burns.push(b);}return {kind:'SET_BURNS',burns};
+ }
  default:return null;
  }
 }
@@ -41,7 +85,9 @@ function command(value:unknown):Command|null {
  case 'DUTY_CYCLE':return shape(value,['kind','partId','fraction'])&&text(value.partId)&&parts.has(value.partId)&&finite(value.fraction,0,1)?{kind:'DUTY_CYCLE',partId:value.partId,fraction:value.fraction}:null;
  case 'DEPLOY':case 'DEPLOY_RETRY':return shape(value,['kind','system'])&&member(value.system,['WINGS','ANTENNA'])?{kind:value.kind,system:value.system}:null;
  case 'CREW_ISOLATE':return shape(value,['kind','isolated'])&&typeof value.isolated==='boolean'?{kind:'CREW_ISOLATE',isolated:value.isolated}:null;
- case 'CAPTURE_CONFIRM':case 'REACQUIRE_POINTING':case 'RECOVER_COMPUTER':case 'CREW_CARTRIDGE':case 'CREW_REPRESSURIZE':case 'CREW_DEORBIT':return shape(value,['kind'])?{kind:value.kind}:null;
+ case 'BURN_SCHEDULE':{const b=burn(value.burn);return shape(value,['kind','burn'])&&b?{kind:'BURN_SCHEDULE',burn:b}:null;}
+ case 'BURN_CANCEL':return shape(value,['kind','id'])&&text(value.id,24)?{kind:'BURN_CANCEL',id:value.id}:null;
+ case 'SEPARATE_STAGE':case 'CAPTURE_CONFIRM':case 'REACQUIRE_POINTING':case 'RECOVER_COMPUTER':case 'CREW_CARTRIDGE':case 'CREW_REPRESSURIZE':case 'CREW_DEORBIT':return shape(value,['kind'])?{kind:value.kind}:null;
  default:return null;
  }
 }
@@ -49,7 +95,11 @@ function pauseReason(value:unknown):value is PauseReason{return member(value,['m
 function parseIntent(value:unknown):SessionIntent|null {
  if(!record(value))return null;
  switch(value.kind){
- case 'START_SCENARIO':return shape(value,['kind','scenarioId','levelId'],['retainHardware'])&&member(value.scenarioId,['FIRST_LIGHT','STORM_WATCH','RED_RELAY','CREW_PATHFINDER'])&&member(value.levelId,['ASPIRING','EXPERT'])&&(value.retainHardware===undefined||typeof value.retainHardware==='boolean')?{kind:'START_SCENARIO',scenarioId:value.scenarioId,levelId:value.levelId,...(typeof value.retainHardware==='boolean'?{retainHardware:value.retainHardware}:{})}:null;
+ case 'START_MISSION':return shape(value,['kind','missionId','levelId'],['retainHardware'])&&text(value.missionId,48)&&builtinIds.has(value.missionId)&&member(value.levelId,['ASPIRING','EXPERT'])&&(value.retainHardware===undefined||typeof value.retainHardware==='boolean')?{kind:'START_MISSION',missionId:value.missionId as BuiltinMissionId,levelId:value.levelId,...(typeof value.retainHardware==='boolean'?{retainHardware:value.retainHardware}:{})}:null;
+ // The definition body is only checked to be a plain object here; core validation (bounds, depth, size, identity) runs again in the reducer.
+ case 'START_DEFINITION':return shape(value,['kind','definition','levelId'],['retainHardware'])&&record(value.definition)&&boundedJson(value.definition)&&member(value.levelId,['ASPIRING','EXPERT'])&&(value.retainHardware===undefined||typeof value.retainHardware==='boolean')?{kind:'START_DEFINITION',definition:value.definition,levelId:value.levelId,...(typeof value.retainHardware==='boolean'?{retainHardware:value.retainHardware}:{})}:null;
+ case 'SUBMIT_DEFINITION':return shape(value,['kind','definition','baseDigest'])&&record(value.definition)&&boundedJson(value.definition)&&typeof value.baseDigest==='string'&&/^sha256:[0-9a-f]{64}$/.test(value.baseDigest)?{kind:'SUBMIT_DEFINITION',definition:value.definition,baseDigest:value.baseDigest as Digest}:null;
+ case 'GRANT_AUTHORING':return shape(value,['kind','playerId'])&&(value.playerId===null||text(value.playerId))?{kind:'GRANT_AUTHORING',playerId:value.playerId}:null;
  case 'RESET_MISSION':return shape(value,['kind'],['keepDesign'])&&(value.keepDesign===undefined||typeof value.keepDesign==='boolean')?{kind:'RESET_MISSION',...(typeof value.keepDesign==='boolean'?{keepDesign:value.keepDesign}:{})}:null;
  case 'SET_STAGE':return shape(value,['kind','stage'])&&member(value.stage,STAGES)?{kind:'SET_STAGE',stage:value.stage}:null;
  case 'SET_SUBSTEP':return shape(value,['kind','step'])&&text(value.step,32)?{kind:'SET_SUBSTEP',step:value.step}:null;
@@ -94,7 +144,7 @@ function parseActor(value:unknown):ActorContext|null {
 function parse(raw:unknown):ClientMessage|null {
  if(!record(raw))return null;
  switch(raw.type){
- case 'HELLO':return shape(raw,['type','protocol','buildId','lastSeq'])&&raw.protocol===1&&text(raw.buildId)&&integer(raw.lastSeq)?{type:'HELLO',protocol:1,buildId:raw.buildId,lastSeq:raw.lastSeq}:null;
+ case 'HELLO':return shape(raw,['type','protocol','buildId','lastSeq'])&&raw.protocol===2&&text(raw.buildId)&&integer(raw.lastSeq)?{type:'HELLO',protocol:2,buildId:raw.buildId,lastSeq:raw.lastSeq}:null;
  case 'INTENT':{
   if(!shape(raw,['type','id','epoch','attemptId','rosterRevision','actor','intent'])||!text(raw.id)||!text(raw.epoch)||!integer(raw.attemptId)||!integer(raw.rosterRevision))return null;
   const actor=parseActor(raw.actor),intent=parseIntent(raw.intent);return actor&&intent?{type:'INTENT',id:raw.id,epoch:raw.epoch,attemptId:raw.attemptId,rosterRevision:raw.rosterRevision,actor,intent}:null;
@@ -111,12 +161,22 @@ function parse(raw:unknown):ClientMessage|null {
  default:return null;
  }
 }
+const DEFINITION_INTENTS=new Set(['START_DEFINITION','SUBMIT_DEFINITION']);
+/** UTF-8 length, counted without allocating and abandoned once `limit` is exceeded. */
+function utf8Bytes(text:string,limit:number):number{let bytes=0;for(const character of text){const point=character.codePointAt(0)!;bytes+=point<=0x7f?1:point<=0x7ff?2:point<=0xffff?3:4;if(bytes>limit)return bytes;}return bytes;}
+/** Per-type frame bound: only the two definition intents may exceed the ordinary limit. */
+export function messageByteLimit(message:unknown):number{
+ if(record(message)&&message.type==='INTENT'&&record(message.intent)&&typeof message.intent.kind==='string'&&DEFINITION_INTENTS.has(message.intent.kind))return MAX_DEFINITION_FRAME_BYTES;
+ return MAX_CLIENT_FRAME_BYTES;
+}
 /** JSON is decoded to unknown, then rebuilt only from checked scalar fields. */
 export function parseClientMessage(raw:unknown):ParseResult {
  try{
+  let bytes=0;
   if(typeof raw==='string'){
-   let bytes=0;for(const character of raw){const point=character.codePointAt(0)!;bytes+=point<=0x7f?1:point<=0x7ff?2:point<=0xffff?3:4;if(bytes>8192)return {ok:false,error:'BAD_MESSAGE'};}
+   bytes=utf8Bytes(raw,MAX_DEFINITION_FRAME_BYTES);if(bytes>MAX_DEFINITION_FRAME_BYTES)return {ok:false,error:'BAD_MESSAGE'};
    const decoded:unknown=JSON.parse(raw);raw=decoded;
+   if(bytes>MAX_CLIENT_FRAME_BYTES&&messageByteLimit(raw)<bytes)return {ok:false,error:'BAD_MESSAGE'};
   }
   const value=parse(raw);return value?{ok:true,value}:{ok:false,error:'BAD_MESSAGE'};
  }catch{return {ok:false,error:'BAD_MESSAGE'};}

@@ -24,7 +24,7 @@ export class RoomQueue {
     return true;
   }
   private drain(): void {
-    const job = this.jobs.shift(); try { job?.(); } finally {
+    const job = this.jobs.shift(); try { job?.(); } catch (error) { console.error('ASTRIX: room job failed; the room keeps running.', error); } finally {
       if (this.jobs.length) this.schedule(() => this.drain()); else this.scheduled = false;
     }
   }

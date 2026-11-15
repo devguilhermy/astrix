@@ -71,13 +71,15 @@ function acquireTexture(file: string) {
  * A failed high-tier surface falls back to the existing low-tier historical map;
  * exhausted imagery leaves the original procedural sky or plain planet visible.
  */
-export function useSpaceTexture(file: string, fallback?: string): LoadedTexture | null {
+/** `null` means the body has no authored surface image (the Moon draws a plain lit sphere); nothing is requested. */
+export function useSpaceTexture(file: string | null, fallback?: string): LoadedTexture | null {
  const invalidate = useThree(state => state.invalidate);
  const requestKey = `${file}|${fallback ?? ''}`;
  const [result, setResult] = useState<{ key: string; loaded: LoadedTexture } | null>(null);
  useEffect(() => {
   let active = true;
   let release: (() => void) | undefined;
+  if (file === null) return;
   const load = async () => {
    for (const candidate of fallback && fallback !== file ? [file, fallback] : [file]) {
     if (!active) return;

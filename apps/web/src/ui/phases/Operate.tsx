@@ -8,6 +8,8 @@ import { TeachingCard } from '../science/TeachingCard';
 import { AlertIcon } from '../icons';
 import { topicForContext } from '../science/registry';
 import { CommandButton } from './FlightControls';
+import { EvidenceList } from '../missions/EvidenceList';
+import { FlightStatePanel } from '../flightplan/FlightState';
 import { TechnicalSystems } from './TechnicalSystems';
 import { openPartDetails } from '../inspector/openPart';
 
@@ -44,6 +46,8 @@ export function OperateScreen() {
  const parts=listParts(design.busId);
  return <div className="phase-content">
   <header className="phase-title"><h1>{t('phase.OPERATE')}</h1><ExplainButton topic="operational-cycle"/></header>
+  <EvidenceList evidence={telemetry.evidence} label={t('flight.evidence')}/>
+  {telemetry.flight&&<FlightStatePanel telemetry={telemetry}/>}
   <section id="science-return" data-cue-target="science-return"><h2>{t('ui.instrument')}</h2>{telemetry.instruments.map(instrument=><div key={instrument.partId} className="instrument-row"><strong>{t(parts.find(part=>part.id===instrument.partId)!.nameKey)}</strong><span className="chip">{t(instrument.lost?'ui.lost':instrument.on?'ui.on':'ui.off')}</span><CommandButton command={{kind:'INSTRUMENT',partId:instrument.partId,on:!instrument.on}} label={t(instrument.on?'ui.off':'ui.on')}/><ExplainButton topic="instrument-risk"/></div>)}</section>
   {telemetry.crew&&<section><h2>{t('flow.crew')}</h2><TeachingCard topic="crew-inventories" context="operations.crew.stores" values={{[t('flow.runway')]:`${format.format(telemetry.crew.daysRemaining)} d`}}/><TeachingCard topic="crew-atmosphere" context="operations.crew.atmosphere" values={{'CO₂':`${format.format(telemetry.crew.co2MmHg)} mmHg`}}/><TeachingCard topic="crew-procedures" context="operations.crew.procedures"/><TeachingCard topic="crew-return" context="operations.crew.return"/><p>{t('flow.runway')}: <NumberValue value={telemetry.crew.daysRemaining} unit="d"/> · {t(`flow.store.${telemetry.crew.limiting}`)}</p><p>O₂: <NumberValue value={telemetry.crew.oxygenKg} unit="kg"/> · H₂O: <NumberValue value={telemetry.crew.waterKg} unit="kg"/> · CO₂: <NumberValue value={telemetry.crew.co2MmHg} unit="mmHg"/></p><p>{t('flow.fan')}: {t(telemetry.crew.fanOn?'ui.on':'ui.off')} · {t(`flow.phase.${telemetry.crew.phase}`)}</p><div className="button-wrap"><CommandButton command={{kind:'CREW_FAN',on:!telemetry.crew.fanOn}} label={t('flow.fan')}/><CommandButton command={{kind:'CREW_CARTRIDGE'}} label={t('flow.cartridge')}/><CommandButton command={{kind:'CREW_ISOLATE',isolated:true}} label={t('flow.isolate')}/><CommandButton command={{kind:'CREW_REPRESSURIZE'}} label={t('flow.repressurize')}/><CommandButton command={{kind:'CREW_PRIORITIZE_POWER',on:true}} label={t('flow.priorityPower')}/><CommandButton command={{kind:'CREW_DEORBIT'}} label={t('flow.deorbit')}/></div></section>}
   {telemetry.crew&&<details><summary>{t('hud.details')}</summary><p>{t('flow.returnPolicy')}</p><p>{telemetry.crew.returnWindowOpen?t('flow.returnOpen'):telemetry.crew.nextReturnWindowSec===null?t('flow.unknown'):t('flow.returnNext',{seconds:Math.ceil(telemetry.crew.nextReturnWindowSec)})}</p><p>{t('flow.fanWorking')}: {t(telemetry.crew.fanWorking?'ui.on':'ui.off')} · CO₂: <NumberValue value={telemetry.crew.co2AverageMmHg} unit="mmHg"/> · O₂: <NumberValue value={telemetry.crew.inspiredOxygenAverageMmHg} unit="mmHg"/></p></details>}

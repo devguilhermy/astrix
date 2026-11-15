@@ -1,6 +1,12 @@
-# Bounded engineering models — rules 4
+# Bounded engineering and flight models — rules 5
 
-Both levels use rate-limited quaternion attitude, geometric power/science/link effects, the low-precision equatorial Sun and bounded forecasts. Expert enables the additional six fault/engineering mechanisms below. Aspiring retains resource conservation without those extra fault state machines. Both require finite crew support; neither grants repairs. `createStarterDesign(scenario, levelId)` creates a paid draft and `createSim(design, seed)` freezes an eligible rules-v4 design. Presentation depth is separate. These are assumptions, not certified spacecraft models; this page makes no new verification claim.
+Rules-v5 integration adds immutable mission definitions, finite-thrust launch and Earth/Moon patched conics to the existing engineering systems below. `createStarterDesign(definition, levelId)` creates a paid draft; `createSim` validates the flown configuration. Both levels retain quaternion attitude and resource accounting; Expert enables applicable additional fault mechanisms. These are teaching models, not certified spacecraft or flight dynamics. The new combined verification pass is pending.
+
+## Launch and lunar approximation boundary
+
+The ascent model uses staged finite thrust, point-mass gravity, rotating Earth and exponential atmosphere with constant drag coefficient. It omits lift, winds, structural loads and Mach-dependent drag. Coast is two-body conic propagation; maneuvers are labelled impulses with rocket-equation mass loss. Lunar motion is circular and on rails, with a fixed inclined plane and node; the sphere-of-influence patch changes the central body, not the physical absolute state. No real lunar ephemeris, continuous third-body force, landing or crew lunar return is modeled.
+
+Parameters and bounded inputs live in `core/src/flight/{ascent,launchers,moon,conic}.ts`; definition-level objective and capability constraints live in `core/src/mission/`. Independent conic reference runs are recorded in [GMAT research](./research/gmat-validation.md). Those outputs do not validate ascent, atmosphere, lunar targeting or resource integration; application comparisons belong in [Verification](./VERIFICATION.md).
 
 ## Sources versus authored coefficients
 
@@ -102,6 +108,6 @@ Crew Pathfinder uses the BVAD Rev. 2 Table 3-31 per-person daily oxygen, CO₂, 
 
 CubeSat deployables have state-dependent capability and a seeded authored anomaly. Paid mitigation changes the exercise model, without certifying reliability. Disposal uses an uncertain authored area/mass/orbit screen; it neither propagates orbital drag in the live model nor asserts legal compliance.
 
-The reference orbit has full UTC epoch and MJ2000Eq Keplerian elements; changing altitude controls converts the same state. GMAT initial conditions do not import force models or spacecraft subsystems. Sun, analytical transfer and bounded timeline/dry-run approximations are in [Simulation](./SIMULATION.md). History/audit may be decimated. Prior rules are not comparable as rules 4; the integration owner records actual checks in [Verification](./VERIFICATION.md).
+Provided orbits retain UTC/MJ2000Eq initial elements; live trajectory state is frame-qualified position and velocity with derived elements. GMAT initial conditions import neither force models nor subsystems; unsupported lunar interchange is explicitly refused. Historical rules-v4 engineering outputs are regression references, not comparable rules-v5 score identities. Sun, transfer and forecast limits are in [Simulation](./SIMULATION.md); executed checks are in [Verification](./VERIFICATION.md).
 
 Crew return opportunities are authored ten-minute windows repeating every 90 minutes from 12 hours elapsed. A 10-second onboard deorbit action uses a two-body burn to an 80 km entry perigee; recovery is a separate six-hour abstraction. An early window can support a successful return when actual product and support requirements are met, but cannot satisfy the separate 72-hour orbital-duration requirement.

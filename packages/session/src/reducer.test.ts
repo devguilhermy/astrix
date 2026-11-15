@@ -9,7 +9,7 @@ const solo:SessionActor={role:'ALL',playerId:'player-1',deviceId:'display',isHos
 function flight(launch=true):SessionState {
  let s=createSession({epoch:'test'});
  const apply=(intent:SessionIntent)=>{const tx=reduceSession(s,intent,solo);expect(tx.result.ok).toBe(true);s=tx.state;};
- apply({kind:'START_SCENARIO',scenarioId:'FIRST_LIGHT',levelId:'ASPIRING'});
+ apply({ kind: 'START_MISSION', missionId: 'FIRST_LIGHT', levelId: 'ASPIRING' });
  apply({kind:'COMMIT_DESIGN',baseRevision:s.design!.revision,edit:{kind:'ADD_PART',partId:'CAM_EO'}});
  apply({kind:'CONFIRM_OBJECTIVE'});
  for(let n=0;n<3;n++)apply({kind:'COMPLETE_STAGE',designRevision:s.design!.revision});
@@ -66,10 +66,10 @@ describe('one immutable session authority',()=>{
 });
 describe('revision, deduplication and scoped stops',()=>{
  test('duplicate accepted IDs return the saved result even after attempt context changes',()=>{
-  const initial=createSession({epoch:'one'}),request:IntentEnvelope={id:'start',epoch:'one',attemptId:0,rosterRevision:0,intent:{kind:'START_SCENARIO',scenarioId:'FIRST_LIGHT',levelId:'ASPIRING'}};
+  const initial=createSession({epoch:'one'}),request:IntentEnvelope={id:'start',epoch:'one',attemptId:0,rosterRevision:0,intent:{ kind: 'START_MISSION', missionId: 'FIRST_LIGHT', levelId: 'ASPIRING' }};
   const first=reduceSession(initial,request,solo),duplicate=reduceSession(first.state,request,solo);
   expect(duplicate.state).toBe(first.state);expect(duplicate.result).toEqual(first.result);expect(duplicate.state.attemptId).toBe(1);
-  const different=reduceSession(first.state,{...request,intent:{kind:'START_SCENARIO',scenarioId:'RED_RELAY',levelId:'EXPERT'}},solo);expect(different.result).toMatchObject({ok:false,refusal:{code:'DUPLICATE_ID'}});expect(different.state).toBe(first.state);
+  const different=reduceSession(first.state,{...request,intent:{ kind: 'START_MISSION', missionId: 'RED_RELAY', levelId: 'EXPERT' }},solo);expect(different.result).toMatchObject({ok:false,refusal:{code:'DUPLICATE_ID'}});expect(different.state).toBe(first.state);
  });
  test('stale epoch, attempt, roster and design cannot mutate the mission',()=>{
   const s=flight(),envelope:IntentEnvelope={id:'bad',epoch:'wrong',attemptId:s.attemptId,rosterRevision:s.rosterRevision,intent:{kind:'PAUSE'}};
@@ -92,7 +92,7 @@ describe('revision, deduplication and scoped stops',()=>{
   s=reduceSession(s,{kind:'PAUSE',reason:'learning:lesson'},phone).state;expect(reduceSession(s,{kind:'RESUME'},solo).state.running).toBe(false);s=reduceSession(s,{kind:'ACK_LEARNING',stopId:'lesson'},phone).state;expect(s.running).toBe(false);expect(s.pauseReasons).toContain('manual');
  });
  test('LAN quotes bind exact actor, revision and edit; commits rerun core',()=>{
-  let s=createSession({epoch:'room',mode:'LAN'});s=reduceSession(s,{kind:'START_SCENARIO',scenarioId:'FIRST_LIGHT',levelId:'ASPIRING'},solo).state;
+  let s=createSession({epoch:'room',mode:'LAN'});s=reduceSession(s,{ kind: 'START_MISSION', missionId: 'FIRST_LIGHT', levelId: 'ASPIRING' },solo).state;
   const edit={kind:'ADD_PART' as const,partId:'CAM_EO'},baseRevision=s.design!.revision;
   const quoted=reduceSession(s,{kind:'QUOTE_DESIGN',edit,baseRevision},solo);expect(quoted.result.ok).toBe(true);if(!quoted.result.ok||!quoted.result.quote)throw new Error('quote missing');
   const committed=reduceSession(quoted.state,{kind:'COMMIT_DESIGN',edit,baseRevision,quoteId:quoted.result.quote.quoteId},solo);expect(committed.result.ok).toBe(true);expect(committed.state.design!.revision).toBe(baseRevision+1);
@@ -149,7 +149,7 @@ describe('safety, role decisions and attribution',()=>{
  });
  test('LAN readiness and unresolved safety stops cannot be erased by launch or rewind',()=>{
   let lobby=createSession({mode:'LAN'});lobby=reduceSession(lobby,{kind:'ADD_PLAYER',playerId:'new',name:'João'},solo).state;
-  expect(reduceSession(lobby,{kind:'START_SCENARIO',scenarioId:'FIRST_LIGHT',levelId:'ASPIRING'},solo).result).toMatchObject({ok:false,refusal:{code:'NOT_READY'}});
+  expect(reduceSession(lobby,{ kind: 'START_MISSION', missionId: 'FIRST_LIGHT', levelId: 'ASPIRING' },solo).result).toMatchObject({ok:false,refusal:{code:'NOT_READY'}});
   for(const reason of ['host-display-disconnected','host-stall'] as const){
    let s:SessionState={...flight(false),mode:'LAN'};s=reduceSession(s,{kind:'PAUSE',reason},solo).state;
    const refused=reduceSession(s,{kind:'LAUNCH',designRevision:s.design!.revision,rosterRevision:s.rosterRevision},solo);expect(refused.result.ok).toBe(false);expect(refused.state).toBe(s);
