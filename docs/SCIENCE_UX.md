@@ -92,7 +92,7 @@ Debrief distinguishes success, failure, incomplete objectives and assistance. De
 
 Use native labelled controls, visible focus, keyboard alternatives, bounded scrolling panels, textual result/error states and reduced-motion support. The immersive 3D scene remains visible behind or beside the panels, including on compact screens. Styled confirmation dialogs retain focus/inert behavior and return to a connected opener. The preflight design lesson is skippable; the lighter simulator spotlights are dismissible and replayable, not a mandatory full-screen tour chain.
 
-Functional verification covers design constraints, stale checks, preview purity, commit/retry/save behavior, both languages, compact layouts and multiplayer. Human sessions must separately measure assistance, comprehension, enjoyment and replay intent. The proposed first-choice/first-outcome/mission-duration targets in the [revision plan](./plans/TURN_BASED_EXPLORATION_REVISION.md) remain hypotheses until measured with participants.
+Functional verification covers design constraints, stale checks, preview purity, commit/retry and attempt export/import, both languages, compact layouts and multiplayer. Human sessions must separately measure assistance, comprehension, enjoyment and replay intent. The proposed first-choice/first-outcome/mission-duration targets in the [revision plan](./plans/TURN_BASED_EXPLORATION_REVISION.md) remain hypotheses until measured with participants.
 
 ## 2026-11-15: simulated frames, score presentation, fact panel
 

@@ -8,7 +8,7 @@ ASTRIX is a turn-based space exploration and learning game. Static play needs no
 |---|---|---|
 | `packages/core` | Bounded quick design, certification, turn decisions/resolution, physical resources, objectives and debrief | Trust a renderer, title or compatibility check as evidence of success |
 | `packages/session` | Authenticated actors, attempts, turn commits/proposals, stale checks, idempotency, replay and projections | Advance a turn from elapsed wall time |
-| `apps/web` | Mission board, preparation, preview, choices, receipts, journal, saves and optional scientific tools | Change the real flight when selecting or previewing a choice |
+| `apps/web` | Landing, rendered docs, mission board, preparation, preview, choices, receipts, per-visit journal, attempt export/import and optional scientific tools | Change the real flight when selecting or previewing a choice; store attempts in the browser |
 | `apps/host` | Production HTTP/WebSocket serving, device admission, serialized authoritative transactions and reconnect | Start a second browser simulation or catch up mission time after sleep |
 | `packages/data` | Committed scientific snapshots, citations, assumptions and imagery provenance | Present historical inputs as live NASA telemetry |
 
@@ -39,13 +39,13 @@ Legacy low-level simulation/definition APIs remain available to scientific/conte
 
 ## LAN boundary
 
-Protocol **3** is incompatible with pre-turn clients. The production manifest binds protocol, rules and flight-model versions. Authenticated devices submit bounded typed messages; the parser rejects unknown fields, malformed numbers, arbitrary simulation writes and trusted-only local restore requests. The room queue serializes accepted requests.
+Protocol **4** (adds the party size, `seats`, to snapshots and the `players` admin action) is incompatible with earlier clients. The production manifest binds protocol, rules and flight-model versions. Authenticated devices submit bounded typed messages; the parser rejects unknown fields, malformed numbers, arbitrary simulation writes and trusted-only local restore requests. The room queue serializes accepted requests.
 
 The host commits; phones can discuss and propose. No unanimous Ready or discipline signoff is required for each decision. Role assignments still identify who proposes and who owns a device. Host capability is established through a loopback-only bootstrap, not by visiting `/host`.
 
 Public snapshots exclude credentials, private result ledgers, quotes and replay logs. They include the committed game needed for local read-only preview and the current proposals. Other telemetry history projections are bounded; full history uses attempt-qualified cursors. Result ledgers have finite room-lifetime caps and refuse further work when exhausted rather than silently forgetting idempotency.
 
-HTTP/WSS boundaries, admission, expiry and reconnect details are in [Multiplayer](./MULTIPLAYER.md). The supported transport is plaintext HTTP/WebSocket on a trusted isolated LAN, not a public internet service. The Bun room is in memory: a browser refresh can reconnect, but a stopped process cannot be recovered from a local browser save.
+HTTP/WSS boundaries, admission, expiry and reconnect details are in [Multiplayer](./MULTIPLAYER.md). The supported transport is plaintext HTTP/WebSocket on a trusted isolated LAN, not a public internet service. The Bun room is in memory: a browser refresh can reconnect, but a stopped process cannot be recovered, and browsers do not store attempts. Admission stays open during the mission up to the host's player count.
 
 ## Saves, replay and identity
 

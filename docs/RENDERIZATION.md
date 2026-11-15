@@ -15,7 +15,7 @@ The public landing is separate from the simulator. Its entry opens free solar-sy
 
 ## Spacecraft context
 
-One R3F Canvas stays mounted across solar exploration, mission selection, preparation, play, debrief and tools. It uses bounded pixel ratio and paid catalogue-derived spacecraft geometry. Destination/equipment previews are distinguished from committed flight state. Spacecraft enlargement and schematic separations are disclosed where used for legibility. Camera controls have labelled DOM/keyboard alternatives; installed hardware also has a textual manifest.
+One R3F Canvas stays mounted across solar exploration, mission selection, preparation, play, debrief and tools while the simulator is open; returning to the landing unmounts it with the rest of the simulator. It uses bounded pixel ratio and paid catalogue-derived spacecraft geometry. Destination/equipment previews are distinguished from committed flight state. Spacecraft enlargement and schematic separations are disclosed where used for legibility. Camera controls have labelled DOM/keyboard alternatives; installed hardware also has a textual manifest.
 
 Successive decision snapshots preserve the user's camera orientation, zoom and pan. Following a changed craft position translates the camera and its target together; only a new mission/body/mode, focus selection or explicit Reset reframes the view. Scene framing accounts for the widened panels and persistent resource grid.
 

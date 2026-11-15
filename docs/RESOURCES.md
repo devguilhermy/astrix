@@ -90,7 +90,7 @@ Registry `retrieved` dates are authored reference metadata except where explicit
 
 ### Browser persistence and practice snapshots
 
-Local play uses versioned decision-boundary saves, separate from settings, discovery history and old definition-library files. Restores validate configuration identity, rules/model and deterministic committed history. Write failure preserves the previous valid save; corrupt/incompatible files remain exportable. Aspiring checkpoint retries are assisted, while Expert retries are separate attempts. LAN reconnect restores a live Bun room only; credentials do not provide persistence after process exit. Neither level receives free repairs or energy.
+Attempts are not stored in the browser; settings, the mission-design lesson flag and old definition-library files are. The retired decision-boundary save slots are deleted on load. An exported attempt file is validated on import against configuration identity, rules/model and deterministic committed history; old definition-library files remain exportable. The discovery journal lasts for the page visit. Aspiring checkpoint retries are assisted, while Expert retries are separate attempts. LAN reconnect restores a live Bun room only; credentials do not provide persistence after process exit. Neither level receives free repairs or energy.
 
 ### Update workflow and verification pointers
 
