@@ -1,0 +1,193 @@
+{
+  "source": "usgs-catalog",
+  "url": "https://astrogeology.usgs.gov/search",
+  "retrieved": "2026-11-14T12:02:15.761Z",
+  "retrievalTimeBasis": "Preserved local export file modification time; original HTTP retrieval time is unavailable.",
+  "input": "nasa.json",
+  "sha256": "babf875b5c9c9571bae7a0b296f29cab85840e1fdd4bd1c7c35da2fd8d9ebf78",
+  "total": 1643,
+  "sampledRecords": 1000,
+  "missionFacets": {
+    "Apollo": 55,
+    "Artemis": 2,
+    "Cassini-Huygens": 26,
+    "Chandrayaan": 1,
+    "Clementine": 11,
+    "Dawn": 9,
+    "Galileo": 36,
+    "Kaguya": 21,
+    "Lunar Orbiter": 4,
+    "Lunar Reconnaissance Orbiter": 168,
+    "MESSENGER": 26,
+    "Magellan": 76,
+    "Mariner": 3,
+    "Mariner 9": 12,
+    "Mars 2020": 7,
+    "Mars Express": 8,
+    "Mars Global Surveyor": 10,
+    "Mars Odyssey": 119,
+    "Mars Reconnaissance Orbiter": 58,
+    "NEAR": 2,
+    "New Horizons": 6,
+    "OSIRIS-REx": 3,
+    "Viking": 16,
+    "Viking Lander": 2,
+    "Viking Orbiter": 337,
+    "Voyager": 107
+  },
+  "attribution": "heuristic-title-name; no per-record mission metadata",
+  "missions": [
+    {
+      "name": "Mariner 9",
+      "count": 12,
+      "products": [
+        {
+          "title": "Mars High Resolution Mariner 9 Pictures in the Chryse Region",
+          "link": "https://astrogeology.usgs.gov/search/map/mars_high_resolution_mariner_9_pictures_in_the_chryse_region",
+          "thumb": "https://astrogeology.usgs.gov/ckan/dataset/60a0513c-5801-47b2-803d-351095a67585/resource/d0f79ea0-db26-4f60-b1cf-b3ebb0c57549/download/thumb.png"
+        },
+        {
+          "title": "Mars High Resolution Mariner 9 Pictures in the Cydonia Region",
+          "link": "https://astrogeology.usgs.gov/search/map/mars_high_resolution_mariner_9_pictures_in_the_cydonia_region",
+          "thumb": "https://astrogeology.usgs.gov/ckan/dataset/bfcb6446-57a2-4e6b-81c7-89008ce9d974/resource/e86ae388-7d7c-4c0b-8cc3-e614c3694020/download/thumb.png"
+        },
+        {
+          "title": "Mars Mariner 9 5M Quads GIS Conversion",
+          "link": "https://astrogeology.usgs.gov/search/map/mars_mariner_9_5m_quads_gis_conversion",
+          "thumb": "https://astrogeology.usgs.gov/ckan/dataset/e8f0a803-14b0-4141-8717-bb8793543d5b/resource/d8ef3805-1add-447b-9210-6c50c1ccbc0a/download/mariner9_geology_globalview_100.jpg"
+        }
+      ],
+      "attribution": "heuristic-title-name",
+      "matchPattern": "mariner[ _-]*9",
+      "note": "Facet count is supplied by USGS for the whole catalogue. Sample titles/names match mission or instrument vocabulary; records contain no per-record mission field. A match is not verified mission attribution, and an empty sample does not mean no products exist."
+    },
+    {
+      "name": "Mars 2020",
+      "count": 7,
+      "products": [],
+      "attribution": "heuristic-title-name",
+      "matchPattern": "mars[ _-]*2020|perseverance",
+      "note": "Facet count is supplied by USGS for the whole catalogue. Sample titles/names match mission or instrument vocabulary; records contain no per-record mission field. A match is not verified mission attribution, and an empty sample does not mean no products exist."
+    },
+    {
+      "name": "Mars Express",
+      "count": 8,
+      "products": [],
+      "attribution": "heuristic-title-name",
+      "matchPattern": "mars[ _-]*express|\\bhrsc\\b",
+      "note": "Facet count is supplied by USGS for the whole catalogue. Sample titles/names match mission or instrument vocabulary; records contain no per-record mission field. A match is not verified mission attribution, and an empty sample does not mean no products exist."
+    },
+    {
+      "name": "Mars Global Surveyor",
+      "count": 10,
+      "products": [
+        {
+          "title": "MOC movie showing seasonal variations",
+          "link": "https://astrogeology.usgs.gov/search/map/moc_movie_showing_seasonal_variations",
+          "thumb": "https://astrogeology.usgs.gov/ckan/dataset/dbbe5e52-6eb7-4dae-b887-1c8ceaa6f60c/resource/1a948570-82bc-4ac8-a96a-63ec11b4fc6a/download/thumb.png"
+        },
+        {
+          "title": "Mars Global Surveyor MOLA Globe",
+          "link": "https://astrogeology.usgs.gov/search/map/mars_global_surveyor_mola_globe",
+          "thumb": "https://astrogeology.usgs.gov/ckan/dataset/9e00a55d-9670-4054-9412-9435f137711f/resource/d8aebb9b-47e1-48b9-ac89-37d890e73480/download/thumb.png"
+        },
+        {
+          "title": "MOC movie showing year-to-year changes",
+          "link": "https://astrogeology.usgs.gov/search/map/moc_movie_showing_year_to_year_changes",
+          "thumb": "https://astrogeology.usgs.gov/ckan/dataset/ed1750a9-0e0e-4166-b5ab-1289bdafa475/resource/5310e7a9-69bd-4bb1-916d-1990da292789/download/thumb.png"
+        }
+      ],
+      "attribution": "heuristic-title-name",
+      "matchPattern": "mars[ _-]*global[ _-]*surveyor|\\bmgs\\b|\\bmola\\b|\\bmoc\\b",
+      "note": "Facet count is supplied by USGS for the whole catalogue. Sample titles/names match mission or instrument vocabulary; records contain no per-record mission field. A match is not verified mission attribution, and an empty sample does not mean no products exist."
+    },
+    {
+      "name": "Mars Odyssey",
+      "count": 119,
+      "products": [
+        {
+          "title": "Mars_THEMIS_Final_Smithed_Kernels.pdf",
+          "link": "https://astrogeology.usgs.gov/search/map/mars_themis_final_smithed_kernels_pdf",
+          "thumb": "https://astrogeology.usgs.gov/ckan/dataset/da96cd7b-1458-40f7-99eb-7d2eb32e9671/resource/df9b9f0d-b066-4a4d-90b3-7a7430ff5655/download/thumb.png"
+        },
+        {
+          "title": "Meridiani Plnum MER Landing Site Ellipse THEMIS IR Mosaic",
+          "link": "https://astrogeology.usgs.gov/search/map/meridiani_plnum_mer_landing_site_ellipse_themis_ir_mosaic",
+          "thumb": "https://astrogeology.usgs.gov/ckan/dataset/17c6ebe2-1568-4442-9f33-d092aa62c025/resource/adb90dd9-bbf1-4566-ad9a-aa84afe3af49/download/thumb.png"
+        },
+        {
+          "title": "Mars THEMIS-Derived Global Thermal Inertia Mosaic",
+          "link": "https://astrogeology.usgs.gov/search/map/mars-themis-derived-global-thermal-inertia-mosaic",
+          "thumb": "https://astrogeology.usgs.gov/ckan/dataset/e0e063df-dd21-44ca-b931-c410b4268f5f/resource/572fb60c-67cc-4b2f-9d8e-6e6086ce7a52/download/themis_global_thermal-inertia_thumb.png"
+        }
+      ],
+      "attribution": "heuristic-title-name",
+      "matchPattern": "mars[ _-]*odyssey|\\bthemis\\b",
+      "note": "Facet count is supplied by USGS for the whole catalogue. Sample titles/names match mission or instrument vocabulary; records contain no per-record mission field. A match is not verified mission attribution, and an empty sample does not mean no products exist."
+    },
+    {
+      "name": "Mars Reconnaissance Orbiter",
+      "count": 58,
+      "products": [
+        {
+          "title": "CTX Orthoimage of North Kasei Vallis Distal Flow",
+          "link": "https://astrogeology.usgs.gov/search/map/ctx_orthoimage_of_north_kasei_vallis_distal_flow",
+          "thumb": "https://astrogeology.usgs.gov/ckan/dataset/f925767f-c402-4997-87ef-df3a5d8be1b1/resource/722efa91-aa54-46ce-ae2f-7b85acb34e52/download/d16_033287_2065_xn_26n063w_6m_o-thumb.jpg"
+        },
+        {
+          "title": "CTX Orthoimage of Lethe Vallis",
+          "link": "https://astrogeology.usgs.gov/search/map/ctx_orthoimage_of_lethe_vallis",
+          "thumb": "https://astrogeology.usgs.gov/ckan/dataset/d6b86c12-3504-4923-9b10-dacc2a8ebe71/resource/c3e913ca-c54d-4af8-a29c-9135d2f55063/download/b01_009900_1837_xn_03n206w_6m_o-thumb.jpg"
+        },
+        {
+          "title": "CTX Orthoimage of Mars InSight Landing Site",
+          "link": "https://astrogeology.usgs.gov/search/map/ctx_orthoimage_of_mars_insight_landing_site",
+          "thumb": "https://astrogeology.usgs.gov/ckan/dataset/a0a22042-30c5-4795-a5e9-d09608a173dd/resource/f24bb728-f43b-4019-8279-74e06f859df9/download/d02_028045_1831_xi_03n223w_6m_ortho-thumb.jpg"
+        }
+      ],
+      "attribution": "heuristic-title-name",
+      "matchPattern": "mars[ _-]*reconnaissance[ _-]*orbiter|\\bmro\\b|\\bhirise\\b|\\bctx\\b|\\bcrism\\b",
+      "note": "Facet count is supplied by USGS for the whole catalogue. Sample titles/names match mission or instrument vocabulary; records contain no per-record mission field. A match is not verified mission attribution, and an empty sample does not mean no products exist."
+    },
+    {
+      "name": "Viking",
+      "count": 16,
+      "products": [
+        {
+          "title": "Mars Viking Globe",
+          "link": "https://astrogeology.usgs.gov/search/map/mars_viking_globe",
+          "thumb": "https://astrogeology.usgs.gov/ckan/dataset/0cf29d63-c30d-4d1a-8b74-6332d1e2a0e7/resource/839e42bf-d252-461a-acb7-e15b8ddc1390/download/thumb.png"
+        },
+        {
+          "title": "Mars Viking Global Products",
+          "link": "https://astrogeology.usgs.gov/search/map/mars-viking-global-products",
+          "thumb": "https://astrogeology.usgs.gov/ckan/dataset/817ca072-b931-49d2-9056-c07e62c4038f/resource/9c90727e-5452-465d-9bb3-9d5a260b4607/download/mars-viking-thumb.jpg"
+        },
+        {
+          "title": "Mars Viking Global Color Mosaic 925m",
+          "link": "https://astrogeology.usgs.gov/search/map/mars_viking_global_color_mosaic_925m",
+          "thumb": "https://astrogeology.usgs.gov/ckan/dataset/dfdc2242-52dc-4126-bc89-03af8253ae79/resource/7a5c6a6c-24bd-4133-8120-caa6018717ab/download/thumb.png"
+        }
+      ],
+      "attribution": "heuristic-title-name",
+      "matchPattern": "viking",
+      "note": "Facet count is supplied by USGS for the whole catalogue. Sample titles/names match mission or instrument vocabulary; records contain no per-record mission field. A match is not verified mission attribution, and an empty sample does not mean no products exist."
+    },
+    {
+      "name": "Viking Lander",
+      "count": 2,
+      "products": [],
+      "attribution": "heuristic-title-name",
+      "matchPattern": "viking.*lander",
+      "note": "Facet count is supplied by USGS for the whole catalogue. Sample titles/names match mission or instrument vocabulary; records contain no per-record mission field. A match is not verified mission attribution, and an empty sample does not mean no products exist."
+    },
+    {
+      "name": "Viking Orbiter",
+      "count": 337,
+      "products": [],
+      "attribution": "heuristic-title-name",
+      "matchPattern": "viking.*orbiter|viking[ _-]*mdim",
+      "note": "Facet count is supplied by USGS for the whole catalogue. Sample titles/names match mission or instrument vocabulary; records contain no per-record mission field. A match is not verified mission attribution, and an empty sample does not mean no products exist."
+    }
+  ]
+}

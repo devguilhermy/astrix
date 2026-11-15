@@ -1,0 +1,24 @@
+:root { color-scheme: dark; }
+body { margin: 0; }
+.startup-screen, .recovery-screen { --boot-line: #ffffff22; --boot-cyan: #72dce5; --boot-muted: #a9bdc9; --boot-surface: #101c28; min-height: 100svh; display: grid; place-items: center; padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom)); box-sizing: border-box; background: #07101a; color: #dce6ec; font-family: 'Rajdhani', system-ui, sans-serif; }
+.startup-card, .recovery-card { width: min(100%, 36rem); box-sizing: border-box; border: 1px solid var(--boot-line); border-top: 2px solid var(--boot-cyan); border-radius: 4px; background: var(--boot-surface); padding: clamp(1.25rem, 5vw, 2.5rem); }
+.startup-brand { display: flex; align-items: center; gap: .8rem; border-bottom: 1px solid var(--boot-line); padding-bottom: 1.2rem; margin-bottom: 1.4rem; }
+.startup-mark { width: 44px; height: 44px; color: var(--boot-cyan); flex: 0 0 auto; }
+.startup-kicker { color: var(--boot-cyan); font-size: .75rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+.startup-card h1 { color: #f2f7f9; font-size: clamp(1.5rem, 4vw, 2rem); line-height: 1.15; margin: .3rem 0 0; }
+.startup-message { font-size: 1rem; line-height: 1.5; margin: 0; }
+.startup-message span { display: block; }
+.startup-message [lang='pt-BR'] { color: var(--boot-muted); font-size: .9rem; margin-top: .3rem; }
+.startup-progress { display: block; width: 100%; height: 4px; accent-color: var(--boot-cyan); margin-top: 1.5rem; border: 0; border-radius: 0; overflow: hidden; background: #ffffff12; }
+.startup-progress::-webkit-progress-bar { background: #ffffff12; }
+.startup-progress::-webkit-progress-value { background: var(--boot-cyan); }
+.startup-note { color: var(--boot-muted); font-size: .8rem; letter-spacing: .04em; margin: 1rem 0 0; }
+.startup-actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1rem; }
+.startup-actions a, .startup-actions button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: .4rem .9rem; border: 1px solid var(--boot-line); border-radius: 4px; background: #07101a; color: var(--boot-cyan); font: inherit; text-decoration: none; cursor: pointer; }
+.startup-actions :focus-visible { outline: 2px solid var(--boot-cyan); outline-offset: 4px; }
+.startup-actions[hidden] { display: none; }
+.startup-noscript { padding: 1rem; background: #101c28; color: #dce6ec; font: 1rem/1.5 system-ui, sans-serif; }
+.startup-noscript a { color: #72dce5; }
+.startup-failed .startup-progress { display: none; }
+@media (prefers-reduced-motion: reduce) { .startup-progress { display: none; } }
+[data-reduced-motion='true'] .startup-progress { display: none; }

@@ -1,0 +1,52 @@
+# Simulation and mission execution
+
+Core is authoritative for model state, resources, commands and outcomes. This is a reduced educational simulation, not flight-qualified operations or a medical model. [Missions](./MISSIONS.md), [Resources](./RESOURCES.md) and [Technical models](./TECHNICAL_MODELS.md) describe objectives, evidence and parameters. This page does not claim a new verification run.
+
+## Identity and transactions
+
+A rules-v4 design has required `scenarioId`, `levelId: ASPIRING | EXPERT`, full orbit, paid parts and revision. `createSim(design, seed)` validates readiness and freezes the flown configuration. Both levels have finite quaternion attitude; Expert additionally has reduced thermal, power-life, link, computer and pointing-fault mechanisms. Aspiring supports explicit assisted checkpoint restoration. Neither level grants automatic repair or dose-derived random destruction. Display depth is independent. Rules-v3 flight snapshots are rejected, not relabelled.
+
+`issueCommand(state, command, role, actor?)` produces an immutable state or refusal. A receipt records issuing actor, owning discipline, transport, timestamps and status; acceptance is not execution. Ground requests wait for contact and Mars transmission adds one-way light time. Onboard crew/deployment procedures wait their authored execution time independently of radio, and metabolism continues during that time. A confirmed `endMission` is an immediate session action, not a radio command or a successful completion. Faults win ties with command arrivals; arriving commands are revalidated.
+
+`stepSim` uses a ten-second absolute integration grid with event and command deadlines. Small requests can leave a remainder; large requests are bounded. Pausing for a decision discards unplayed post-decision time. Scheduled faults are seeded, not sampled on every display frame. Core `nextBoundary` reports a known upcoming opportunity or deadline, not a guarantee against earlier unmodeled or threshold events.
+
+## Orbit and environment
+
+The canonical initial orbit includes body, UTC epoch, `MJ2000Eq` frame, semi-major axis, eccentricity, inclination, RAAN, argument of periapsis and true anomaly. Altitude controls convert to that single representation. Propagation is two-body; sunlight, station rotation and Mars geometry use the explicit epoch. Cylindrical eclipse, sampled contact and simplified circular coplanar planetary motion are approximations. The eight-hour allocation starts at the scenario-authored offset within each operational day (Storm Watch 12 h, others 0 h); these are not UTC clock hours or real station reservations. No J2, operational drag, real network schedule, finite-burn ascent or full GMAT force model is implied.
+
+Mars cruise is analytically skipped to capture rather than pretending to integrate cruise power or science. Capture confirmation consumes calculated fuel; a failure remains a failure even if later science would have been possible. Earth CubeSat deployables begin stowed where applicable, and deployed state affects the corresponding generation or antenna capability. An authored deployment anomaly can be retried; paid mitigation does not guarantee success. Disposal screening is separate from live propagation and is not regulatory approval.
+
+### Attitude, Sun and transport
+
+`attitude.q` is a unit quaternion `(x,y,z,w)` mapping body axes into MJ2000Eq. Body **+X** is the single effective solar-panel normal; **+Z** is the instrument and directional-antenna boresight. `POINT` selects a tracking hold: Sun/SAFE aligns the panel to Sun, Target is nadir, Earth tracks the station line (Earth), the Earth-planet vector (Mars), or nadir for crew. Roll maximizes panel illumination subject to the boresight constraint. `ATTITUDE_TARGET` selects an inertial manual quaternion; it never rotates the orbit or camera.
+
+Actual orientation slews by the shortest quaternion arc at the installed ADCS rate. Rates and deterministic calibration biases are paid catalogue assumptions, not rigid-body torque dynamics. There is no instantaneous Aspiring teleport. Array generation is rated watts × illumination × positive panel–Sun cosine × lifetime factor. Target instruments require actual boresight error within their catalogue cone; directional throughput follows a cosine-power beam with the stated half-power angle. Mode names grant no science, power or link. Quaternion, target, actual angular rate and three angle gauges are live telemetry and retained history.
+
+Manual targets are Spacecraft-owned ground requests: LEO waits for contact, Mars adds light time only after transmission. Crew targets and holds are onboard and immediately accepted for finite physical slewing, independent of radio. Other procedures retain their execution duration. A bounded optional `gestureId` coalesces only unsent targets from the same actor and gesture into one receipt, preserving issue/expiry times. Transmitted targets cannot be recalled or rewritten; a later target is another intent.
+
+Earth's low-precision Sun uses mean longitude/anomaly, first two equation-of-center harmonics and fixed 23.439° obliquity. Precession, nutation and aberration are omitted. Mars remains a circular, ideal-transfer-phased approximation in the same ecliptic/equatorial axes, not a real-date Mars ephemeris. `transferPosition(t, epochUTC)` solves Kepler on the ideal Hohmann ellipse in heliocentric km, matching departure Earth and arrival Mars in this reduced model; no cruise engineering samples are invented.
+
+### Forecasts are not flight results
+
+`forecastTimeline(state, horizonSec)` samples the same eclipse/contact geometry used in integration, including allocation and the known outage. It returns absolute sunlight, shadow, contact, nadir-target opportunity, storm, known-event and planned-end windows without mutation. Horizon is capped at seven days, with at most 4,096 sample intervals per lane; detected edges are refined to 0.25 s. Windows narrower than the sample spacing may be missed. Target opportunities mean lit-orbit nadir access, not coverage of an invented geographic site. Future capture success and threshold failures are not predicted as scheduled facts.
+
+`forecastMission(design, 'DEFAULT', horizonSec)` clones an eligible design and flies a deterministic public-command policy: deploy/retry, observe in sunlight (radiation monitoring continuously), point Earth and send in contact, Sun otherwise; handle authored recovery using real commands. The ground policy reviews every 60 s and at pauses; it is not an uploaded autonomous plan and cannot bypass uplink, slew, power, crew, storage or fuel constraints. It runs up to 90 operational days after analytical cruise. A full crew orbital horizon includes finite deorbit/recovery. It returns at most 512 sampled battery/storage/delivery points and SUCCESS only for a genuinely successful terminal state, FAILURE for retained failure, otherwise INCOMPLETE. No dry run is scored or substituted for a flight.
+
+
+## Crew support and recovery
+
+Crew Pathfinder uses four virtual crew with the BVAD Rev. 2 per-person daily baseline: 0.895 kg oxygen, 1.085 kg CO₂, 3.217 kg potable water and 0.800 kg dry food. The cabin gas volume, temperature, supply, scrubber and recovery parameters are authored game assumptions. Cabin partial pressures use ideal-gas quantities; fan-powered scrubbing is limited by available gas and cartridge capacity. Empty tanks cannot supply gas. Consumed food, water and oxygen transfer into retained inventory rather than disappearing from total mass; modeled exhaust/leakage and propellant burn reduce retained mass.
+
+The authored sorbent rating is 0.65 kg CO₂ per kg sorbent; two 12 kg CO₂-capacity cartridges imply approximately 36.9 kg of sorbent within the paid support-system mass, with housing and packaging included in that hardware abstraction. No certified canister performance is claimed.
+
+The runway is the minimum of oxygen, water, food and scrubber capacities and must be interpreted with working airflow. Warnings and terminal `CREW_SUPPORT_LOST` describe modeled support requirements, never a diagnosis. An Expert gas-leak exercise has a visible event and onboard isolation/repressurization decisions. The lifecycle is ON_ORBIT → DEORBIT → RECOVERY → COMPLETE. The deorbit calculation uses an authored entry perigee and finite fuel; recovery is an abstracted six-hour phase, not atmospheric entry dynamics. Consumables continue through recovery. A recovered early return can succeed when the returned data goal and support through recovery are achieved; its separate nominal 72-hour duration requirement remains unmet.
+
+## Evidence and history
+
+Power and science integrate from the prior interval state; data must be generated, retained and actually returned to satisfy a delivery objective. `OBJECTIVE_MET` is not by itself mission completion. Review is terminal-only; a first failure and observed results remain separate from a score. Assisted rewinds restore a prior physical/random/queue snapshot, truncate the later branch and append an assistance marker.
+
+Telemetry exposes actual power, data, position, retained/launch mass, phase-aware clock, applicable crew and deployment state. `history` stores bounded whole-attempt samples and `historyInfo` reports decimation; `attemptAudit` reports a bounded decision/event trail and its own decimation flag. The active receipt buffer is not an unlimited debrief archive. Analytical cruise is not fabricated as continuous engineering history; sampling, decimation and unmodeled causes limit replay and causal claims.
+
+Versioned bests are separate by scenario, level and rules; assistance and seed remain part of run identity. Older incomparable scores are not relabelled. The integration owner records actual test and browser evidence in [Verification](./VERIFICATION.md).
+
+Crew return opportunities are authored ten-minute windows repeating every 90 minutes from 12 hours elapsed. A 10-second onboard deorbit action uses a two-body burn to an 80 km entry perigee; recovery is a separate six-hour abstraction. An early window can support a successful return when actual product and support requirements are met, but cannot satisfy the separate 72-hour orbital-duration requirement.

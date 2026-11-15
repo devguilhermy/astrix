@@ -1,0 +1,12 @@
+.part-inspector { display: grid; gap: .75rem; padding: 12px; }
+.part-inspector-head { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .3rem .6rem; align-items: start; }
+.part-inspector-head .chip { grid-column: 2; justify-self: start; }
+.part-inspector-head svg { color: var(--cyan); margin-top: .15rem; }
+.part-inspector-head h2 { font-size: 1.1rem; }
+.part-inspector-head p { margin: .15rem 0 0; font-size: .82rem; }
+.part-inspector > p { margin: 0; line-height: 1.45; }
+.part-inspector h3 { font-size: .76rem; letter-spacing: .07em; text-transform: uppercase; color: var(--cyan); margin: 0 0 .35rem; }
+.part-inspector .part-readings { margin: 0; }
+.part-inspector .part-readings dt { color: var(--muted); }
+.part-inspector .part-traits { margin: 0; padding-left: 1.1rem; display: grid; gap: .2rem; }
+.part-inspector .button-wrap .button { min-height: 44px; }

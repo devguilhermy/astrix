@@ -1,0 +1,6 @@
+{
+  "url": "https://ccmc.gsfc.nasa.gov/DONKI/WS/get/CME?startDate=2024-05-20&endDate=2024-05-20",
+  "retrieved": "2026-11-14T14:05:19.664Z",
+  "acquisition": "Direct HTTPS retrieval",
+  "sha256": "469a405b51f04890be0b41a3ff2b9130d0d6e1ab18e9e5042a889ab468557072"
+}

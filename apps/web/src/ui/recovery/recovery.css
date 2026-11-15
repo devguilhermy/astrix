@@ -1,0 +1,17 @@
+.error-surface { --boot-line: var(--line, #ffffff22); --boot-cyan: var(--cyan, #72dce5); --boot-surface: var(--surface, #101c28); color: #dce6ec; width: 100%; max-width: 36rem; border-top-color: var(--danger, #ff9a93); }
+.error-surface { pointer-events: auto; }
+.studio-interface > .error-surface { position: fixed; inset: auto 1rem 1rem; margin-inline: auto; max-height: calc(100svh - 2rem); overflow: auto; z-index: 35; }
+.error-surface h2 { margin-block: .75rem; color: #ff9a93; }
+.error-surface p { max-width: 48ch; margin-block: .75rem; }
+.error-surface details { margin-block: .75rem; }
+.error-surface pre, .not-found-card code { white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; }
+.not-found-card { text-align: center; }
+.not-found-card h1 { margin-block: 1rem; }
+.not-found-card p { color: #a9bdc9; line-height: 1.5; margin-block: 1rem; }
+.not-found-card .button-wrap { justify-content: center; }
+.not-found-card details { text-align: start; margin-top: 1rem; }
+.not-found-orbit { display: grid; place-items: center; position: relative; margin: 1.5rem auto; width: min(100%, 16rem); height: 8rem; color: #72dce5; }
+.not-found-orbit::before { content: ''; position: absolute; inset: 1.2rem 0; border: 1px solid #72dce566; border-radius: 50%; transform: rotate(-18deg); }
+.not-found-orbit span { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: clamp(3rem, 12vw, 5rem); letter-spacing: .08em; }
+.app-route-hidden[hidden] { display: none; }
+@media (max-width: 480px) { .error-surface { padding: 1rem; } .error-surface .button-wrap { align-items: stretch; } }

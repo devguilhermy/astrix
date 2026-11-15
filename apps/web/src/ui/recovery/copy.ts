@@ -1,0 +1,33 @@
+export const recoveryEnglish = {
+  'recovery.applicationTitle': 'Mission control interrupted',
+  'recovery.applicationBody': 'The application encountered an unexpected error. Reload to restart; an active attempt will be lost.',
+  'recovery.layoutTitle': 'This console encountered an error',
+  'recovery.layoutBody': 'The mission is paused. Try the console again; retrying does not resume time or change your design.',
+  'recovery.panelTitle': 'This panel encountered an error',
+  'recovery.panelBody': 'Other controls remain available. Retry this panel without changing your mission.',
+  'recovery.retry': 'Try again',
+  'recovery.reload': 'Reload application',
+  'recovery.details': 'Error details',
+  'recovery.docs': 'Read documentation',
+  'recovery.notFoundTitle': 'Outside mission control',
+  'recovery.notFoundBody': 'This address does not match an ASTRIX screen. Return Home to choose a mission or rejoin your paused attempt.',
+  'recovery.home': 'Return Home',
+  'recovery.address': 'Requested address',
+} as const;
+
+export const recoveryPortuguese: Record<keyof typeof recoveryEnglish, string> = {
+  'recovery.applicationTitle': 'Controle da missão interrompido',
+  'recovery.applicationBody': 'O aplicativo encontrou um erro inesperado. Recarregue para reiniciar; uma tentativa ativa será perdida.',
+  'recovery.layoutTitle': 'Este console encontrou um erro',
+  'recovery.layoutBody': 'A missão está pausada. Tente abrir o console novamente; tentar não retoma o tempo nem altera seu projeto.',
+  'recovery.panelTitle': 'Este painel encontrou um erro',
+  'recovery.panelBody': 'Os outros controles continuam disponíveis. Tente abrir este painel novamente sem alterar sua missão.',
+  'recovery.retry': 'Tentar novamente',
+  'recovery.reload': 'Recarregar aplicativo',
+  'recovery.details': 'Detalhes do erro',
+  'recovery.docs': 'Ler documentação',
+  'recovery.notFoundTitle': 'Fora do controle da missão',
+  'recovery.notFoundBody': 'Este endereço não corresponde a uma tela ASTRIX. Volte ao início para escolher uma missão ou retornar à sua tentativa pausada.',
+  'recovery.home': 'Voltar ao início',
+  'recovery.address': 'Endereço solicitado',
+};

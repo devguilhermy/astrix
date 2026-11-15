@@ -1,0 +1,16 @@
+[
+  {"id":"si-c","title":"CODATA: speed of light in vacuum","url":"https://physics.nist.gov/cgi-bin/cuu/Value?c","publisher":"NIST","retrieved":"2026-11-14","listedByChallenge":false},
+  {"id":"si-gn","title":"CODATA: standard acceleration of gravity","url":"https://physics.nist.gov/cgi-bin/cuu/Value?gn","publisher":"NIST","retrieved":"2026-11-14","listedByChallenge":false},
+  {"id":"model-assumptions","title":"ASTRIX disclosed educational model assumptions","url":"docs/GAME_IMPLEMENTATION_PLAN.md#42-simplifications-shown-in-the-glossary-as-model-assumptions","publisher":"ASTRIX project","retrieved":"2026-11-14","listedByChallenge":false},
+  {"id":"radlab-api","title":"RadLab Data API: measurements, instruments and units","url":"https://visualization.osdr.nasa.gov/radlab/gui/data-api/","publisher":"NASA OSDR","retrieved":"2026-11-14","listedByChallenge":false},
+  {"id":"nasa-mars-storm-2024","title":"NASA Watches Mars Light Up During Epic Solar Storm","url":"https://www.nasa.gov/solar-system/planets/mars/nasa-watches-mars-light-up-during-epic-solar-storm/","publisher":"NASA JPL","retrieved":"2026-11-14","listedByChallenge":false},
+  {"id":"usgs-catalog","title":"USGS Astrogeology catalogue local export","url":"https://astrogeology.usgs.gov/search","publisher":"USGS Astrogeology","retrieved":"2026-11-14","listedByChallenge":false},
+  {"id":"bvad-2","title":"Life Support Baseline Values and Assumptions Document, Rev. 2 (2022), Table 3-31","url":"https://ntrs.nasa.gov/api/citations/20210024855/downloads/BVAD_2.15.22-final.pdf","publisher":"NASA","retrieved":"2026-11-14","listedByChallenge":false},
+  {"id":"nasa-std-3001","title":"NASA-STD-3001 Volume 2, Rev. F: Human Factors, Habitability, and Environmental Health","url":"https://www.nasa.gov/wp-content/uploads/2025/05/nasa-std-3001-vol-2.pdf","publisher":"NASA","retrieved":"2026-11-14","listedByChallenge":false},
+  {"id":"ecls-lioh","title":"Environmental Control and Life Support: LiOH chemistry (2018)","url":"https://ntrs.nasa.gov/api/citations/20180002051/downloads/20180002051.pdf","publisher":"NASA","retrieved":"2026-11-14","listedByChallenge":false},
+  {"id":"cubesat-cds-14-1","title":"CubeSat Design Specification Rev. 14.1","url":"https://www.nasa.gov/wp-content/uploads/2018/01/cubesatdesignspecificationrev14_12022-02-09.pdf","publisher":"Cal Poly","retrieved":"2026-11-14","listedByChallenge":false},
+  {"id":"ccsds-odm","title":"CCSDS Orbit Data Messages 502.0-B-3","url":"https://ccsds.org/Pubs/502x0b3e1.pdf","publisher":"CCSDS","retrieved":"2026-11-14","listedByChallenge":false},
+  {"id":"gmat-manual","title":"GMAT Reference: Spacecraft Orbit State","url":"https://documentation.help/GMAT/SpacecraftOrbitState.html","publisher":"GMAT documentation mirror","retrieved":"2026-11-14","listedByChallenge":false},
+  {"id":"nasa-media","title":"NASA Images and Media Usage Guidelines","url":"https://www.nasa.gov/nasa-brand-center/images-and-media/","publisher":"NASA","retrieved":"2026-11-14","listedByChallenge":false},
+  {"id":"nasa-inspiration4","title":"NASA Inspiration4 Mission Datasets","url":"https://www.nasa.gov/osdr-latest-news-i4-mission-datasets/","publisher":"NASA OSDR","retrieved":"2026-11-14","listedByChallenge":false}
+]

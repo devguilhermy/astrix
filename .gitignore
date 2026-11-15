@@ -1,0 +1,9 @@
+node_modules/
+apps/web/dist/
+*.tsbuildinfo
+.env
+.env.*
+apps/web/public/docs/
+apps/web/public/LICENSE
+apps/web/public/CREDITS.md
+apps/web/public/THIRD_PARTY_NOTICES.txt

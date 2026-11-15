@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>USGS Astrogeology Catalog Explorer</title>
+<style>
+  :root {
+    --bg: #0b0e17; --panel: #131828; --panel2: #1a2035; --line: #262e48;
+    --fg: #e6e9f2; --muted: #8b93ad; --accent: #ff8a3d; --accent2: #5cc8ff;
+    --chip: #222a44; --chipOn: #ff8a3d;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--fg);
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  body { background:
+    radial-gradient(1200px 600px at 80% -10%, #1d2550 0%, transparent 60%),
+    radial-gradient(900px 500px at -10% 10%, #2a1630 0%, transparent 55%), var(--bg);
+    background-attachment: fixed; min-height: 100vh; }
+  a { color: var(--accent2); }
+  header { padding: 22px 28px 8px; display: flex; flex-wrap: wrap; align-items: end; gap: 18px 32px; }
+  header h1 { margin: 0; font-size: 22px; letter-spacing: .3px; }
+  header h1 span { color: var(--accent); }
+  .sub { color: var(--muted); font-size: 13px; }
+  .stats { display: flex; gap: 12px; flex-wrap: wrap; margin-left: auto; }
+  .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 14px; min-width: 110px; }
+  .stat b { display: block; font-size: 20px; }
+  .stat small { color: var(--muted); }
+
+  main { display: grid; grid-template-columns: 290px 1fr; gap: 18px; padding: 12px 28px 40px; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  aside { position: sticky; top: 12px; align-self: start; max-height: calc(100vh - 24px); overflow: auto;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+  aside h3 { margin: 14px 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); }
+  aside h3:first-child { margin-top: 0; }
+  input[type=search], select { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--panel2); color: var(--fg); font: inherit; }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .chip { background: var(--chip); border: 1px solid transparent; color: var(--fg); padding: 3px 9px;
+    border-radius: 999px; font-size: 12px; cursor: pointer; user-select: none; }
+  .chip:hover { border-color: var(--accent); }
+  .chip.on { background: var(--chipOn); color: #1a0d00; font-weight: 600; }
+  .chip i { font-style: normal; opacity: .65; margin-left: 4px; }
+  .row { display: flex; gap: 8px; align-items: center; }
+  .row input[type=number] { width: 100%; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--panel2); color: var(--fg); font: inherit; }
+  button.reset { margin-top: 14px; width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--line);
+    background: transparent; color: var(--fg); cursor: pointer; font: inherit; }
+  button.reset:hover { border-color: var(--accent); }
+
+  .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 14px; margin-bottom: 18px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+  .card h2 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); font-weight: 600; }
+  .card h2 em { text-transform: none; letter-spacing: 0; font-style: normal; opacity: .7; font-weight: 400; }
+  .card.wide { grid-column: 1 / -1; }
+  .bars { display: grid; grid-template-columns: max-content 1fr max-content; gap: 3px 8px; align-items: center; font-size: 12px; }
+  .bars .lbl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px; }
+  .bars .trk { height: 12px; background: var(--panel2); border-radius: 3px; overflow: hidden; }
+  .bars .fill { height: 100%; background: linear-gradient(90deg, var(--accent), #ffb36b); border-radius: 3px; }
+  .bars .fill.blue { background: linear-gradient(90deg, #2f8fd8, var(--accent2)); }
+  .bars .n { color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+  .bars .clickable { cursor: pointer; }
+  .bars .clickable:hover { color: var(--accent); }
+  .bars .sel { color: var(--accent); font-weight: 600; }
+  .scroll { max-height: 260px; overflow: auto; padding-right: 4px; }
+  svg.timeline { width: 100%; height: 150px; display: block; }
+  svg.timeline rect.b { fill: var(--accent2); cursor: pointer; }
+  svg.timeline rect.b:hover { fill: var(--accent); }
+  svg.timeline rect.b.dim { fill: #2b3557; }
+  svg.timeline text { fill: var(--muted); font-size: 10px; }
+
+  .collections { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 6px; }
+  .coll { flex: 0 0 220px; background: var(--panel2); border-radius: 10px; overflow: hidden; cursor: pointer; border: 1px solid var(--line); }
+  .coll:hover { border-color: var(--accent); }
+  .coll img { width: 100%; height: 110px; object-fit: cover; display: block; background: #000; }
+  .coll div { padding: 8px 10px; font-size: 13px; }
+
+  .toolbar { display: flex; align-items: center; gap: 12px; margin: 4px 0 12px; flex-wrap: wrap; }
+  .toolbar .count { font-size: 15px; }
+  .toolbar .count b { color: var(--accent); }
+  .toolbar select { width: auto; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+  .item { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; cursor: pointer;
+    display: flex; flex-direction: column; transition: transform .12s, border-color .12s; }
+  .item:hover { transform: translateY(-2px); border-color: var(--accent); }
+  .item .thumb { height: 140px; background: #000 center/cover no-repeat; position: relative; }
+  .item .thumb .body { position: absolute; left: 8px; top: 8px; background: rgba(0,0,0,.65); padding: 2px 8px; border-radius: 999px; font-size: 11px; }
+  .item .meta { padding: 9px 11px 11px; display: flex; flex-direction: column; gap: 5px; flex: 1; }
+  .item .t { font-weight: 600; font-size: 13.5px; }
+  .item .d { color: var(--muted); font-size: 12px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: auto; }
+  .tag { font-size: 10.5px; background: var(--chip); padding: 1px 7px; border-radius: 999px; color: #c7cde0; }
+  .more { display: block; margin: 18px auto 0; padding: 10px 22px; border-radius: 999px; border: 1px solid var(--accent);
+    background: transparent; color: var(--accent); cursor: pointer; font: inherit; }
+  .empty { color: var(--muted); padding: 40px; text-align: center; }
+
+  dialog { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); color: var(--fg);
+    padding: 0; max-width: 760px; width: calc(100% - 40px); }
+  dialog::backdrop { background: rgba(3,5,12,.75); }
+  dialog img { width: 100%; max-height: 360px; object-fit: contain; background: #000; display: block; }
+  dialog .in { padding: 16px 20px 20px; }
+  dialog h2 { margin: 0 0 6px; font-size: 19px; }
+  dialog p { color: #cfd4e4; }
+  dialog .x { position: absolute; right: 10px; top: 8px; background: rgba(0,0,0,.6); color: #fff; border: 0;
+    border-radius: 999px; width: 30px; height: 30px; cursor: pointer; font-size: 16px; }
+  dialog dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; font-size: 13px; margin: 10px 0; }
+  dialog dt { color: var(--muted); }
+  dialog dd { margin: 0; }
+
+  #loader { max-width: 520px; margin: 12vh auto; text-align: center; padding: 30px; border: 2px dashed var(--line);
+    border-radius: 14px; background: var(--panel); }
+  #loader.drag { border-color: var(--accent); }
+  #loader code { background: var(--panel2); padding: 2px 6px; border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<div id="loader" hidden>
+  <h2>Load <code>nasa.json</code></h2>
+  <p class="sub">The page couldn't fetch <code>nasa.json</code> automatically (browsers block this for <code>file://</code> pages).</p>
+  <p>Drop the file here, or <label style="color:var(--accent);cursor:pointer;text-decoration:underline">choose it<input type="file" id="file" accept=".json,application/json" hidden></label>.</p>
+  <p class="sub">Or serve the folder: <code>python3 -m http.server</code> and open <code>http://localhost:8000/nasa-visualizer.html</code></p>
+</div>
+
+<div id="app" hidden>
+  <header>
+    <div>
+      <h1>USGS <span>Astrogeology</span> Catalog Explorer</h1>
+      <div class="sub" id="subtitle"></div>
+    </div>
+    <div class="stats" id="stats"></div>
+  </header>
+
+  <main>
+    <aside>
+      <h3>Search</h3>
+      <input type="search" id="q" placeholder="Title, abstract, name…">
+      <h3>Target body</h3>
+      <div class="chips" id="fBody"></div>
+      <h3>Product type</h3>
+      <div class="chips" id="fGeo"></div>
+      <h3>Published</h3>
+      <div class="row">
+        <input type="number" id="y0" aria-label="From year">
+        <span>–</span>
+        <input type="number" id="y1" aria-label="To year">
+      </div>
+      <button class="reset" id="reset">Reset filters</button>
+    </aside>
+
+    <section>
+      <div class="charts">
+        <div class="card wide">
+          <h2>Publications per year <em>(filtered results; click a bar to isolate a year)</em></h2>
+          <svg class="timeline" id="timeline" preserveAspectRatio="none"></svg>
+        </div>
+        <div class="card">
+          <h2>Target body <em>(filtered results)</em></h2>
+          <div class="scroll"><div class="bars" id="cBody"></div></div>
+        </div>
+        <div class="card">
+          <h2>Product type <em>(filtered results)</em></h2>
+          <div class="scroll"><div class="bars" id="cGeo"></div></div>
+        </div>
+        <div class="card">
+          <h2>Missions <em id="facetNote1"></em></h2>
+          <div class="scroll"><div class="bars" id="cMission"></div></div>
+        </div>
+        <div class="card">
+          <h2>Map projections <em id="facetNote2"></em></h2>
+          <div class="scroll"><div class="bars" id="cProj"></div></div>
+        </div>
+        <div class="card wide" id="collCard">
+          <h2>Featured collections</h2>
+          <div class="collections" id="collections"></div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="count" id="count"></div>
+        <div style="margin-left:auto" class="row">
+          <label for="sort" class="sub">Sort</label>
+          <select id="sort">
+            <option value="new">Newest first</option>
+            <option value="old">Oldest first</option>
+            <option value="az">Title A–Z</option>
+            <option value="body">Target body</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid" id="grid"></div>
+      <button class="more" id="more" hidden>Show more</button>
+    </section>
+  </main>
+</div>
+
+<dialog id="dlg">
+  <button class="x" id="dlgClose" aria-label="Close">✕</button>
+  <img id="dImg" alt="">
+  <div class="in">
+    <h2 id="dTitle"></h2>
+    <dl id="dMeta"></dl>
+    <p id="dAbs"></p>
+    <a id="dLink" target="_blank" rel="noopener">Open on astrogeology.usgs.gov ↗</a>
+  </div>
+</dialog>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const PAGE = 60;
+
+// --- Target-body inference (the JSON has no explicit body field) -------------
+// Ordered: explicit body names first, then instrument/mission hints.
+const BODY_RULES = [
+  ["Mars", /\bmars\b|\bmartian\b/i], ["Moon", /\bmoon\b|\blunar\b|\blac-\d/i],
+  ["Venus", /\bvenus\b/i], ["Mercury", /\bmercury\b/i],
+  ["Phobos", /\bphobos\b/i], ["Deimos", /\bdeimos\b/i],
+  ["Io", /\bio\b/i], ["Europa", /\beuropa\b/i], ["Ganymede", /\bganymede\b/i], ["Callisto", /\bcallisto\b/i],
+  ["Amalthea", /\bamalthea\b/i], ["Jupiter", /\bjupiter\b|\bjovian\b/i],
+  ["Titan", /\btitan\b/i], ["Enceladus", /\benceladus\b/i], ["Iapetus", /\biapetus\b/i], ["Rhea", /\brhea\b/i],
+  ["Dione", /\bdione\b/i], ["Tethys", /\btethys\b/i], ["Mimas", /\bmimas\b/i], ["Hyperion", /\bhyperion\b/i],
+  ["Phoebe", /\bphoebe\b/i], ["Saturn", /\bsaturn\b/i],
+  ["Miranda", /\bmiranda\b/i], ["Ariel", /\bariel\b/i], ["Umbriel", /\bumbriel\b/i], ["Titania", /\btitania\b/i],
+  ["Oberon", /\boberon\b/i], ["Uranus", /\buranus\b/i],
+  ["Triton", /\btriton\b/i], ["Neptune", /\bneptune\b/i],
+  ["Pluto", /\bpluto\b/i], ["Charon", /\bcharon\b/i],
+  ["Ceres", /\bceres\b/i], ["Vesta", /\bvesta\b/i], ["Bennu", /\bbennu\b/i], ["Eros", /\beros\b/i],
+  ["Gaspra", /\bgaspra\b/i], ["Ida", /\bida\b/i], ["Lutetia", /\blutetia\b/i], ["Earth", /\bearth\b|\bterrestrial analog/i],
+  // instrument / mission hints
+  ["Mars", /\b(ctx|hirise|themis|mola|hrsc|crism|viking|mgs|mro|odyssey|mars express|perseverance|curiosity|jezero|gale)\b/i],
+  ["Moon", /\b(lola|lroc|lro|kaguya|clementine|apollo|chandrayaan|artemis|selene)\b/i],
+  ["Venus", /\bmagellan\b/i], ["Mercury", /\bmessenger\b/i],
+];
+function inferBody(r, text) {
+  const head = r.title + " " + r.name.replace(/[_-]+/g, " ");
+  for (const [b, re] of BODY_RULES) if (re.test(head)) return b;
+  for (const [b, re] of BODY_RULES) if (re.test(text)) return b;
+  return "Unknown";
+}
+
+// --- Helpers -----------------------------------------------------------------
+const parser = new DOMParser();
+function htmlToText(s) {
+  if (!s) return "";
+  return (parser.parseFromString(s, "text/html").body.textContent || "").replace(/\s+/g, " ").trim();
+}
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmt = (n) => n.toLocaleString();
+function countBy(arr, fn) {
+  const m = new Map();
+  for (const x of arr) for (const k of [].concat(fn(x))) m.set(k, (m.get(k) || 0) + 1);
+  return m;
+}
+
+// --- State -------------------------------------------------------------------
+let DATA, ITEMS, COLLS;
+const state = { q: "", bodies: new Set(), geos: new Set(), y0: null, y1: null, sort: "new", shown: PAGE };
+
+function prepare(raw) {
+  const norm = (r) => {
+    const abstract = htmlToText(r.abstract);
+    const item = {
+      name: r.name || "", title: r.title || r.name || "(untitled)", abstract,
+      geoform: Array.isArray(r.geoform) ? r.geoform : r.geoform ? [r.geoform] : [],
+      date: r.pubdate || "", year: parseInt((r.pubdate || "").slice(0, 4), 10) || null,
+      url: r.onlink || "", thumb: r.thumb || "",
+    };
+    item.body = inferBody(item, abstract);
+    item.hay = (item.title + " " + item.name + " " + abstract + " " + item.geoform.join(" ")).toLowerCase();
+    return item;
+  };
+  DATA = raw;
+  ITEMS = (raw.results || []).map(norm);
+  COLLS = (raw.collections || []).map(norm);
+}
+
+function filtered({ ignoreBody = false, ignoreGeo = false, ignoreYear = false } = {}) {
+  const terms = state.q.toLowerCase().split(/\s+/).filter(Boolean);
+  return ITEMS.filter((it) =>
+    (!terms.length || terms.every((t) => it.hay.includes(t))) &&
+    (ignoreBody || !state.bodies.size || state.bodies.has(it.body)) &&
+    (ignoreGeo || !state.geos.size || it.geoform.some((g) => state.geos.has(g))) &&
+    (ignoreYear || ((state.y0 == null || (it.year ?? -1) >= state.y0) && (state.y1 == null || (it.year ?? 1e9) <= state.y1)))
+  );
+}
+
+// --- Rendering ---------------------------------------------------------------
+function renderHeader() {
+  const years = ITEMS.map((i) => i.year).filter(Boolean);
+  const bodies = new Set(ITEMS.map((i) => i.body));
+  bodies.delete("Unknown");
+  $("subtitle").textContent = DATA.title || "Planetary maps, mosaics & datasets";
+  const st = [
+    [fmt(DATA.total ?? ITEMS.length), "catalog total"],
+    [fmt(ITEMS.length), "records loaded"],
+    [bodies.size, "target bodies"],
+    [years.length ? `${Math.min(...years)}–${Math.max(...years)}` : "—", "publication span"],
+  ];
+  $("stats").innerHTML = st.map(([b, s]) => `<div class="stat"><b>${b}</b><small>${s}</small></div>`).join("");
+}
+
+function chips(el, counts, set) {
+  const entries = [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  el.innerHTML = entries.map(([k, n]) =>
+    `<span class="chip${set.has(k) ? " on" : ""}" data-k="${esc(k)}">${esc(k)}<i>${n}</i></span>`).join("");
+  el.onclick = (e) => {
+    const c = e.target.closest(".chip"); if (!c) return;
+    const k = c.dataset.k; set.has(k) ? set.delete(k) : set.add(k);
+    state.shown = PAGE; render();
+  };
+}
+
+function bars(el, counts, { set = null, blue = false, limit = Infinity } = {}) {
+  const entries = [...counts].filter(([k]) => k !== "").sort((a, b) => b[1] - a[1]).slice(0, limit);
+  const max = Math.max(1, ...entries.map((e) => e[1]));
+  el.innerHTML = entries.length ? entries.map(([k, n]) => {
+    const cls = set ? `lbl clickable${set.has(k) ? " sel" : ""}` : "lbl";
+    return `<div class="${cls}" data-k="${esc(k)}" title="${esc(k)}">${esc(k)}</div>
+      <div class="trk"><div class="fill${blue ? " blue" : ""}" style="width:${(n / max) * 100}%"></div></div>
+      <div class="n">${fmt(n)}</div>`;
+  }).join("") : `<div class="sub">No data</div>`;
+  if (set) el.onclick = (e) => {
+    const l = e.target.closest(".lbl"); if (!l) return;
+    const k = l.dataset.k; set.has(k) ? set.delete(k) : set.add(k);
+    state.shown = PAGE; render();
+  };
+}
+
+function timeline(items) {
+  const svg = $("timeline");
+  const all = ITEMS.map((i) => i.year).filter(Boolean);
+  if (!all.length) { svg.innerHTML = ""; return; }
+  const lo = Math.min(...all), hi = Math.max(...all), span = hi - lo + 1;
+  const counts = countBy(items.filter((i) => i.year), (i) => i.year);
+  const max = Math.max(1, ...counts.values());
+  const W = 1000, H = 150, padB = 18, padT = 14, bw = W / span;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  let out = "";
+  for (let y = lo; y <= hi; y++) {
+    const n = counts.get(y) || 0, h = (n / max) * (H - padB - padT), x = (y - lo) * bw;
+    const inRange = (state.y0 == null || y >= state.y0) && (state.y1 == null || y <= state.y1);
+    out += `<rect class="b${inRange ? "" : " dim"}" data-y="${y}" x="${x + 0.5}" y="${H - padB - h}" width="${Math.max(1, bw - 1)}" height="${Math.max(n ? 1 : 0, h)}"><title>${y}: ${n}</title></rect>`;
+    if (y % 10 === 0) out += `<text x="${x + bw / 2}" y="${H - 4}" text-anchor="middle">${y}</text>`;
+    if (n && n === max) out += `<text x="${x + bw / 2}" y="${H - padB - h - 3}" text-anchor="middle">${n}</text>`;
+  }
+  svg.innerHTML = out;
+  svg.onclick = (e) => {
+    const r = e.target.closest("rect"); if (!r) return;
+    const y = +r.dataset.y;
+    if (state.y0 === y && state.y1 === y) { state.y0 = state.y1 = null; } else { state.y0 = state.y1 = y; }
+    $("y0").value = state.y0 ?? ""; $("y1").value = state.y1 ?? "";
+    state.shown = PAGE; render();
+  };
+}
+
+function facetMap(key) {
+  const f = DATA.facets && DATA.facets[key];
+  return new Map(Object.entries((f && f.facet) || {}));
+}
+
+function card(it) {
+  const tags = it.geoform.slice(0, 3).map((g) => `<span class="tag">${esc(g)}</span>`).join("");
+  return `<div class="item" data-name="${esc(it.name)}">
+    <div class="thumb" style="background-image:url('${esc(it.thumb)}')"><span class="body">${esc(it.body)}</span></div>
+    <div class="meta"><div class="t">${esc(it.title)}</div><div class="d">${esc(it.date || "undated")}</div>
+    <div class="tags">${tags}</div></div></div>`;
+}
+
+function sortItems(arr) {
+  const by = {
+    new: (a, b) => (b.date || "").localeCompare(a.date || ""),
+    old: (a, b) => (a.date || "9999").localeCompare(b.date || "9999"),
+    az: (a, b) => a.title.localeCompare(b.title),
+    body: (a, b) => a.body.localeCompare(b.body) || a.title.localeCompare(b.title),
+  }[state.sort];
+  return arr.slice().sort(by);
+}
+
+function render() {
+  // Facet chips use counts computed with every *other* filter applied.
+  chips($("fBody"), countBy(filtered({ ignoreBody: true }), (i) => i.body), state.bodies);
+  chips($("fGeo"), countBy(filtered({ ignoreGeo: true }), (i) => i.geoform), state.geos);
+
+  const res = filtered();
+  bars($("cBody"), countBy(res, (i) => i.body), { set: state.bodies });
+  bars($("cGeo"), countBy(res, (i) => i.geoform), { set: state.geos, blue: true });
+  timeline(filtered({ ignoreYear: true }));
+
+  const sorted = sortItems(res);
+  $("count").innerHTML = `<b>${fmt(res.length)}</b> of ${fmt(ITEMS.length)} records`;
+  $("grid").innerHTML = sorted.length ? sorted.slice(0, state.shown).map(card).join("")
+    : `<div class="empty">No records match these filters.</div>`;
+  $("more").hidden = state.shown >= sorted.length;
+  $("more").textContent = `Show more (${fmt(sorted.length - state.shown)} remaining)`;
+}
+
+function renderStatic() {
+  const total = DATA.total ?? ITEMS.length;
+  $("facetNote1").textContent = $("facetNote2").textContent = `(catalog-wide facet, ${fmt(total)} records)`;
+  bars($("cMission"), facetMap("missikey"));
+  bars($("cProj"), facetMap("mapprojn"), { blue: true });
+  if (!COLLS.length) $("collCard").hidden = true;
+  $("collections").innerHTML = COLLS.map((c) =>
+    `<div class="coll" data-name="${esc(c.name)}"><img loading="lazy" src="${esc(c.thumb)}" alt=""><div>${esc(c.title)}</div></div>`).join("");
+}
+
+function openDetail(it) {
+  $("dImg").src = it.thumb || ""; $("dImg").hidden = !it.thumb;
+  $("dTitle").textContent = it.title;
+  $("dMeta").innerHTML = [
+    ["Target", it.body + (it.body === "Unknown" ? "" : " (inferred)")], ["Published", it.date || "—"],
+    ["Type", it.geoform.join(", ") || "—"], ["ID", it.name],
+  ].map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join("");
+  $("dAbs").textContent = it.abstract ? it.abstract + (/[.!?)]$/.test(it.abstract) ? "" : " …") : "No abstract.";
+  $("dLink").href = it.url; $("dLink").hidden = !it.url;
+  $("dlg").showModal();
+}
+
+function wire() {
+  let t;
+  $("q").oninput = (e) => { clearTimeout(t); t = setTimeout(() => { state.q = e.target.value; state.shown = PAGE; render(); }, 120); };
+  const yr = () => { const a = $("y0").value, b = $("y1").value; state.y0 = a ? +a : null; state.y1 = b ? +b : null; state.shown = PAGE; render(); };
+  $("y0").onchange = yr; $("y1").onchange = yr;
+  $("sort").onchange = (e) => { state.sort = e.target.value; render(); };
+  $("more").onclick = () => { state.shown += PAGE; render(); };
+  $("reset").onclick = () => {
+    Object.assign(state, { q: "", y0: null, y1: null, shown: PAGE }); state.bodies.clear(); state.geos.clear();
+    $("q").value = $("y0").value = $("y1").value = ""; render();
+  };
+  const lookup = new Map([...ITEMS, ...COLLS].map((i) => [i.name, i]));
+  document.addEventListener("click", (e) => {
+    const el = e.target.closest(".item, .coll"); if (el) openDetail(lookup.get(el.dataset.name));
+  });
+  $("dlgClose").onclick = () => $("dlg").close();
+  $("dlg").addEventListener("click", (e) => { if (e.target === $("dlg")) $("dlg").close(); });
+}
+
+function start(raw) {
+  try { prepare(raw); } catch (err) { alert("Could not read this JSON: " + err.message); return; }
+  $("loader").hidden = true; $("app").hidden = false;
+  renderHeader(); renderStatic(); wire(); render();
+}
+
+// --- Loading -----------------------------------------------------------------
+function showLoader() {
+  const L = $("loader"); L.hidden = false;
+  const read = (f) => f && f.text().then((s) => start(JSON.parse(s))).catch((e) => alert("Invalid JSON: " + e.message));
+  $("file").onchange = (e) => read(e.target.files[0]);
+  ["dragenter", "dragover"].forEach((ev) => document.addEventListener(ev, (e) => { e.preventDefault(); L.classList.add("drag"); }));
+  document.addEventListener("dragleave", () => L.classList.remove("drag"));
+  document.addEventListener("drop", (e) => { e.preventDefault(); L.classList.remove("drag"); read(e.dataTransfer.files[0]); });
+}
+fetch("nasa.json").then((r) => { if (!r.ok) throw 0; return r.json(); }).then(start).catch(showLoader);
+</script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#07101a"/>
+  <title>ASTRIX Mission Studio</title>
+  <link rel="stylesheet" href="/src/startup.css"/>
+</head>
+<body>
+  <div id="root">
+    <main class="startup-screen" aria-busy="true" aria-labelledby="startup-title">
+      <section class="startup-card">
+        <div class="startup-brand">
+          <svg class="startup-mark" viewBox="0 0 44 44" fill="none" stroke="currentColor" aria-hidden="true">
+            <circle cx="22" cy="22" r="17" stroke-opacity=".4"/>
+            <ellipse cx="22" cy="22" rx="21" ry="8" transform="rotate(-35 22 22)"/>
+            <path d="M18 26 22 13 26 26 22 23Z" stroke-width="1.5"/>
+            <circle cx="37" cy="11" r="2" fill="currentColor"/>
+          </svg>
+          <div><span class="startup-kicker">Mission control</span><h1 id="startup-title">ASTRIX Mission Studio</h1></div>
+        </div>
+        <p class="startup-message" id="startup-status" role="status"><span lang="en">Preparing the application…</span><span lang="pt-BR">Preparando o aplicativo…</span></p>
+        <progress class="startup-progress" aria-labelledby="startup-status"></progress>
+        <div class="startup-actions" id="startup-recovery" hidden>
+          <button type="button" onclick="location.reload()">Reload / Recarregar</button>
+          <a href="./docs/INDEX.md">Documentation / Documentação</a>
+        </div>
+      </section>
+    </main>
+  </div>
+  <noscript><div class="startup-noscript">JavaScript is required to run the simulator. / O simulador precisa de JavaScript. <a href="./docs/INDEX.md">Read the documentation / Ler a documentação</a></div></noscript>
+  <script type="module">
+    import('/src/main.tsx').catch(error => {
+      console.error('ASTRIX bootstrap failed', error);
+      const startup = document.querySelector('.startup-screen');
+      if (!startup) return;
+      startup.classList.add('startup-failed');
+      startup.setAttribute('aria-busy', 'false');
+      const status = document.getElementById('startup-status');
+      status.setAttribute('role', 'alert');
+      status.querySelector('[lang="en"]').textContent = 'The application could not start. Reload to try again.';
+      status.querySelector('[lang="pt-BR"]').textContent = 'O aplicativo não pôde iniciar. Recarregue para tentar novamente.';
+      document.getElementById('startup-recovery').hidden = false;
+    });
+  </script>
+</body>
+</html>

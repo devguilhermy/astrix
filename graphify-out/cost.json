@@ -1,0 +1,20 @@
+{
+  "runs": [
+    {
+      "date": "2026-11-15T02:35:59.140789+00:00",
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "files": 188,
+      "note": "Host agent token usage unavailable"
+    },
+    {
+      "date": "2026-11-15T02:40:18.434274+00:00",
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "files": 186,
+      "note": "Code semantic pass; host agent token usage unavailable"
+    }
+  ],
+  "total_input_tokens": 0,
+  "total_output_tokens": 0
+}

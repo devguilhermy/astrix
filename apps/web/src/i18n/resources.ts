@@ -1,0 +1,18 @@
+import en from './locales/en.json';
+import pt from './locales/pt-BR.json';
+import { refinementEnglish, refinementPortuguese } from './refinement';
+import { shellEnglish, shellPortuguese } from '../ui/screens/copy';
+import { sceneTranslations } from '../ui/scene/copy';
+import { windowResources } from '../ui/layout/windowCopy';
+import { CORE_I18N_DEFAULTS } from '@astrix/core/i18nKeys';
+import { CORE_TECHNICAL_PT } from '@astrix/core/technicalCopy';
+import { modelEnglish, modelPortuguese } from './modelCopy';
+import { learningEnglish, learningPortuguese } from './learning';
+import { flowEnglish, flowPortuguese } from './flow';
+import { forecastEnglish, forecastPortuguese } from '../ui/forecast/copy';
+import { flightEnglish, flightPortuguese } from '../ui/flight/copy';
+import { recoveryEnglish, recoveryPortuguese } from '../ui/recovery/copy';
+import { inspectorEnglish, inspectorPortuguese } from '../ui/inspector/copy';
+
+export const english:Readonly<Record<string,string>> = {...en,...CORE_I18N_DEFAULTS,...modelEnglish,...refinementEnglish,...shellEnglish,...sceneTranslations.en,...windowResources.en,...learningEnglish,...flowEnglish,...forecastEnglish,...flightEnglish,...recoveryEnglish,...inspectorEnglish};
+export const portuguese:Readonly<Record<string,string>> = {...pt,...CORE_TECHNICAL_PT,...modelPortuguese,...refinementPortuguese,...shellPortuguese,...sceneTranslations['pt-BR'],...windowResources['pt-BR'],...learningPortuguese,...flowPortuguese,...forecastPortuguese,...flightPortuguese,...recoveryPortuguese,...inspectorPortuguese};

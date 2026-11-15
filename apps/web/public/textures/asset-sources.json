@@ -1,0 +1,48 @@
+{
+  "usage": "Historical illustrative composites, not current weather, spacecraft data, or live observations. No NASA endorsement. No clouds or weather are synthesized.",
+  "nasaMediaPolicy": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+  "assets": [
+    {
+      "files": ["starmap-2020-4096.jpg", "starmap-2020-1024.jpg"],
+      "title": "Deep Star Maps 2020, celestial coordinates",
+      "sourcePage": "https://svs.gsfc.nasa.gov/4851/",
+      "original": "https://svs.gsfc.nasa.gov/vis/a000000/a004800/a004851/starmap_2020_4k.exr",
+      "credit": "NASA/Goddard Space Flight Center Scientific Visualization Studio. Gaia DR2: ESA/Gaia/DPAC.",
+      "gaiaCredit": "https://gea.esac.esa.int/archive/documentation/GDR2/Miscellaneous/sec_credit_and_citation_instructions/",
+      "coordinates": "ICRF/J2000 right ascension and declination; RA 0 at image centre, increasing left; north at image top.",
+      "processing": "ImageMagick: linear EXR converted to sRGB JPEG, 4:4:4, quality 92 at 4096x2048; low derivative resized to 1024x512 before sRGB conversion, quality 90. No constellation overlays or invented stars in the images."
+    },
+    {
+      "files": ["earth-blue-black-marble-4096.webp"],
+      "title": "Packed Blue Marble January 2004 day / Black Marble 2016 night",
+      "sourcePages": ["https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/base-map/", "https://science.nasa.gov/earth/earth-observatory/earth-at-night/maps/"],
+      "originals": ["https://assets.science.nasa.gov/content/dam/science/esd/eo/images/bmng/bmng-base/january/world.200401.3x5400x2700.jpg", "https://assets.science.nasa.gov/content/dam/science/esd/eo/images/imagerecords/144000/144897/BlackMarble_2016_3km_gray.jpg"],
+      "credit": "NASA Earth Observatory / NASA Goddard Space Flight Center. Blue Marble Next Generation: Reto Stockli. Black Marble: NASA/NOAA Suomi NPP VIIRS.",
+      "coordinates": "Equirectangular longitude/latitude; west -180 to east +180, north at top. Mapped to the core's reduced uniform rotation, not precision IAU geolocation.",
+      "processing": "Both primary JPEGs resized to 4096x2048. Day RGB and grayscale night luminance packed into RGB and alpha respectively with ImageMagick CopyOpacity, lossless WebP with exact transparent RGB preservation. Alpha represents data, not surface transparency. Warm night-light display tint is illustrative. WebP approved instead of separate JPEG runtime maps to fit 64 MiB."
+    },
+    {
+      "files": ["earth-blue-marble-1024.png"],
+      "sourcePage": "https://svs.gsfc.nasa.gov/2915/",
+      "original": "https://svs.gsfc.nasa.gov/vis/a000000/a002900/a002915/bluemarble-1024.png",
+      "credit": "NASA/Goddard Space Flight Center Scientific Visualization Studio; Blue Marble Next Generation courtesy Reto Stockli (NASA/GSFC) and NASA Earth Observatory.",
+      "processing": "Existing 1024x512 historical surface retained unchanged as LOW and high-image failure fallback."
+    },
+    {
+      "files": ["mars-viking-1024.jpg"],
+      "sourcePage": "https://astrogeology.usgs.gov/search/map/mars_viking_global_color_mosaic_925m",
+      "original": "https://astrogeology.usgs.gov/ckan/dataset/dfdc2242-52dc-4126-bc89-03af8253ae79/resource/0d7b31dc-0b2e-4ca6-89dc-e3c1404c0232/download/mars_viking_clrmosaic_global_1024.jpg",
+      "credit": "USGS Astrogeology Science Center and NASA Viking. USGS public domain, no use constraints.",
+      "processing": "Existing 1024x512 Viking 1976-1980 color composite retained unchanged; no live weather claim."
+    }
+  ],
+  "decodedTextureBudget": {
+    "format": "RGBA8, no mipmaps; shared and reference-counted; released on tier/body changes",
+    "LOW_EARTH_MiB": 4,
+    "LOW_TRANSFER_MiB": 6,
+    "HIGH_EARTH_MiB": 64,
+    "HIGH_MARS_MiB": 34,
+    "HIGH_TRANSFER_MiB": 36,
+    "transferRule": "Use only 1k Earth and Mars surface maps while the shared sky may be 4k."
+  }
+}

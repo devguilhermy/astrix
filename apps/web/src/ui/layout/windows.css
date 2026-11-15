@@ -1,0 +1,72 @@
+/* Geometry is owned by useWindows; CSS never supplies a second set of window dimensions. */
+.window-safe-area-probe { position: fixed; visibility: hidden; pointer-events: none; padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
+.floating-workspace .floating-panel { position: fixed; display: flex; flex-direction: column; min-width: 0; min-height: 0; max-height: none; box-sizing: border-box; overflow: hidden; background: #0e1924; isolation: isolate; }
+.floating-workspace .floating-panel[hidden] { display: none !important; }
+.window-title-row { display: flex; flex: 0 0 auto; align-items: stretch; min-height: 44px; background: #15232f; border-bottom: 1px solid var(--line); }
+.window-title-row .panel-drag-handle { min-width: 0; width: auto; flex: 1; min-height: 44px; padding: 7px 10px; border: 0; border-radius: 0; letter-spacing: 0; overflow-wrap: anywhere; }
+.window-title-row .panel-drag-handle > span:last-child { min-width: 0; }
+.window-title-action { flex: 0 0 44px; min-width: 44px; min-height: 44px; border: 0; border-left: 1px solid var(--line); border-radius: 0; background: #15232f; color: #dce5ed; font-size: 1.4rem; }
+.window-title-action:hover { background: #27404b; }
+.floating-panel .floating-panel-body { flex: 1 1 auto; min-width: 0; min-height: 0; overflow: auto; overflow-wrap: anywhere; scrollbar-gutter: stable; scroll-padding: 12px; }
+.floating-panel :is(button, input, select, textarea) { max-width: 100%; }
+.floating-panel :is(input, select, textarea, fieldset) { min-width: 0; }
+.floating-panel .panel { background: #101c28; }
+.window-resize-handle { position: absolute; z-index: 4; touch-action: none; user-select: none; }
+.resize-n, .resize-s { left: 20px; right: 20px; height: 8px; cursor: ns-resize; }
+.resize-n { top: 0; }
+.resize-s { bottom: 0; border-bottom: 3px solid #648da4; }
+.resize-e, .resize-w { top: 20px; bottom: 20px; width: 8px; cursor: ew-resize; }
+.resize-e { right: 0; border-right: 2px solid #648da4; }
+.resize-w { left: 0; border-left: 2px solid #648da4; }
+.resize-ne, .resize-nw, .resize-se, .resize-sw { width: 20px; height: 20px; }
+.resize-ne, .resize-se { right: 0; }
+.resize-nw, .resize-sw { left: 0; }
+.resize-ne, .resize-nw { top: 0; }
+.resize-se, .resize-sw { bottom: 0; }
+.resize-nw, .resize-se { cursor: nwse-resize; }
+.resize-ne, .resize-sw { cursor: nesw-resize; }
+.resize-se { border-right: 3px solid #8cd3df; border-bottom: 3px solid #8cd3df; }
+.window-options { padding: 12px; margin: 0 0 12px; background: #14232e; border: 1px solid #637b88; border-radius: 4px; font-size: .94rem; }
+.window-options p { line-height: 1.45; }
+.window-options fieldset { border: 1px solid #526f83; margin: 10px 0; padding: 8px; }
+.window-option-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
+.window-options button { min-height: 44px; padding: 6px 10px; border: 1px solid #6d8c99; border-radius: 4px; background: #1a3441; color: #f1f8ff; }
+.window-numeric-geometry { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 12px 0; }
+.window-numeric-geometry label { display: grid; gap: 4px; min-width: 0; }
+.window-numeric-geometry input { width: 100%; min-height: 44px; border: 1px solid #8ba9bd; border-radius: 3px; padding: 6px; color: #f1f8ff; background: #0a1422; }
+.window-numeric-geometry > button { grid-column: 1 / -1; }
+.floating-panel[data-layout='compact'] .resize-n { height: 12px; left: 35%; right: 35%; border-top: 4px solid #8cd3df; cursor: ns-resize; }
+html[data-window-layout='reading'] body { overflow-y: auto; min-width: 0; height: auto; }
+html[data-window-layout='reading'] .floating-studio { height: auto; min-height: 100dvh; overflow: visible; }
+html[data-window-layout='reading'] .studio-interface { height: auto; min-height: 100dvh; overflow: visible; }
+html[data-window-layout='reading'] .floating-studio .interface-header { position: relative; inset: auto; }
+html[data-window-layout='reading'] .floating-workspace { position: relative; inset: auto; padding: 8px max(8px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px)); }
+html[data-window-layout='reading'] .floating-workspace .floating-panel { position: relative; inset: auto; width: 100%; height: auto; overflow: visible; }
+html[data-window-layout='reading'] .floating-panel .floating-panel-body { overflow: visible; scrollbar-gutter: auto; }
+html[data-window-layout='reading'] .panel-drag-handle { cursor: default; touch-action: manipulation; }
+html[data-window-layout='reading'] .floating-panel :focus { scroll-margin-top: 100px; scroll-margin-bottom: 12px; }
+@media (max-width: 420px) {
+ .floating-panel .floating-panel-body { padding: 10px; }
+ .floating-panel .mission-meta { width: auto; flex-wrap: wrap; }
+ .floating-panel .mission-grid, .floating-panel .hardware-grid, .floating-panel .setup-grid, .floating-panel .role-assignment { grid-template-columns: minmax(0, 1fr); }
+ .floating-panel .window-numeric-geometry { grid-template-columns: minmax(0, 1fr); }
+ .floating-panel .mission-card .mission-select { padding-right: 10px; }
+ .floating-panel .mission-select img { position: static; width: 100%; height: 100px; }
+}
+
+html[data-window-layout='desktop'] .floating-studio .interface-header,
+html[data-window-layout='compact'] .floating-studio .interface-header {
+ position: fixed;
+ top: var(--window-viewport-y, 0px);
+ left: var(--window-viewport-x, 0px);
+ right: auto;
+ width: var(--window-viewport-width, 100%);
+}
+.floating-panel :focus-visible { outline: 2px solid #b8f2ff; outline-offset: -3px; }
+.floating-panel[data-collapsed='true'] .window-title-row { border-bottom: 0; }
+.floating-panel[data-collapsed='true'] .panel-drag-handle { font-size: .76rem; padding: 4px 6px; }
+.floating-panel[data-collapsed='true'] .window-title-row .window-title-action:first-of-type { display: none; }
+.panel-badge { border-radius: 99px; background: #f6c877; color: #14202a; padding: 1px 5px; }
+.floating-panel[data-layout='reading'] { margin-bottom: 8px; }
+html[data-window-layout='reading'] .floating-workspace { display: grid; gap: 8px; }
+

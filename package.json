@@ -1,0 +1,28 @@
+{
+  "name": "astrix-mission-studio",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "bun run prepare:public && bun run --cwd apps/web dev",
+    "build": "bun run prepare:public && bun run --cwd apps/web build",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "snapshot": "bun scripts/snapshot-data.ts",
+    "prepare:public": "bun scripts/prepare-public.ts"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "@types/bun": "latest",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@types/three": "~0.182.0"
+  },
+  "dependencies": {
+    "@astrix/core": "workspace:*",
+    "@astrix/data": "workspace:*"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "url": "https://visualization.osdr.nasa.gov/radlab/api/?spacecraft=ISS&timestamp%3E=2024-05-10T00%3A00&timestamp%3C=2024-05-12T00%3A00&absorbed_dose_rate&dose_equivalent_rate&instrument&module&format=json",
+  "retrieved": "2026-11-14T14:05:20.674Z",
+  "acquisition": "Direct HTTPS retrieval",
+  "sha256": "a8ae864c1af9395d6715c2f1d5d3b493a907f6b59b93157cf08bce7832ed410b"
+}
