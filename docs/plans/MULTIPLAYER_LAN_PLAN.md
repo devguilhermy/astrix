@@ -322,6 +322,7 @@ Space Apps timing follows the recorded rule/evidence in that report §1: generic
 | §7.8 `useMissionPose()` | LAN clients interpolate between ~10 Hz snapshots inside this selector; camera modes, chase rig and effects stay device-local |
 | §7.3 CAPCOM steps carry `owner` | phones show their role's steps first; host shows the team's current step and who owns it; Show me is device-local |
 | §7.4 tours | device-local, never pause the room; a phone gets its own short role-console tour |
+| Component panel (added during implementation) | device-local inspection; a phone opens it from its own part list as a sheet; the host's anchored panel and tracked screen bounds are never synced |
 | §7.9 decision overlay, timeline, hotbar | host shows overlay to everyone; only the decision owner's console gets the action buttons; hotbar buttons render per role on phones |
 | §8.4 dry run | read-only and local: any device may run it from the snapshot design; never an intent |
 | §7.5 setup "Play as a team" | the LAN lobby is a second option in that disclosure; no other setup change |

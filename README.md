@@ -47,7 +47,7 @@ Unknown app addresses show a keyboard-focused, localized 404. On the dev server 
 
 Two-body orbital propagation, cylindrical eclipse, ground-station geometry, idealized Earth–Mars transfer/capture and the rocket equation. Technical systems use bounded reduced models with disclosed coefficients: see [model parameters and reference cases](docs/TECHNICAL_MODELS.md). No atmospheric drag, full radiation transport, three-body dynamics, calibrated fault probabilities or flight qualification. Launch immersion is a skippable schematic storyboard, not ascent physics. Safe mode is not radiation shielding. Replayed ISS measurements are not a calibrated radiation map of all possible player orbits.
 
-Start with the [canonical documentation index](docs/INDEX.md) or [system architecture](docs/ARCHITECTURE.md). Component references cover [missions](docs/MISSIONS.md), [resources and evidence](docs/RESOURCES.md), [simulation](docs/SIMULATION.md), [rendering](docs/RENDERIZATION.md), [layouts](docs/LAYOUTS.md) and [science UX](docs/SCIENCE_UX.md). The [implementation plan](docs/GAME_IMPLEMENTATION_PLAN.md) preserves design history; [verification](docs/VERIFICATION.md) records observed checks.
+Start with the [canonical documentation index](docs/INDEX.md) or [system architecture](docs/ARCHITECTURE.md). Component references cover [missions](docs/MISSIONS.md), [resources and evidence](docs/RESOURCES.md), [simulation](docs/SIMULATION.md), [rendering](docs/RENDERIZATION.md), [layouts](docs/LAYOUTS.md) and [science UX](docs/SCIENCE_UX.md). The [implementation plan](docs/GAME_IMPLEMENTATION_PLAN.md) preserves design history; [verification](docs/VERIFICATION.md) records observed checks and the [changelog](docs/CHANGELOG.md) summarizes shipped changes.
 
 ## Data and reuse
 

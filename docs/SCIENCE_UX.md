@@ -22,6 +22,8 @@ The journey moves through Need & goals, Concept, Requirements, Design, Build & v
 
 [Design.tsx](../apps/web/src/ui/phases/Design.tsx) shows the category needed by the current guided step, with Show all parts and explicit category controls. Selecting a model slot selects the same category. Preview records a real trade, shows the ghost part and resource deltas, and requires explicit Install; removal uses the same quote safeguards. Full part descriptions and scientific limits remain under Details/Explain.
 
+Clicking a part on the spacecraft or a workbench slot, or a keyboard **Details** button (scene **Spacecraft slots → Components** while building, Workshop **As flown** in flight), opens the **Component** panel: what the part does, its owner, installed quantity, catalogue values (authored teaching values marked `*`), the constraints the simulator applies (sunlight, target cone, beam angle, slew rate, Earth line) and, in flight, live readings from core telemetry. During Design it offers **Find in Workshop**, which reveals that part's card; nothing installs from the panel. On desktop it sits beside the part and follows it as the view moves until the player drags it. It is a learning surface with an adjacent Explain, not a second quote path.
+
 | Decision | Beginner-facing trade-off | Exact detail remains available |
 |---|---|---|
 | Instrument | Pictures/maps versus radiation monitoring; electricity, pointing and storage requirements | Mass, power, rate, metric and observing prerequisites |
@@ -80,7 +82,7 @@ Related topics, search results, Back and glossary replace the current topic in t
 
 Help never spends resources, advances time, consumes RNG, signs off a role, changes an instrument or queues a command. Pending delayed commands retain their timestamps/state. It carries no score penalty; reading time is not simulation time. Related/search navigation does not recapture drifting figures.
 
-`closeExplanation` removes only the explanation reason and restores the connected opener or header fallback. **Never auto-resume.** Settings, chooser, Home, hidden-tab, graphics, decision and handoff pauses have independent reasons; closing one does not clear another. The header explains remaining blockers. The player explicitly resumes or advances when ready.
+`closeExplanation` removes only the explanation reason and restores the connected opener or header fallback. **Never auto-resume.** Settings, chooser, Home, hidden-tab, graphics, decision and handoff pauses have independent reasons; closing one does not clear another. The top bar and CAPCOM name remaining blockers. The player explicitly resumes or advances when ready.
 
 ### Modal inert and focus
 
@@ -162,7 +164,7 @@ The report tells **choice → observed result → what to try next**, backed by 
 
 ### CAPCOM, tours and the copy diet
 
-The pure next-step resolver orders mission payload/mass/eclipse/radio failures before severity-three cues, actual stage blockers and severity-two improvements. Design improvements wait until Build is reachable; returned-data shortfalls select radio rather than more instruments when core forecasts identify downlink as the bottleneck. Flight prioritizes pending decisions, deployment and operational cues. Steps carry the requirement/cue/blocker owner; completion comes only from actual state. First Light exposes its missing Earth camera during Build, before readiness. Show me reveals and highlights a control/model slot without choosing equipment, signing, repairing or issuing commands.
+The pure next-step resolver orders mission payload/mass/eclipse/radio failures before severity-three cues, actual stage blockers and severity-two improvements. Design improvements wait until Build is reachable; returned-data shortfalls select radio rather than more instruments when core forecasts identify downlink as the bottleneck. Flight prioritizes pending decisions, deployment and operational cues. After a terminal outcome the steps are open the debrief, inspect the replay and redesign; operating cues no longer appear. Redesign keeps the accepted brief and paid hardware and reopens Build, but freeze, verification and sign-offs are redone; an unaccepted brief stays at Need & goals. Steps carry the requirement/cue/blocker owner; completion comes only from actual state. First Light exposes its missing Earth camera during Build, before readiness. Show me reveals and highlights a control/model slot without choosing equipment, signing, repairing or issuing commands.
 
 Primary Aspiring prose blocks target at most 25 words. Resource teaching, hardware descriptions, provenance IDs, owner/method/revision evidence, maturity and disposal disclaimers move into Details, adjacent Explain or Help → Model limits; none is deleted. The report keeps actual objective return, failure title and one suggested experiment visible; the evidence remains expandable. A changed design is never silently installed during redesign. Test & launch offers an explicit Return to Build beside the forecast/checks, including prelaunch Implement; navigation never refreezes or repairs the design.
 
@@ -173,7 +175,7 @@ Disclosure relocation map:
 | Previously primary | Current reachable location |
 |---|---|
 | Automatic resource lessons and W/Wh explanation | Badge popover → Explain; Help → Model limits |
-| Full part descriptions and physical requirements | Part Details and Explain |
+| Full part descriptions and physical requirements | Component panel and Explain |
 | Requirement IDs, method, owner, revision and unmodeled quality | Requirements Details; Detailed presentation |
 | CML qualification and provider/CAD boundaries | Concept maturity and CubeSat-size topics |
 | FCC/disposal screening uncertainty | Readiness Model limits → disposal-screening |
@@ -186,6 +188,6 @@ Disclosure relocation map:
 
 When adding a scientific field/control: extend core output/provenance, topic/binding/source registry, both languages, diagram text equivalent where appropriate, adjacent Explain, and an actual reveal route if Show me is offered. Keep the `core → data` boundary acyclic. No duplicate beginner calculator or executable formula in translations; displayed results come from core.
 
-Source-level checks cover quote equivalence/refusals, seven-resource forecast/live mapping, state-derived guidance ordering/completion, role ownership, tour navigation/persistence, setup defaults, complete topic locales, pause preservation and delayed receipts. Browser procedures cover target visibility, drag tracking, all collapse/tour controls, focus/inert restoration, 320 pixels/200% zoom, both locales, reduced motion and a complete mission journey. Novice comprehension still requires a separate human study.
+Source-level checks cover quote equivalence/refusals, seven-resource forecast/live mapping, component specifications/live readings, state-derived guidance ordering/completion, role ownership, tour navigation/persistence, setup defaults, complete topic locales, pause preservation and delayed receipts. Browser procedures cover target visibility, drag tracking, all collapse/tour controls, focus/inert restoration, 320 pixels/200% zoom, both locales, reduced motion and a complete mission journey. Novice comprehension still requires a separate human study.
 
 The integration owner records commands actually run, browser observations, failures and unverified cases in [VERIFICATION.md](./VERIFICATION.md). This documentation task records no executed tests, browser acceptance or participant-study result.

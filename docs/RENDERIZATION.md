@@ -12,6 +12,7 @@ The renderer reads deterministic core state; it never advances physics, grants e
 | Floating origin and right-handed coordinate conversion | `three/space/FloatingOrigin.ts` |
 | Shared sky, Sun, planet and bounded texture residency | `three/space/{SpaceBackdrop,Skybox,SunLight,Planet}.tsx`, `{starfieldShader,atmosphere,textures}.ts` |
 | Metre-proportioned procedural spacecraft and catalogue slots | `three/spacecraft/{SpacecraftModel,BusFrame,Dimensions}.tsx`, `{slots,model,materials,workbenchState}.ts`, `parts/PartMesh.tsx` |
+| Inspected-component screen tracking for the anchored Component panel | `three/spacecraft/{PartTracker.tsx,projectBounds.ts}` → `ui/layout/trackedTargets.ts` |
 | Orbit, transfer, launch, assembly and external viewer shots | `three/{OrbitScene,TransferScene,LaunchScene,AssemblyScene,TrajectoryScene}.tsx` |
 | Camera modes, wall-clock response and accessibility bridge | `three/camera/{CameraRig.tsx,modes.ts,approach.ts}`, `ui/scene/CameraControls.tsx` |
 | Timeline, commands, pilot input, decisions and events | `ui/flight/*` |
@@ -195,7 +196,7 @@ Required integration gates: all four missions × levels; persistent Canvas prepa
 
 - Shared custom vertex shaders include Three's `<common>` before logarithmic-depth chunks. `logdepthbuf_vertex` uses `isPerspectiveMatrix`; removing the dependency breaks sky, Sun, planet and atmosphere compilation, not physics.
 - Camera presentation records `AUTO` versus `USER` intent. Automatic briefing Workbench completion resolves to Chase for flight; explicit Map/Inspect selection persists. Automatic event shots do not override a user-selected mode.
-- The desktop flight deck measures the real resource rail's right edge and starts eight pixels beyond it. A ResizeObserver publishes the actual bottom inset as `--flight-hud-inset`; camera controls sit above that measured deck instead of a fixed guessed height. Compact camera controls use Shell's measured `--window-chrome-height + 8px`, not the bottom pill/sheet zone. Pilot popovers align to their trigger's left edge on desktop and scroll within the measured header/deck gap.
+- The desktop flight deck measures the real resource rail's right edge and starts eight pixels beyond it. A ResizeObserver publishes the actual bottom inset as `--flight-hud-inset`; camera controls sit above that measured deck instead of a fixed guessed height. On compact layouts every scene widget (camera, caption, workbench, launch presentation, status) stacks in one column from Shell's measured `--window-chrome-height + 8px`, not the bottom pill/sheet zone, so none sits behind the badges or CAPCOM. Pilot popovers align to their trigger's left edge on desktop and scroll within the measured header/deck gap.
 - Floating panel pills must be clamped above the same actual deck inset by the shell; moving one layer over another cannot make both controls usable. The decision region explicitly restores pointer interaction beneath the shell's non-interactive HUD root.
 - In actual core eclipse, close shots show an explicitly labelled **inspection outline** of the authored metre bus envelope. It is an unlit display overlay following actual attitude, not sunlight, emitting hardware, installed equipment or power generation. The real model and core illumination remain shadowed.
 

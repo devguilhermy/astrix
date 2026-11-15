@@ -8,7 +8,7 @@ ASTRIX is a static, local shared-screen mission-design game. Core owns mission r
 - `packages/core/src/sim/`: versioned flight snapshots, command transport, environment, stepping, crew support, telemetry, history and terminal evidence. `score.ts` scores the frozen flown design.
 - `packages/core/src/interop/`: inert GMAT initial-state import/export and sampled-trajectory parsing; viewer data is separate from a game flight and cannot establish resource or score state.
 - `packages/data/`: local snapshots, source records, science topics and explicit context bindings. Core depends on data, not vice versa.
-- `apps/web/`: local setup, shared-screen roles, pause/decision authority, seven-stage journey and presentation. One persistent R3F Canvas renders model-derived scene data; visualization is not a second physics authority.
+- `apps/web/`: `ui/shell` (top bar, Help), `ui/hud` (resources), `ui/guide` (CAPCOM, Show me), `ui/tour`, `ui/layout` (panels, tracked placement), `ui/flight`, `ui/forecast`, `ui/inspector`, `ui/recovery` and `three/` (scenes, `space/`, `spacecraft/`, `camera/`). Local setup, shared-screen roles, pause/decision authority, seven-stage journey and presentation. One persistent R3F Canvas renders model-derived scene data; visualization is not a second physics authority.
 
 ## Identity, workflow and transactions
 
@@ -30,7 +30,7 @@ The setup flow prepares the renderer before committing an attempt and retains ro
 
 `forecastTimeline` samples shared environment geometry without mutating flight state. The read-only dry run calls `forecastMission` in a cancellable Web Worker, with ordinary transported commands and a disclosed deterministic policy. Results are local presentation, never a flown score. Timeline and dry-run horizons are bounded; forecasts are not guarantees.
 
-Manual attitude targets are serializable `ATTITUDE_TARGET` commands: ground transport for uncrewed missions, onboard for crew. The UI throttles gestures; the store rejects manual inputs above 10× warp. Only unsent targets from the same actor/gesture coalesce; transmitted targets cannot be recalled. Renderers consume pose through `useMissionPose()`; camera/pilot mode, panel geometry, quotes, tours and highlights remain device-local.
+Manual attitude targets are serializable `ATTITUDE_TARGET` commands: ground transport for uncrewed missions, onboard for crew. The UI throttles gestures; the store rejects manual inputs above 10× warp. Only unsent targets from the same actor/gesture coalesce; transmitted targets cannot be recalled. Renderers consume pose through `useMissionPose()`; camera/pilot mode, panel geometry, quotes, tours, highlights and component inspection remain device-local. The Component panel reads catalogue data and core telemetry only; on desktop a scene tracker writes the inspected part's projected screen bounds outside React state each frame, and the panel follows them until the player moves it.
 
 The static bootstrap has its own styled loading/failure surface before React. Root and workspace error boundaries preserve diagnostics; workspace failure pauses flight without destroying the Canvas, and retry never resumes time. Unknown addresses show a localized 404 and add a blocking route pause. Returning Home retains the mounted attempt. A standalone `404.html` is also built for static-host error routing.
 

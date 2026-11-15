@@ -23,7 +23,8 @@ These pages explain the **implemented system**. Start with Architecture, then fo
 
 ## Evidence and challenge alignment
 
-- [VERIFICATION.md](./VERIFICATION.md): current rules-v3 delivery evidence, integrated and targeted checks, actual browser flights, GMAT/rendering observations and validation limits; earlier sections are historical. A procedure described elsewhere is not a claim that it was run.
+- [VERIFICATION.md](./VERIFICATION.md): current rules-v4 guided-redesign evidence (integrated checks, browser flights, scene/texture measurements and unverified cases), followed by the historical rules-v3 delivery and earlier passes. A procedure described elsewhere is not a claim that it was run.
+- [CHANGELOG.md](./CHANGELOG.md): dated summary of shipped changes, newest first.
 - [CHALLENGE_ACCEPTANCE.md](./CHALLENGE_ACCEPTANCE.md): how implemented mechanics address the official Space Mission Design Game objective; submission eligibility remains separate.
 - [Credits and provenance](../CREDITS.md), [project licence](../LICENSE) and [third-party notices](../THIRD_PARTY_NOTICES.txt).
 

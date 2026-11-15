@@ -2,9 +2,9 @@
 
 Core owns paid mass, room, budget, power, storage, communications and fuel calculations. Budget units and hardware ratings are authored educational assumptions, not real vendor quotes. The model distinguishes forecasts, accepted requests, executed actions and observed outcomes. [Simulation](./SIMULATION.md) describes integration; [Verification](./VERIFICATION.md) records observed checks, not implied validation.
 
-## Rules-v3 identity and budget
+## Rules-v4 identity and budget
 
-`Design.levelId` is required: `ASPIRING` or `EXPERT`. `rulesVersion` is 3. Budget is scenario base × 1.30 or × 1.275 respectively; there is no independently selectable difficulty or profile. Display depth is independent. The CubeSat dispenser has a selected strict under-4-kg and 3-U contract; SmallSat has the authored under-180-kg and 8-bay class. The crew capsule is a separate class. These are screening constraints, not CAD clearance or certification.
+`Design.levelId` is required: `ASPIRING` or `EXPERT`. `rulesVersion` is 4. Budget is scenario base × 1.30 or × 1.275 respectively; there is no independently selectable difficulty or profile. Display depth is independent. The CubeSat dispenser has a selected strict under-4-kg and 3-U contract; SmallSat has the authored under-180-kg and 8-bay class. The crew capsule is a separate class. These are screening constraints, not CAD clearance or certification.
 
 Mass includes structure, purchased parts and loaded propellant. Flight telemetry distinguishes launch mass and current retained mass. Propellant exhaust and modeled leaks reduce retained mass; consumed crew stores and retained waste do not disappear. W is instantaneous generation/load; Wh is battery energy/capacity. Shadow, pointing, power aging and installed hardware determine power. Decimal MB and kbps describe storage and data transfer; collected bytes are not necessarily qualifying delivered bytes. Operations remain constrained by actual contact, link, power and requested state.
 
@@ -13,6 +13,12 @@ Crew Pathfinder includes finite O₂/N₂, food, water, scrubber and cabin gas i
 Before launch, `planCrewSupport(design)` derives its inventory and limiting runway from the same initial crew model used by flight. It compares that runway with the nominal orbit, deorbit burn and six-hour recovery, assuming the installed support hardware is working and powered. If support is not installed, the forecast reports unavailable inventories rather than a zero-health value; readiness still requires the hardware.
 
 Planning and actual telemetry are separate. The core computes budgets, orbit/eclipse/contact forecasts, requirements and launch readiness; a proposal carries actual before/after values. Hardware changes invalidate revision-bound baselines and verification. Crew/mission-specific requirements are applicable only to their scenarios. A paid ground-service economy is not inferred from a general budget: only explicitly modeled charges may consume an operations reserve.
+
+### How resources are presented
+
+The web app never computes a budget itself. `ui/hud/resourceModel.ts` maps core budgets, the latest published telemetry and the currently valid quote into seven fixed-order badges (mass, power, budget, data, comms, time, crew). Each badge is explicitly FORECAST before launch and LIVE in flight; W and Wh, stored and delivered MB, contact time and queued commands stay separate values. A badge shows a before → after delta only for an actual, unexpired core quote. Unknown forecasts are labelled unknown, never green.
+
+The Component panel (`ui/inspector/partDetails.ts`) lists a part's catalogue values and the constraints the simulator applies to it. Every value that is an authored teaching assumption is marked `*`. In flight its readings come only from core telemetry (battery charge and capacity, generation and panel–Sun angle, load, stored and delivered data, link rate and antenna–Earth angle, target angle and slew rate, temperature and heater, computer resets, propellant and capture Δv); a reading the model does not produce is omitted rather than estimated. Opening it never changes the design, a quote or the flight.
 
 ## Scientific evidence
 
@@ -100,4 +106,5 @@ Settings and rules-versioned bests are separate from the in-memory flight. Score
 | [core/physics.test.ts](../packages/core/src/physics.test.ts) | Reference geometry, transfer/capture/fuel/light-time calculations and comparison to independently recorded [GMAT results](./research/gmat-validation.md) |
 | [sim/sim.test.ts](../packages/core/src/sim/sim.test.ts) | Simulation regression entry point for storage, energy/SAFE, replay, capture and command receipts; current source semantics are documented in [Simulation](./SIMULATION.md) |
 | [sim/playable.test.ts](../packages/core/src/sim/playable.test.ts), [sim/golden.test.ts](../packages/core/src/sim/golden.test.ts) | Explicit pilot/reference-trace entry points; test fixtures are not production autopilots or proof of unexecuted level combinations |
+| [web/ui/hud/resourceModel.test.ts](../apps/web/src/ui/hud/resourceModel.test.ts), [web/ui/inspector/partDetails.test.ts](../apps/web/src/ui/inspector/partDetails.test.ts) | Seven-badge order, forecast/live units, quote deltas and thresholds; component specifications and live readings sourced only from core telemetry |
 | [web/store/mission.test.ts](../apps/web/src/store/mission.test.ts), [core/score.test.ts](../packages/core/src/score.test.ts) | Refusal atomicity, coupled sign-offs, learning snapshot pauses, reset/redesign boundaries and separate fit/energy/progress statuses |

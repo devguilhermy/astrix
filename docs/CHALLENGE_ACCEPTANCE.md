@@ -7,14 +7,14 @@ The challenge explicitly encourages simplified models and explanations accessibl
 | Official objective | ASTRIX acceptance scenario |
 |---|---|
 | Define an objective and mission requirements | Choose First Light, Storm Watch, Crew Pathfinder or Red Relay; confirm the measurable goal and inspect linked requirements and verification methods |
-| Configure spacecraft and instruments | Start with a fully costed editable bus or crew capsule; compare payload, power, computer, pointing, radio and supported propulsion changes |
-| Interacting mass, power, budget, data and communications limits | Quotes expose coupled budgets; the persistent seven-resource rail distinguishes forecast from telemetry, W from Wh, stored from returned data, and crew support from store runway |
+| Configure spacecraft and instruments | Start with a fully costed editable bus or crew capsule; compare payload, power, computer, pointing, radio and supported propulsion changes on a true-proportion model with a mount point per part; click any part for its specifications and constraints |
+| Interacting mass, power, budget, data and communications limits | Quotes expose coupled budgets; the always-visible seven-resource badge grid distinguishes forecast from telemetry, W from Wh, stored from returned data, and crew support from store runway, and shows before → after deltas for a real quote |
 | Choose launch and orbit | Provider-specific fit and deployment checks, supported orbital presets or bounded precise controls; explicit epoch, plane and phase; calculated Mars capture fuel |
-| Manage a mission from concept to operation | Need & goals → Concept → Requirements → Design → Build & verify → Implement → terminal Review; guarded completion, baseline invalidation and explicit launch |
-| Strategic decisions | Contextual pauses for contacts, storage, energy, radiation, arrival and crew recovery; normal commands retain costs, ownership, transport and execution times |
-| Feedback and mission evaluation | Requirement-level Pass/Fail/Not evaluated, rules-v3 scores, actor receipts, sampled history and qualified causal advice; redesign creates a clean attempt |
+| Manage a mission from concept to operation | Need & goals → Concept → Requirements → Design → Build & verify → Implement → terminal Review, presented as five chapters with a CAPCOM next step; guarded completion, baseline invalidation, a pre-launch dry-run forecast and explicit launch |
+| Strategic decisions | Contextual pauses for contacts, storage, energy, radiation, arrival and crew recovery; normal commands retain costs, ownership, transport and execution times; a timeline shows sunlight, eclipse and contact windows; manual steering is a contact-gated ground command (light-time delayed at Mars, onboard for crew) |
+| Feedback and mission evaluation | Requirement-level Pass/Fail/Not evaluated, rules-v4 scores, actor receipts, sampled history and qualified causal advice; redesign creates a clean attempt |
 | Solo or collaboration up to four | Local shared-screen responsibilities, concerns, proposal impacts, facilitator rotation, handoffs and sign-offs; not online multiplayer |
-| Different scientific knowledge levels | Aspiring automatically introduces contextual concepts; Expert opens the same concepts on demand. Guided/Detailed changes presentation, not physics or teaching policy |
+| Different scientific knowledge levels | Aspiring starts short spotlight tours and keeps primary prose brief; Expert gets the same HUD with detailed engineering and opens the same concepts on demand. Guided/Detailed changes presentation, not physics or teaching policy |
 | Understand why a decision changes mission performance | Before/after quotes, contextual definitions, current design/flight values, cited evidence and explicit model limitations |
 | Repeat and learn | Redesign or repeat without carrying operational state; reproducible seeds and separated scenario/level scores; assisted practice is labelled |
 | Optional realistic interchange | Bounded OEM/ReportFile visualization and supported GMAT initial-state scripts; no arbitrary script execution or claim of reproducing GMAT dynamics |
