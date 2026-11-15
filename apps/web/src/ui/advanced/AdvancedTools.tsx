@@ -21,35 +21,38 @@ function portugueseError(message:string):string {
 export function AdvancedTools({initialOrbit,onPrepare}:{initialOrbit?:OrbitChoice|null;onPrepare?:(orbit:OrbitChoice)=>void}) {
   const {i18n}=useTranslation(),c=advancedCopy[i18n.resolvedLanguage?.startsWith('pt')?'pt':'en'],p=usePlayCopy(),pt=i18n.resolvedLanguage?.startsWith('pt');
   const [kind,setKind]=useState<'oem'|'report'|'script'>('oem'),[object,setObject]=useState(''),[file,setFile]=useState<File|null>(null),[example,setExample]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[result,setResult]=useState<Trajectory|OrbitChoice|null>(null),[skipped,setSkipped]=useState({statements:0,commands:0});
-  const worker=useRef<Worker|null>(null),imported=useRef<GmatSubject|null>(null),shown=trajectoryViewer(state=>state.subject);
+  const worker=useRef<Worker|null>(null),pendingExample=useRef(''),imported=useRef<GmatSubject|null>(null),shown=trajectoryViewer(state=>state.subject);
   useEffect(()=>()=>{worker.current?.terminate();},[]);
   // A cleared or failed import must not leave its stale data in the 3D view.
-  const clear=()=>{worker.current?.terminate();worker.current=null;setBusy(false);setResult(null);setError('');if(imported.current&&trajectoryViewer.getState().subject===imported.current)trajectoryViewer.getState().exit();imported.current=null;};
-  const show=(value:Trajectory|OrbitChoice)=>{imported.current='segments'in value?{kind:'trajectory',trajectory:value,origin:'import'}:{kind:'orbit',orbit:value,label:object,origin:'import'};trajectoryViewer.getState().show(imported.current);};
-  const inspect=()=>{
-    if(!file){setError(c.unsupported);return;}
+  const clear=()=>{pendingExample.current='';worker.current?.terminate();worker.current=null;setBusy(false);setResult(null);setError('');if(imported.current&&trajectoryViewer.getState().subject===imported.current)trajectoryViewer.getState().exit();imported.current=null;};
+  const show=(value:Trajectory|OrbitChoice,label=object)=>{imported.current='segments'in value?{kind:'trajectory',trajectory:value,origin:'import'}:{kind:'orbit',orbit:value,label,origin:'import'};trajectoryViewer.getState().show(imported.current);};
+  // Inputs are passed explicitly so an example can be parsed in the same step that sets the form state.
+  const inspect=(input={file,kind,object})=>{
+    if(!input.file){setError(c.unsupported);return;}
     clear();setBusy(true);
     try {
       const w=new Worker(new URL('./parser.worker.ts',import.meta.url),{type:'module'});worker.current=w;
-      w.onmessage=(event:MessageEvent<{result?:Trajectory|OrbitChoice;error?:string;ignoredStatements?:number;missionCommands?:number}>)=>{if(worker.current!==w)return;setBusy(false);setError(event.data.error??'');setResult(event.data.result??null);setSkipped({statements:event.data.ignoredStatements??0,commands:event.data.missionCommands??0});if(event.data.result)show(event.data.result);worker.current=null;w.terminate();};
+      w.onmessage=(event:MessageEvent<{result?:Trajectory|OrbitChoice;error?:string;ignoredStatements?:number;missionCommands?:number}>)=>{if(worker.current!==w)return;setBusy(false);setError(event.data.error??'');setResult(event.data.result??null);setSkipped({statements:event.data.ignoredStatements??0,commands:event.data.missionCommands??0});if(event.data.result)show(event.data.result,input.object);worker.current=null;w.terminate();};
       w.onerror=()=>{if(worker.current!==w)return;setBusy(false);setError(c.worker);worker.current=null;w.terminate();};
-      w.postMessage({file,kind,object});
+      w.postMessage(input);
     }catch{setBusy(false);setError(c.worker);}
   };
   const orbit=result&&'smaKm'in result?result:null,trajectory=result&&'segments'in result?result:null;
   const inScene=!!imported.current&&shown===imported.current;
   const sceneButton=result&&<p className="gmat-scene-note">{inScene?(pt?'Exibido na vista 3D.':'Shown in the 3D view.'):<button className="button" onClick={()=>show(result)}>{pt?'Mostrar na vista 3D':'Show in the 3D view'}</button>}</p>;
   const chooseExample=async(name:string)=>{
-    clear();setExample(name);
+    clear();setExample(name);pendingExample.current=name;
     const chosen=gmatExamples.find(item=>item.file===name);
     if(!chosen){setFile(null);return;}
-    setKind(chosen.kind);setObject(chosen.object);setFile(null);
+    setKind(chosen.kind);setObject(chosen.object);setFile(null);setBusy(true);
     try{
       const response=await fetch(chosen.url);
       // A host answers a missing file with the app's index.html; never feed that to the parser.
       if(!response.ok||response.headers.get('content-type')?.includes('text/html'))throw new Error(String(response.status));
-      setFile(new File([await response.blob()],chosen.file,{type:'text/plain'}));
-    }catch{setError(pt?`Não foi possível carregar o exemplo ${chosen.file}.`:`Could not load example ${chosen.file}.`);}
+      const loaded=new File([await response.blob()],chosen.file,{type:'text/plain'});
+      if(pendingExample.current!==name)return;
+      setFile(loaded);inspect({file:loaded,kind:chosen.kind,object:chosen.object});
+    }catch{if(pendingExample.current!==name)return;setBusy(false);setError(pt?`Não foi possível carregar o exemplo ${chosen.file}.`:`Could not load example ${chosen.file}.`);}
   };
   const chosenExample=gmatExamples.find(item=>item.file===example);
   return <section className="gmat-tools" aria-label={p('tools')}><h1>{p('tools')}</h1><p>{c.warning}</p><p>{pt?'Quadros EarthMJ2000Eq/MarsMJ2000Eq e um quadro MJ2000Eq centrado no Sol nos estados iniciais; OEM EME2000, UTC, km e km/s. Lua não suportada. Nenhum script é executado.':'Initial states use EarthMJ2000Eq/MarsMJ2000Eq or a Sun-centred MJ2000Eq frame; OEM uses EME2000, UTC, km and km/s. Moon interchange is unsupported. Uploaded scripts are never executed.'}</p>
@@ -57,7 +60,7 @@ export function AdvancedTools({initialOrbit,onPrepare}:{initialOrbit?:OrbitChoic
       <label>{c.format}<select value={kind} onChange={event=>{clear();setExample('');setKind(event.target.value as typeof kind);}}><option value="oem">CCSDS OEM 1.0/2.0 KVN</option><option value="report">GMAT ReportFile</option><option value="script">GMAT script (initial state)</option></select></label>
       {kind!=='oem'&&<label>{c.object}<input value={object} onChange={event=>{clear();setObject(event.target.value);}}/></label>}
       <label>{c.file}<input key={example} type="file" accept=".txt,.oem,.script,text/plain" onChange={event=>{clear();setExample('');setFile(event.target.files?.[0]??null);}}/></label>
-      <div className="button-wrap"><button className="button primary" disabled={busy||!file} onClick={inspect}>{c.parse}</button>{busy&&<button className="button" onClick={clear}>{c.cancel}</button>}</div>
+      <div className="button-wrap"><button className="button primary" disabled={busy||!file} onClick={()=>inspect()}>{c.parse}</button>{busy&&<button className="button" onClick={clear}>{c.cancel}</button>}</div>
     </div>
     {busy&&<p role="status">{pt?'Inspecionando arquivo…':'Inspecting file…'}</p>}
     {error&&<div role="alert" className="play-notice danger"><p>{pt?portugueseError(error):error}</p>{pt&&<details><summary>{c.detail}</summary><p lang="en">{error}</p></details>}</div>}
