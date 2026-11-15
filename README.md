@@ -17,25 +17,35 @@ bun test
 bun run build
 ```
 
-The production static site is built into `apps/web/dist`. No login, API key, runtime data API or backend is required. Repository research tools can contact NASA endpoints; the game imports committed data snapshots.
+The production static site is built into `apps/web/dist`; static solo/shared-screen play needs no backend, login, API key or runtime data API. Repository research tools can contact NASA endpoints; the game imports committed data snapshots.
+
+For trusted-LAN room groundwork, prepare dependencies and the production build online, then disconnect internet while keeping LAN active:
+
+```sh
+bun run host
+# Multiple private interfaces: choose one printed by the CLI.
+bun run host --bind 192.168.1.20 --port 3000
+```
+
+Open the loopback control URL printed by Bun on the host computer. Its lobby supplies locally encoded QR/manual joining, host approval, role assignment and reconnect for three phones plus the host display. HTTP is plaintext: use an isolated trusted LAN and no sensitive names/data. The Bun process owns the in-memory mission; closing it loses the room. Dedicated phone design/flight consoles are not included in this groundwork. See [LAN runbook and rehearsal steps](docs/MULTIPLAYER.md); real-device behavior is not claimed verified.
 
 ## Play
 
 Four missions: First Light (Earth imaging), Storm Watch (radiation measurements), Red Relay (Mars mapping), and Crew Pathfinder (four virtual crew in Earth orbit).
 
-Choose a mission and level on one setup screen, optionally divide roles under **Play as a team**, then Start. The journey appears as **Briefing → Build → Test & launch → Fly → Debrief**, backed by seven core stages and their existing gates. CAPCOM names the next action; **Show me** reveals its control. Starting design does not launch, and time advances only when explicitly requested.
+Choose a mission and level using the setup cards; the expanded team section optionally divides responsibilities in player columns. Start with the local-play card or open the separate LAN lobby. The journey appears as **Briefing → Build → Test & launch → Fly → Debrief**, backed by seven core stages and their gates. Bottom **Mission control** combines the next action/Continue, Requirements, Spacecraft slots, Checklist, Flight options, chapter/substep navigation and panel buttons. **Show me** reveals the real control. Starting design does not launch, and time advances only when explicitly requested.
 
 **Aspiring** offers spotlight tours, short primary copy, self-paced advances and assisted practice checkpoints. **Expert** uses the same HUD with detailed engineering and on-demand explanations. Guided / Detailed remains independently changeable in Settings. Preview changes on the spacecraft and seven-resource grid before installing them; freeze, verify and approve the actual revision before launch. **Dry run** forecasts the design in a background worker without changing or scoring the flight.
 
-Panels collapse to draggable pills in place, retaining their positions; there is no window dock. Compact screens use one adjustable bottom sheet; short/high-zoom views use a reading layout. Help contains tours and model limits.
+Closed tools consume no scene area; the bottom controller's panel buttons reopen them. Expanded desktop tools retain draggable/resizable headers. Compact screens use one adjustable bottom sheet; short/high-zoom views use a reading layout. Help replays the control-by-control tours and exposes model limits.
 
-Click any component on the spacecraft (or a workbench slot) to open its **Component** panel, anchored beside that part and following it as you turn the view: catalogue specifications, the simulator's constraints and, in flight, live readings from the simulation. Keyboard users reach the same panel from **Spacecraft slots → Components** while building and from **As flown** in flight. Inspecting never changes the design or the flight.
+Click any component on the spacecraft (or a bottom Spacecraft slot) to open its **Component** panel, anchored beside that part and following it as you turn the view: catalogue specifications, the simulator's constraints and, in flight, live readings from the simulation. Keyboard users reach the same panel from **Spacecraft slots → Components** while building and from **As flown** in flight. Inspecting never changes the design or the flight.
 
-Explain/Entenda buttons open short science explanations, optional deeper material and evidence/assumptions. Reading pauses operation. Closing an explanation never automatically resumes: choose Resume when ready.
+Explain/Entenda buttons open short science explanations, optional deeper material and evidence/assumptions. Static reading pauses operation; optional LAN explanations retain a frozen snapshot without stopping the shared room. Closing an explanation never automatically resumes a paused mission.
 
-Flight uses a timeline, command hotbar and visible decision overlays. `1/2/3` select Sun/Target/Earth hold, `D` requests downlink, `S` safe mode, `G` deployment and `P` pilot mode. In pilot mode use drag or `WASD/QE` to request attitude targets (touch pad available); manual steering is limited to 10× warp. Uncrewed steering waits for radio contact and Mars light time; crew steering is onboard. Camera controls remain independent of commands.
+Flight options embed the timeline, command hotbar and warp controls; next sunlight/shadow/contact edge, T+ time, advance and next contact remain visible with the tray closed. Decision overlays remain independent. `1/2/3` select Sun/Target/Earth hold, `D` requests downlink, `S` safe mode, `G` deployment and `P` pilot mode. In pilot mode use drag or `WASD/QE` to request attitude targets (touch pad available); manual steering is limited to 10× warp. Uncrewed steering waits for radio contact and Mars light time; crew steering is onboard. Camera controls remain independent of commands.
 
-Solo covers all roles. Shared-screen play divides responsibilities among up to four local players, with role ownership and design sign-offs. This is not online multiplayer.
+Solo covers all roles. Shared-screen play divides responsibilities among up to four local players, with role ownership and design sign-offs. A separately launched local Bun host adds trusted-LAN admission and synchronization groundwork, not internet matchmaking.
 
 ### Startup and recovery
 

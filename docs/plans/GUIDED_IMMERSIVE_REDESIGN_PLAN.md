@@ -4,6 +4,8 @@
 **Scope:** `apps/web` presentation layer (shell, HUD, panels, guidance, tours, scenes, camera, flight deck) plus the core additions listed in §8 (attitude model, timeline forecast, dry run). Local multi-device play is planned separately in [MULTIPLAYER_LAN_PLAN.md](./MULTIPLAYER_LAN_PLAN.md).
 **Evidence base:** live browser walkthrough of First Light / Aspiring / Solo at 1440×900 and 390×844 (dev server, headless Chromium, quality tier resolved LOW), source reading of `apps/web` and `packages/core`, the canonical docs, and Void Protocol (VP) at pinned commit `218625d`.
 
+**Subsequent change:** the reviewed [streamlined mission-control plan](./STREAMLINED_MISSION_CONTROL_PLAN.md) replaces this plan's top primary, separate CAPCOM card and collapsed panel pills with one bottom controller. Trusted-LAN session/host/pairing groundwork was implemented separately under [MULTIPLAYER_LAN_PLAN.md](./MULTIPLAYER_LAN_PLAN.md); dedicated phone design/flight consoles remain outside the delivered scope. Historical layout descriptions below are not the current runtime specification.
+
 ---
 
 ## 1. Problem and goals

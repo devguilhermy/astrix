@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { history, failureReport, scoreMission, listParts, missionRequirements, orbitAltitudes, attemptAudit, type HistorySample } from '@astrix/core';
+import { history, listParts, missionRequirements, orbitAltitudes, attemptAudit, type HistorySample } from '@astrix/core';
 import { USGS_MISSIONS, type ScienceTopicId } from '@astrix/data';
 import { useMission, readBest } from '../../store';
 import { usePreviewSnapshot } from '../../three/previewSnapshots';
@@ -38,8 +38,8 @@ export function ReportScreen() {
 }
 function FlightReport() {
  const {t,i18n}=useTranslation(),design=useMission(s=>s.design)!,sim=useMission(s=>s.sim)!,telemetry=useMission(s=>s.telemetry)!;
- const team=useMission(s=>s.team),acceptedTrades=useMission(s=>s.acceptedTrades),budgets=useMission(s=>s.budgets)!,image=usePreviewSnapshot(design);
- const samples=useMemo(()=>history(sim),[sim]),failure=failureReport(sim),score=scoreMission(sim,design,team),parts=listParts(design.busId);
+ const score=useMission(s=>s.review)!,acceptedTrades=useMission(s=>s.acceptedTrades),budgets=useMission(s=>s.budgets)!,image=usePreviewSnapshot(design);
+ const samples=useMemo(()=>history(sim),[sim]),failure=score.firstFailure,parts=listParts(design.busId);
  const [sampleIndex,setSampleIndex]=useState(()=>Math.max(0,samples.length-1)),[eventTime,setEventTime]=useState<number|null>(null),sample=samples[Math.min(sampleIndex,Math.max(0,samples.length-1))],replaySample=reviewPlayback(state=>state.sample);
  const referenceOrbitOnly=design.scenarioId==='CREW_PATHFINDER'&&!!sample&&['DEORBIT','RECOVERY','COMPLETE'].includes(sample.phase);
  useEffect(()=>()=>reviewPlayback.getState().exit(),[]);

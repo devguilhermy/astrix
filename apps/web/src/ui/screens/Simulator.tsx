@@ -5,10 +5,9 @@ import { liveMission, useMission } from '../../store';
 import { useSimLoop } from '../../loop/useSimLoop';
 import { TopBar } from '../shell/TopBar';
 import { ResourceGrid } from '../hud/ResourceGrid';
-import { CapcomCard } from '../guide/CapcomCard';
+import { MissionControl } from '../guide/MissionControl';
 import { CueHighlight } from '../guide/CueHighlight';
 import { TourHost } from '../tour/TourHost';
-import { FlightBar } from '../flight/FlightBar';
 import { DecisionOverlay } from '../flight/DecisionOverlay';
 import { EventToasts } from '../flight/EventToasts';
 import { Goal } from '../phases/Goal';
@@ -50,7 +49,7 @@ export function Simulator({active,onReady,onFailure,onHome,onChoose,onModuleRead
  return <div className={`app floating-studio phase-${view} stage-${s.activeStage}`}>
   <div className="space-stage"><AppCanvas onReady={ready} onFailure={onFailure}/></div>
   {s.design&&<><div className="studio-interface"><div className="interface-header"><TopBar onHome={onHome} onChoose={onChoose}/></div>{!viewer&&<>
-   <ResourceGrid/><CapcomCard/>
+   <ResourceGrid/>
    <ErrorBoundary scope="layout" onError={()=>useMission.getState().pause('error')} onRetry={()=>useMission.getState().clearPauseReason('error')}>
     <main className="floating-workspace">
      <DraggablePanel id="mission" phase={view} title={t('hud.workshop')} badge={s.pendingDecisions.length}><div key={liveMission.generation} id="workspace-panel" aria-labelledby="journey-heading"><h2 id="journey-heading" tabIndex={-1} className="sr-only">{t(`flow.${stageKeys[s.activeStage]}`)}</h2>
@@ -67,7 +66,8 @@ export function Simulator({active,onReady,onFailure,onHome,onChoose,onModuleRead
      <PartInspector/>
     </main>
    </ErrorBoundary>
-   {s.activeStage==='IMPLEMENT'&&s.sim&&<><FlightBar/><DecisionOverlay/><EventToasts/></>}
+   <MissionControl/>
+   {s.activeStage==='IMPLEMENT'&&s.sim&&<><DecisionOverlay/><EventToasts/></>}
    <CueHighlight/><TourHost ready={active&&sceneReady}/><GlobalRefusal/>
   </>}</div>{!viewer&&<Handoff/>}</>}
   <div className="sr-only" aria-live="polite">{s.events.at(-1)?t(`event.${s.events.at(-1)!.kind}.title`,s.events.at(-1)!.values):''}</div>

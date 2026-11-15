@@ -1,6 +1,6 @@
 # Rendering
 
-The renderer reads deterministic core state; it never advances physics, grants equipment, changes pointing, resources, RNG or score. Commands enter through `useMission` actions and core command transport. The approved [guided immersive plan](./plans/GUIDED_IMMERSIVE_REDESIGN_PLAN.md), Line B, supersedes the former bench, enlarged-orbit spacecraft and planet-only/no-follow camera conventions.
+The renderer reads deterministic core state projected by `@astrix/session`; it never advances physics, grants equipment, changes pointing, resources, RNG or score. Commands enter through `useMission` actions, local reduction or authenticated LAN intents, then core command transport. The approved [guided immersive plan](./plans/GUIDED_IMMERSIVE_REDESIGN_PLAN.md), Line B, supersedes the former bench, enlarged-orbit spacecraft and planet-only/no-follow camera conventions; the [streamlined controller plan](./plans/STREAMLINED_MISSION_CONTROL_PLAN.md) supersedes scattered HUD controls.
 
 ## Ownership and source map
 
@@ -16,7 +16,7 @@ The renderer reads deterministic core state; it never advances physics, grants e
 | Orbit, transfer, launch, assembly and external viewer shots | `three/{OrbitScene,TransferScene,LaunchScene,AssemblyScene,TrajectoryScene}.tsx` |
 | Camera modes, wall-clock response and accessibility bridge | `three/camera/{CameraRig.tsx,modes.ts,approach.ts}`, `ui/scene/CameraControls.tsx` |
 | Timeline, commands, pilot input, decisions and events | `ui/flight/*` |
-| Workbench DOM alternatives and relocated model limits | `ui/scene/{WorkbenchControls,SceneCaption}.tsx` |
+| Bottom spacecraft-slot DOM alternatives and scene model limits | `ui/guide/MissionControl.tsx`, `ui/scene/{WorkbenchControls,SceneCaption}.tsx` |
 | Same-renderer snapshots and adaptive resolution | `three/{previewSnapshots.tsx,AdaptivePixelBudget.tsx,pixelBudget.ts,quality.ts}` |
 
 The obsolete root `SpacecraftModel.tsx` and `MissionCamera.tsx` adapters, fixed points stars, workbench floor and permanent camera button grid are removed. The detailed CameraBridge actions remain deliberate non-drag alternatives.
@@ -33,7 +33,7 @@ NASA imagery loads asynchronously without suspending entry. The first real draw 
 flowchart TD
   Entry[App preparation token] --> Canvas[One persistent R3F Canvas]
   Candidate[Explicit candidate design] --> Pose[MissionPoseProvider]
-  Core[Live core snapshot] --> Pose
+  Core[Published core snapshot] --> Pose
   Recorded[Selected recorded sample] --> Pose
   Pose --> Scenes[Spacecraft / Sun / planet / overlays]
   Pose --> Camera[Wall-clock camera rig]
@@ -41,11 +41,17 @@ flowchart TD
   Camera --> Canvas
   Canvas --> Draw[Committed draw readiness]
   Canvas --> Preview[Portal → render target → PNG]
-  Intent[DOM / keyboard / touch pilot] --> Store[Store commands]
-  Store --> Core
+  Intent[DOM / keyboard / touch pilot] --> Store[Store intents]
+  Store --> Local[Local session authority]
+  Store --> Remote[Bun room authority]
+  Local --> Core
+  Remote --> Projection[Public snapshot projection]
+  Projection --> Core
 ```
 
 Candidate selection never reads the unrelated active flight. Review reads recorded position, Sun, station and attitude from `HistorySample`; unrecorded deployment/transmission/science effects are suppressed. Crew return/recovery is an abstracted phase without a vehicle trajectory: the original orbit is reference only, and the spacecraft, station, active beam and forecast arcs are hidden.
+
+`MissionPoseProvider` reads authoritative published telemetry/history in either mode. LAN snapshots do not start a second browser simulation, and the current renderer does not implement network pose interpolation or prediction. Disconnection leaves a stale projection, not a locally advancing flight. Candidate preview and recorded replay remain explicitly separate sources.
 
 ## 2. One physical coordinate convention
 
@@ -81,7 +87,7 @@ Presentation state lives in `three/spacecraft/workbenchState.ts`, not the missio
 - `previewPartId` and `previewOrbit` carry the uncommitted proposal;
 - `exploded`, `dimensions`, `turntable` are device-local switches.
 
-Picking requires less than 5 CSS px movement, so orbit dragging does not install/select a part accidentally. A slot click selects its category and opens that component's details; in the close orbit view, an installed part opens its details too (`SpacecraftModel inspectable`, off for preview snapshots, the launch storyboard and reference-only shots). Hover shows a pointer cursor; the inspected part stays highlighted. `PartTracker` projects the inspected part (installed instances, else its empty slot; never proposals or hidden shots) through `projectBox` into viewport pixels each rendered frame for the anchored Component panel; it never invalidates frames by itself and returns no rectangle when the part is behind the camera or off the canvas. DOM slot and component buttons provide keyboard and non-drag equivalents. Dimension callouts distinguish approximate envelopes. Turntable is opt-in, stops during model/card interaction and is disabled by reduced motion. Scene picking never calls `addPart`, applies a quote or issues a command.
+Picking requires less than 5 CSS px movement, so orbit dragging does not install/select a part accidentally. A slot click selects its category and opens that component's details; in the close orbit view, an installed part opens its details too (`SpacecraftModel inspectable`, off for preview snapshots, launch storyboard and reference-only shots). Hover shows a pointer cursor; the inspected part stays highlighted. `PartTracker` and `projectBox` retain their per-frame viewport projection, side stability and detach-on-drag behavior unchanged. The bottom controller is an occupied HUD zone; its measured top bounds the anchored Component panel. DOM slot/category/component buttons now mount once inside MissionControl, not AppCanvas's scene overlay. They retain keyboard/non-drag equivalents, view-only inspection in flight and adjacent scientific evidence. Dimensions distinguish approximate envelopes. Turntable is opt-in, stops during interaction and is disabled by reduced motion. Scene picking never calls `addPart`, applies a quote or issues a command.
 
 ## 4. Shared sky, Sun and surfaces
 
@@ -143,17 +149,17 @@ The optional launch storyboard uses an authored metre-proportioned stack over th
 
 Camera response uses wall-clock R3F delta, never simulation warp: exponential rates 3.5/s up, 5/s distance and 2/s recenter. Middle-button quick look and ordinary Chase dragging temporarily suspend tracking; recenter begins after three idle seconds. Semantic identity caches at most 80 poses. Discontinuities (generation/checkpoint, changed shot, backward time, large simulation-time jump) snap instead of easing through invalid space. Self-paced advancing and warp **above 100×** select Map with a motion trail. The camera stays outside the body radius plus near-plane clearance. User movement never issues a pointing command.
 
-Fit/Reset preserve measured framing semantics. The optical clear band is measured from actual HUD zones (`data-hud-zone` plus top/resource/CAPCOM/flight roots), not the removed header/dock. Reflow updates projection rather than dragging the saved pose. Reading layout uses the full in-flow viewport.
+Fit/Reset preserve measured framing semantics. The optical clear band reads actual `[data-hud-zone]` roots: identity header, resources and bottom mission control. The old separate CAPCOM and fixed flight-deck roots are removed. `useWindowViewport` supplies the same controller clearance to tools and scene-camera widgets. Reflow updates projection rather than dragging saved poses. Reading layout uses the full in-flow viewport; expanded trays do not cause a layout-class feedback loop.
 
 The compact widget exposes mode, zoom and Fit; details retain every CameraBridge action including pan, focus spacecraft/station, body/orbit-plane view and Reset. Keyboard: **V** cycles, **K** Inspect, **M** Map, **F** Fit, **R** Reset; scoped arrows orbit, Shift+arrows pan, +/− zoom. Inputs/selects/editors/modals are excluded from mission shortcuts. Coarse-pointer camera capture is opt-in Explore 3D; Done/Escape restores ordinary page scrolling/pinch gestures. Pilot capture is a separate explicit mode and never captures DOM panels.
 
 ## 7. Flight deck and manual steering
 
-`FlightBar`, `DecisionOverlay`, `EventToasts` mount outside collapsible windows. The forecast timeline uses `forecastTimeline(sim,horizon)` for the next Earth orbit or Mars day, with sunlight, eclipse, contact, target, storm, event and mission-end lanes. It refreshes on bounded simulated-time buckets while the playhead follows publications. Selecting a contact invokes `advanceToEvent(absoluteStartSec)` and still stops at any prior autopause; it does not upload an operations plan. Compact layout collapses the timeline in place and preserves the same keyboard controls.
+`FlightBar` is embedded in the bottom controller's Flight options; DecisionOverlay/EventToasts remain independent of tool collapse. The forecast timeline uses `forecastTimeline(sim,horizon)` for the next Earth orbit or Mars day, with sunlight, eclipse, contact, target, storm, event and mission-end lanes. It refreshes in bounded simulated-time buckets; the same forecast feeds an always-visible next sunlight/shadow/contact edge with absolute T+ time and advance action. Next-contact information remains visible when the tray or detailed timeline is closed. Unknown edges are explicitly unknown. Selecting an available contact invokes `advanceToEvent(absoluteStartSec)` and still stops at any earlier autopause; it does not upload an operations plan. The timeline is closed by default instead of consuming the default scene area. The public LAN snapshot retains the inputs required for this read-only geometric forecast; outcome scoring instead uses the authority-projected review.
 
 Timeline boundaries are sampled forecasts, not promises of exact sub-step propagation. `advanceToEvent(targetSec)` retains core's accumulated remainder and stops at the requested time budget or an earlier autopause; physical telemetry remains at the last integrated model step/deadline. A target between steps can therefore stop just before physical contact until the next tick. The displayed qualifier is intentional; a 0.25-second forecast boundary is not a claim of a 0.25-second flight integrator.
 
-Hotbar: **1** Sun, **2** Target, **3** Earth, **D** downlink, **S** safe, **G** deployment, **P** pilot. Existing core command previews, power-before/after, contact/light-time explanations, typed refusals and timestamped receipts are retained. In pilot mode D/S are yaw/pitch inputs; their discrete shortcuts resume after leaving pilot. Buttons remain available. Play/pause, warp selection and advance/cancel remain store-owned; role constraints are not bypassed.
+Hotbar: **1** Sun, **2** Target, **3** Earth, **D** downlink, **S** safe, **G** deployment, **P** pilot. Existing core command previews, power-before/after, contact/light-time explanations, typed refusals and timestamped receipts are retained. In pilot mode D/S are yaw/pitch inputs; their discrete shortcuts resume after leaving pilot. Buttons remain available. Play/pause, warp selection and advance/cancel dispatch session intents through the store; role constraints are not bypassed.
 
 Pilot mode routes pointer/touch scene drags and continuously held **W/S, A/D, Q/E** into target attitude, with an on-screen six-way hold pad. Mouse sensitivity is 0.003 rad/px. An anchor release within 15° selects an ordinary Sun/Target/Earth POINT hold. Camera dragging owns the scene when pilot is off. Blur, pointer cancellation and key release end holds.
 
@@ -165,12 +171,13 @@ The centred decision region is not a hidden panel and clearly states clock pause
 
 | Clock/work path | Authority |
 |---|---|
-| Continuous simulation | `useSimLoop` RAF → bounded wall delta → warped store advance → core |
-| Self-paced simulation | Explicit bounded/cancellable store `advanceToEvent` batches |
+| Static continuous simulation | `useSimLoop` RAF → bounded wall delta → `tickSession` → core |
+| Static self-paced simulation | Explicit bounded/cancellable `advanceToEvent` batches through session authority |
+| LAN simulation | Bun monotonic `HostClock` → serialized `RoomQueue` → `tickSession`; browser consumes snapshots only |
 | Rendering | R3F drawing/invalidation, pose consumers only |
 | Camera, install, turntable, launch/time-lapse | Independent wall-clock presentation; no physics writes |
 
-Canvas is continuous while a live implementation runs; otherwise it is demand-driven except finite/opt-in presentation motion. It never draws after latched graphics failure. Hidden/Home/settings/Explain/viewer/tour pauses remain explicit store reasons, never auto-resumed on close. Reduced motion disables decorative turntable/cinematics/damping/transitions, not scientifically meaningful live position or attitude changes.
+Canvas is continuous while a live implementation runs; otherwise it is demand-driven except finite/opt-in presentation motion. It never draws after latched graphics failure. Pause scope belongs to session policy, not rendering: static hidden/Home/settings/Explain/viewer/tour reasons stop time; LAN optional explanations/tours and phone visibility remain local. Removing a reason never auto-resumes. Reduced motion disables decorative turntable/cinematics/damping/transitions, not scientifically meaningful live position or attitude changes.
 
 | Tier | DPR cap | MSAA request | Orbit samples | Grid density | Label budget |
 |---|---:|---|---:|---:|---:|
@@ -196,8 +203,8 @@ Required integration gates: all four missions × levels; persistent Canvas prepa
 
 - Shared custom vertex shaders include Three's `<common>` before logarithmic-depth chunks. `logdepthbuf_vertex` uses `isPerspectiveMatrix`; removing the dependency breaks sky, Sun, planet and atmosphere compilation, not physics.
 - Camera presentation records `AUTO` versus `USER` intent. Automatic briefing Workbench completion resolves to Chase for flight; explicit Map/Inspect selection persists. Automatic event shots do not override a user-selected mode.
-- The desktop flight deck measures the real resource rail's right edge and starts eight pixels beyond it. A ResizeObserver publishes the actual bottom inset as `--flight-hud-inset`; camera controls sit above that measured deck instead of a fixed guessed height. On compact layouts every scene widget (camera, caption, workbench, launch presentation, status) stacks in one column from Shell's measured `--window-chrome-height + 8px`, not the bottom pill/sheet zone, so none sits behind the badges or CAPCOM. Pilot popovers align to their trigger's left edge on desktop and scroll within the measured header/deck gap.
-- Floating panel pills must be clamped above the same actual deck inset by the shell; moving one layer over another cannot make both controls usable. The decision region explicitly restores pointer interaction beneath the shell's non-interactive HUD root.
+- `useWindowViewport` measures the resource/header bounds and the bottom controller's actual occupied height. Tools and camera widgets clear that geometry instead of a guessed deck height. Closed-base classification excludes expanded trays/transient notices, while actual bounds still reserve their space. Compact scene widgets use the measured header/resources origin and bottom occupied zone; pilot popovers remain bounded and scrollable.
+- Closed tools consume no scene area and have bottom-controller navigation buttons, not floating panel pills. Expanded desktop tools and the anchored Component panel are clamped within the measured workspace. The decision region explicitly restores pointer interaction beneath the shell's non-interactive HUD root.
 - In actual core eclipse, close shots show an explicitly labelled **inspection outline** of the authored metre bus envelope. It is an unlit display overlay following actual attitude, not sunlight, emitting hardware, installed equipment or power generation. The real model and core illumination remain shadowed.
 
 - Initial keyboard/pad/touch holds preserve one frame's angular intent immediately, so a genuine tap released before the next RAF is not lost. Continued motion still integrates wall time, key repeat does not duplicate the initial nudge, and the 250 ms send throttle spans successive gestures. A flight-generation guard prevents a delayed final target from entering a replacement mission.

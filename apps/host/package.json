@@ -1,0 +1,7 @@
+{
+  "name": "@astrix/host",
+  "private": true,
+  "type": "module",
+  "scripts": { "start": "bun --no-install src/index.ts" },
+  "dependencies": { "@astrix/session": "workspace:*", "@astrix/core": "workspace:*" }
+}

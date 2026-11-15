@@ -1,178 +1,169 @@
 import { create } from 'zustand';
 import * as core from '@astrix/core';
-import type { ActorRole, Budgets, Command, CueEngineState, Design, LevelId, MissionArtifacts, JourneyStage, Phase, Quote, Refusal, RoleId, ScenarioId, SimEvent, SimState, TeamStats, Telemetry } from '@astrix/core';
+import { advanceSession, createSession, quoteDesign, reduceSession, tickSession, ROLES, STAGES, SUBSTEPS, WARPS } from '@astrix/session';
+import type { DesignEdit, IntentResult, PauseReason, PracticeCheckpoint, SessionActor, SessionIntent, SessionRefusal, SessionSnapshot, SessionState } from '@astrix/session';
+import type { ActorRole, Budgets, Command, Design, JourneyStage, LevelId, MissionArtifacts, Phase, Quote, Refusal, RoleId, ScenarioId, ScoreBreakdown, SimState, Telemetry } from '@astrix/core';
 import type { ScienceTopicId } from '@astrix/data';
 import { emitGameEvent } from './events';
 import { resetAudioGate, playCue } from '../audio/cues';
-export const ROLES: readonly RoleId[] = ['SCIENCE','SPACECRAFT','LAUNCH_ORBIT','GROUND_COMMS'];
-export const WARPS = [1,10,100,1000,10000] as const;
-export const STAGES: readonly JourneyStage[] = ['NEED_GOALS','CONCEPT','REQUIREMENTS','DESIGN','BUILD_VERIFY','IMPLEMENT','REVIEW'];
+export { ROLES, STAGES, SUBSTEPS, WARPS };
+export type { PauseReason, DesignNote, RosterChange, AcceptedTrade, PracticeCheckpoint } from '@astrix/session';
 export type Stage = JourneyStage;
-export const SUBSTEPS:Record<Stage,readonly string[]> = {NEED_GOALS:['brief'],CONCEPT:['bus'],REQUIREMENTS:['requirements'],DESIGN:['equipment','orbit','trajectory'],BUILD_VERIFY:['readiness','signoffs'],IMPLEMENT:['operations'],REVIEW:['results']};
-export type PauseReason = 'manual'|'decision'|'explanation'|'handoff'|'settings'|'hidden'|'chooser'|'graphics'|'home'|'self-paced'|'viewer'|'tour'|'error'|'route';
 export type Presentation = 'GUIDED'|'DETAILED';
-export interface Explanation { topicId:ScienceTopicId; contextId:string; snapshot:{design:Design|null;budgets:Budgets|null;telemetry:Telemetry|null}; opener:HTMLElement|null }
-export interface Settings { presentation:Presentation; presentationExplicit:boolean; reducedMotion:boolean; sound:boolean; uiVolume:number; alertVolume:number }
-const blankSignoffs = (): Record<RoleId,boolean> => ({ SCIENCE:false, SPACECRAFT:false, LAUNCH_ORBIT:false, GROUND_COMMS:false });
-const emptyCues = (): CueEngineState => ({lastRaised:{},clearPending:{},active:[]});
-const emptyTeam = (): TeamStats => ({roles:1,signoffs:0,blockedSignoffAttempts:0,sev3Raised:0,sev3ResolvedBeforeLaunch:0});
-export interface LiveMission {state:SimState|null;telemetry:Telemetry|null;generation:number}
-export const liveMission:LiveMission={state:null,telemetry:null,generation:0};
-export interface DesignNote { readonly revision:number; readonly actor:ActorRole; readonly player:number|null; readonly kind:'CONCERN'|'SIDEBAR'; readonly target:'mass'|'power'|'budget'|'data'; readonly text:string; readonly resolved:boolean }
-export interface RosterChange { readonly before:readonly (readonly RoleId[])[]; readonly after:readonly (readonly RoleId[])[]; readonly time:number }
-export interface AcceptedTrade { readonly revision:number; readonly actor:ActorRole; readonly player:number|null; readonly description:string; readonly before:Budgets; readonly after:Budgets }
-export interface PracticeCheckpoint { id:number; name:'launch'|'arrival'|'decision'; time:number; snapshot:{design:Design;sim:SimState;events:readonly SimEvent[];pendingDecisions:readonly SimEvent[];team:TeamStats;signoffs:Record<RoleId,boolean>;cues:CueEngineState} }
-function readSettings(): Settings {
- const defaults:Settings={presentation:'GUIDED',presentationExplicit:false,reducedMotion:typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches,sound:false,uiVolume:.3,alertVolume:.4};
- if(typeof localStorage==='undefined')return defaults;
- try {const raw=JSON.parse(localStorage.getItem('astrix.settings')??'{}'),{tourDone:_legacyTourDone,...saved}=raw;return {...defaults,...saved,presentationExplicit:raw.presentationExplicit??Object.hasOwn(raw,'presentation'),presentation:raw.presentation==='TECHNICAL'||raw.presentation==='DETAILED'?'DETAILED':'GUIDED'};}catch{return defaults;}
-}
-function persistSettings(settings:Settings) {if(typeof localStorage==='undefined')return;try{localStorage.setItem('astrix.settings',JSON.stringify(settings));}catch{/* Preferences are optional in private browsing. */}}
-export function readBest(id:ScenarioId,levelId:LevelId,rulesVersion:number):number {if(typeof localStorage==='undefined')return 0;try{return Number(localStorage.getItem(`astrix.best.${id}.${levelId}.${rulesVersion}`))||0;}catch{return 0;}}
-function saveMissionBest(state:SimState,design:Design,team:TeamStats,assisted:boolean):void {
- if(typeof localStorage==='undefined'||assisted||core.telemetry(state).endedByTeam)return;
- const score=core.scoreMission(state,design,team);
- try{localStorage.setItem(`astrix.best.${design.scenarioId}.${design.levelId}.${design.rulesVersion}`,String(Math.max(readBest(design.scenarioId,design.levelId,design.rulesVersion),score.total)));}catch{/* A local best is optional. */}
-}
-function cuesFor(design:Design,previous:CueEngineState,sim:SimState|null):CueEngineState {return core.evaluateCues(previous,sim?core.operateSnapshot(sim,design):{...core.designSnapshot(design),phase:'LAUNCH_ORBIT'},sim?.t??design.revision);}
-const viewFor=(stage:Stage,step:string):Phase=>stage==='NEED_GOALS'?'GOAL':stage==='CONCEPT'||stage==='REQUIREMENTS'?'CONCEPT':stage==='DESIGN'?(step==='orbit'||step==='trajectory'?'LAUNCH_ORBIT':'DESIGN'):stage==='BUILD_VERIFY'?'LAUNCH_ORBIT':stage==='REVIEW'?'REPORT':'OPERATE';
-const withReason=(reasons:readonly PauseReason[],reason:PauseReason)=>reasons.includes(reason)?reasons:[...reasons,reason];
-const blockingReasons:readonly PauseReason[]=['decision','explanation','handoff','settings','hidden','chooser','graphics','home','viewer','tour','error','route'];
-let nextCheckpointId=0;
-let advanceOperation=0;
-export interface MissionStore {
- activeStage:Stage;furthestStage:number;activeView:Phase;activeSubstep:string;setStage(stage:Stage):void;completeStage():boolean;setView(view:Phase):void;setSubstep(step:string):void;
- scenarioId:ScenarioId;levelId:LevelId;previewMissionId:ScenarioId|null;previewLevelId:LevelId|null;attemptId:number;artifacts:MissionArtifacts|null;recordTrade(description:string,revision:number,before:Budgets,after:Budgets,actor:ActorRole):void;freezeBaseline():boolean;verifyBaseline():boolean;updateArtifacts(patch:Partial<MissionArtifacts>):void;
- players:readonly (readonly RoleId[])[];activeRole:RoleId;signoffs:Record<RoleId,boolean>;team:TeamStats;design:Design|null;budgets:Budgets|null;cues:CueEngineState;lastRefusal:Refusal|null;
- designNotes:readonly DesignNote[];rosterHistory:readonly RosterChange[];facilitator:number;addDesignNote(kind:DesignNote['kind'],target:DesignNote['target'],text:string):void;resolveDesignNote(index:number):void;rotateFacilitator():void;
- acceptedTrades:readonly AcceptedTrade[];
- sim:SimState|null;telemetry:Telemetry|null;running:boolean;warp:number;historyVersion:number;events:readonly SimEvent[];pendingDecisions:readonly SimEvent[];explanation:Explanation|null;learningPause:boolean;settings:Settings;handoff:RoleId|null;previewImage:string|null;
- pauseReasons:readonly PauseReason[];advancing:boolean;advanceMessage:'event'|'limit'|null;practiceCheckpoints:readonly PracticeCheckpoint[];assisted:boolean;
+export interface Explanation {topicId:ScienceTopicId;contextId:string;snapshot:{design:Design|null;budgets:Budgets|null;telemetry:Telemetry|null};opener:HTMLElement|null}
+export interface Settings {presentation:Presentation;presentationExplicit:boolean;reducedMotion:boolean;sound:boolean;uiVolume:number;alertVolume:number}
+export interface LiveMission {readonly state:SimState|null;readonly telemetry:Telemetry|null;readonly generation:number}
+interface CheckpointView {id:number;name:PracticeCheckpoint['name'];time:number}
+type MissionProjection = Omit<SessionState,'results'|'quotes'|'replay'|'practiceCheckpoints'|'nextCheckpointId'|'advanceTarget'|'advanceWork'>;
+export interface MissionStore extends MissionProjection {
+ practiceCheckpoints:readonly CheckpointView[];remoteMode:boolean;activeRole:RoleId;previewMissionId:ScenarioId|null;previewLevelId:LevelId|null;lastRefusal:Refusal|null;explanation:Explanation|null;learningPause:boolean;settings:Settings;handoff:RoleId|null;previewImage:string|null;
+ review:ScoreBreakdown|null;
+ setStage(stage:Stage):void;completeStage():boolean;setView(view:Phase):void;setSubstep(step:string):void;
+ recordTrade(description:string,revision:number,before:Budgets,after:Budgets,actor:ActorRole):void;freezeBaseline():boolean;verifyBaseline():boolean;updateArtifacts(patch:Partial<MissionArtifacts>):void;
+ recordTradeQuote(description:string,quote:Quote<{next:Design}>):void;
+ addDesignNote(kind:'CONCERN'|'SIDEBAR',target:'mass'|'power'|'budget'|'data',text:string):void;resolveDesignNote(index:number):void;rotateFacilitator():void;
  actor():ActorRole;setTeam(count:number):void;assignRole(role:RoleId,player:number):void;startScenario(id:ScenarioId,levelId?:LevelId,retainHardware?:boolean):void;
  previewScenario(id:ScenarioId,levelId:LevelId):void;cancelPreview():void;setActiveRole(role:RoleId):void;signOff():void;applyDesign(quote:Quote<{next:Design}>):boolean;
  addPart(id:string):void;removePart(id:string):void;setRide(id:string):void;setOrbit(orbit:NonNullable<Design['orbit']>):void;setPropellant(kg:number):void;launch(revision?:number):boolean;endMission():void;command(command:Command,gestureId?:string):boolean;commands(commands:readonly Command[]):boolean;
  pause(reason?:PauseReason):void;clearPauseReason(reason:PauseReason):void;resume():void;setWarp(warp:number):void;advance(dt:number,publish:boolean):void;advanceToEvent(targetSec?:number):void;cancelAdvance():void;publish():void;decide(commands:readonly Command[]):boolean;acknowledgeDecision():void;skipCruise():void;resetMission(keepDesign?:boolean):void;
  saveCheckpoint(name:PracticeCheckpoint['name']):void;retryCheckpoint(id:number):void;openExplanation(topicId:ScienceTopicId,contextId:string,opener?:HTMLElement|null):void;closeExplanation(restoreFocus?:boolean):void;setSettings(patch:Partial<Settings>):void;setPreviewImage(src:string):void;clearRefusal():void;dismissHandoff():void;
 }
-const initialSettings=readSettings();
+function readSettings():Settings {
+ const defaults:Settings={presentation:'GUIDED',presentationExplicit:false,reducedMotion:typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches,sound:false,uiVolume:.3,alertVolume:.4};
+ if(typeof localStorage==='undefined')return defaults;
+ try{const raw=JSON.parse(localStorage.getItem('astrix.settings')??'{}'),{tourDone:_legacyTourDone,...saved}=raw;return {...defaults,...saved,presentationExplicit:raw.presentationExplicit??Object.hasOwn(raw,'presentation'),presentation:raw.presentation==='TECHNICAL'||raw.presentation==='DETAILED'?'DETAILED':'GUIDED'};}catch{return defaults;}
+}
+function persistSettings(settings:Settings):void {if(typeof localStorage==='undefined')return;try{localStorage.setItem('astrix.settings',JSON.stringify(settings));}catch{/* Optional preferences. */}}
+export function readBest(id:ScenarioId,levelId:LevelId,rulesVersion:number):number {if(typeof localStorage==='undefined')return 0;try{return Number(localStorage.getItem(`astrix.best.${id}.${levelId}.${rulesVersion}`))||0;}catch{return 0;}}
+function saveBest(state:SessionState):void {
+ if(typeof localStorage==='undefined'||!state.sim||!state.design||state.assisted||state.telemetry?.endedByTeam)return;
+ const score=core.scoreMission(state.sim,state.design,state.team),d=state.design;
+ try{localStorage.setItem(`astrix.best.${d.scenarioId}.${d.levelId}.${d.rulesVersion}`,String(Math.max(readBest(d.scenarioId,d.levelId,d.rulesVersion),score.total)));}catch{/* Optional local best. */}
+}
+let authority=createSession(),generation=0,advanceOperation=0;
+export type IntentSink=(intent:SessionIntent,actor:SessionActor)=>void;
+let intentSink:IntentSink|null=null,remoteIdentity:{playerId:string;isHost:boolean}|null=null;
+export const liveMission:LiveMission={get state(){return useMission.getState().remoteMode?useMission.getState().sim:authority.sim;},get telemetry(){return useMission.getState().remoteMode?useMission.getState().telemetry:authority.telemetry;},get generation(){return generation;}};
+/** Immutable local authority access for replay/history consumers; never a mutation API. */
+export function getSessionState():SessionState {return authority;}
+function projection(state:SessionState):MissionProjection&{practiceCheckpoints:readonly CheckpointView[];review:ScoreBreakdown|null} {
+ const {results:_results,quotes:_quotes,replay:_replay,nextCheckpointId:_next,advanceTarget:_target,advanceWork:_work,...shared}=state;
+ return {...shared,review:state.sim&&state.design&&state.telemetry?.ended?core.scoreMission(state.sim,state.design,state.team):null};
+}
+function actorContext():SessionActor {
+ const s=useMission.getState();
+ if(s.remoteMode){const player=s.roster.find(p=>p.id===remoteIdentity?.playerId);return {role:s.participantMode==='SOLO'&&player?.roles.length===4?'ALL':s.activeRole,playerId:remoteIdentity?.playerId??'',isHost:remoteIdentity?.isHost??false};}
+ const role=s.participantMode==='SOLO'?'ALL':s.activeRole,player=authority.roster.find(p=>role==='ALL'||p.roles.includes(role));
+ return {role,playerId:player?.id??authority.roster[0].id,isHost:true};
+}
+function project(next:SessionState,localPatch:Partial<MissionStore>={}):void {
+ const previous=authority;
+ if(next.attemptId!==previous.attemptId){generation++;advanceOperation++;resetAudioGate();}
+ authority=next;
+ useMission.setState({...projection(next),...localPatch});
+ const priorKeys=new Set(previous.events.map(e=>`${e.kind}:${e.t}`));next.events.filter(e=>!priorKeys.has(`${e.kind}:${e.t}`)).forEach(emitGameEvent);
+ if(next.telemetry?.ended&&!previous.telemetry?.ended)saveBest(next);
+}
+const quietKinds:Partial<Record<SessionIntent['kind'],true>>={SET_STAGE:true,SET_SUBSTEP:true,SET_VIEW:true,COMPLETE_STAGE:true,FREEZE_BASELINE:true,VERIFY_BASELINE:true,RESUME:true,ADVANCE_NEXT:true};
+function dispatch(intent:SessionIntent,patch:Partial<MissionStore>={}):boolean {
+ const s=useMission.getState(),actor=actorContext();
+ if(s.remoteMode){if(intent.kind==='LOCAL_RESTORE'||intent.kind==='LOCAL_TRADE')return false;intentSink?.(intent,actor);if(Object.keys(patch).length)useMission.setState(patch);return false;}
+ const transition=reduceSession(authority,intent,actor);
+ const lastRefusal=transition.result.ok?null:transition.result.refusal;
+ const error:Refusal|null=lastRefusal?(lastRefusal.code==='STALE_DESIGN'||lastRefusal.code==='STALE_ROSTER'?{ok:false,code:'NOT_READY',values:{missing:lastRefusal.code==='STALE_DESIGN'?'designRevision':'rosterRevision'}}:isCoreRefusal(lastRefusal)?lastRefusal:{ok:false,code:'NOT_READY',values:{transport:lastRefusal.code}}):null;
+ const resultPatch={...patch,...(transition.result.ok||!quietKinds[intent.kind]?{lastRefusal:error}:{})};
+ if(transition.state!==authority||Object.keys(resultPatch).length)project(transition.state,resultPatch);
+ if(!transition.result.ok&&!quietKinds[intent.kind])playCue('refusal');
+ else if(transition.result.ok&&intent.kind==='SIGN_OFF')playCue('signoff');
+ else if(transition.result.ok&&(intent.kind==='COMMIT_DESIGN'||intent.kind==='COMMANDS'))playCue('part');
+ return transition.result.ok;
+}
+function isCoreRefusal(value:SessionRefusal):value is Refusal {
+ return ['MASS_OVER_LIMIT','NO_SLOT','OVER_BUDGET','ROLE_LOCKED','DUPLICATE_UNIQUE','RIDE_MISMATCH','ORBIT_NOT_OFFERED','REQUIRES_PART','SIGNOFF_BLOCKED','NOT_READY','NO_CONTACT','MODE_FORBIDS','STORAGE_EMPTY','PROPELLANT_OVER_TANK','UNSUPPORTED_RULES','POWER_EOL_SHORT','ECLIPSE_RESERVE_SHORT','THERMAL_MARGIN_SHORT','RETURN_FUEL_SHORT','CAPTURE_RESERVE_SHORT','DATA_CAPACITY_SHORT','LINK_UNAVAILABLE','POINTING_ACQUIRING','POINTING_DEGRADED','COMPUTER_REBOOTING','RECOVERY_COOLDOWN','INSUFFICIENT_ENERGY','COMMAND_EXPIRED','COMMAND_INVALIDATED','LEVEL_FORBIDS','INVALID_PARAMETER'].includes(value.code);
+}
+function quoteEdit(before:Design,next:Design):DesignEdit|null {
+ if(before.scenarioId!==next.scenarioId||before.revision+1!==next.revision)return null;
+ if(before.rideId!==next.rideId&&next.rideId)return {kind:'SET_RIDE',rideId:next.rideId};
+ for(const part of [...before.parts,...next.parts]){
+  const a=before.parts.find(p=>p.partId===part.partId),b=next.parts.find(p=>p.partId===part.partId);
+  if((a?.qty??0)<(b?.qty??0))return {kind:'ADD_PART',partId:part.partId};
+  if((a?.qty??0)>(b?.qty??0))return {kind:'REMOVE_PART',partId:part.partId};
+  if(a?.propellantKg!==b?.propellantKg&&b?.propellantKg!==undefined)return {kind:'SET_PROPELLANT',kg:b.propellantKg};
+ }
+ if(next.orbit&&JSON.stringify(before.orbit)!==JSON.stringify(next.orbit))return {kind:'SET_ORBIT',orbit:next.orbit};
+ return null;
+}
+function commit(edit:DesignEdit):void {const s=useMission.getState();if(s.design)dispatch({kind:'COMMIT_DESIGN',edit,baseRevision:s.design.revision});}
 export const useMission=create<MissionStore>((set,get)=>({
- activeStage:'NEED_GOALS',furthestStage:0,activeView:'GOAL',activeSubstep:'brief',scenarioId:'FIRST_LIGHT',levelId:'ASPIRING',previewMissionId:null,previewLevelId:null,attemptId:0,artifacts:null,
- players:[ROLES],activeRole:'SCIENCE',signoffs:blankSignoffs(),team:emptyTeam(),design:null,budgets:null,cues:emptyCues(),lastRefusal:null,sim:null,telemetry:null,running:false,warp:100,historyVersion:0,events:[],pendingDecisions:[],explanation:null,learningPause:false,settings:initialSettings,handoff:null,previewImage:null,pauseReasons:[],advancing:false,advanceMessage:null,practiceCheckpoints:[],assisted:false,designNotes:[],rosterHistory:[],facilitator:0,acceptedTrades:[],
- setStage(activeStage){const s=get(),current=STAGES.indexOf(s.activeStage),target=STAGES.indexOf(activeStage);if(target<0||s.sim&&activeStage!=='IMPLEMENT'&&!(activeStage==='REVIEW'&&s.telemetry?.ended)||!s.sim&&(target>s.furthestStage||target>current&&(!s.design||!s.artifacts||STAGES.slice(current,target).some(stage=>core.evaluateJourneyStage(s.design!,s.artifacts!,stage,s.signoffs).length))))return;const activeSubstep=SUBSTEPS[activeStage][0];set({activeStage,activeSubstep,activeView:viewFor(activeStage,activeSubstep)});},
- completeStage(){const s=get();if(!s.design||!s.artifacts)return false;const index=STAGES.indexOf(s.activeStage);if(index<0||index>=STAGES.length-1||s.activeStage==='IMPLEMENT'&&!s.telemetry?.ended||core.evaluateJourneyStage(s.design,s.artifacts,s.activeStage,s.signoffs,s.sim??undefined).length)return false;const activeStage=STAGES[index+1],activeSubstep=SUBSTEPS[activeStage][0];set({activeStage,furthestStage:Math.max(s.furthestStage,index+1),activeSubstep,activeView:viewFor(activeStage,activeSubstep)});return true;},
- setView(activeView){const s=get();if(activeView==='OPERATE'&&s.sim){set({activeStage:'IMPLEMENT',activeSubstep:'operations',activeView});}else if(activeView==='REPORT'&&s.telemetry?.ended){set({activeStage:'REVIEW',activeSubstep:'results',activeView});}},
- setSubstep(activeSubstep){const {activeStage}=get();if(SUBSTEPS[activeStage].includes(activeSubstep))set({activeSubstep,activeView:viewFor(activeStage,activeSubstep)});},
- updateArtifacts(patch){const s=get();if(!s.sim&&s.artifacts)set({artifacts:{...s.artifacts,...patch}});},
- recordTrade(description,revision,before,after,actor){const s=get();if(!s.sim&&s.design?.revision===revision&&s.artifacts)set({artifacts:{...s.artifacts,trade:{revision,description,before,after,actor}}});},
- freezeBaseline(){const s=get();if(!s.design||!s.artifacts||s.sim||!s.artifacts.trade)return false;set({artifacts:{...s.artifacts,baselineRevision:s.design.revision,verifiedRevision:null}});return true;},
- verifyBaseline(){const s=get();if(!s.design||!s.artifacts||s.sim||s.artifacts.baselineRevision!==s.design.revision||core.evaluateJourneyStage(s.design,s.artifacts,'BUILD_VERIFY',s.signoffs).some(issue=>issue.id!=='VERIFY'))return false;set({artifacts:{...s.artifacts,verifiedRevision:s.design.revision}});return true;},
- addDesignNote(kind,target,text){const s=get(),clean=text.trim().slice(0,500);if(!clean||!s.design||s.sim)return;set({designNotes:[...s.designNotes,{revision:s.design.revision,actor:s.actor(),player:s.players.length===1?null:s.players.findIndex(roles=>roles.includes(s.activeRole)),kind,target,text:clean,resolved:false}].slice(-100)});},
- resolveDesignNote(index){const s=get();if(s.sim)return;set({designNotes:s.designNotes.map((note,i)=>i===index?{...note,resolved:true}:note)});},
- rotateFacilitator(){const s=get();set({facilitator:(s.facilitator+1)%s.players.length});},
- actor:()=>get().players.length===1?'ALL':get().activeRole,
- setTeam(count){const s=get();if(s.sim&&!s.pauseReasons.includes('settings'))return;const n=Math.max(1,Math.min(4,count));if(n===s.players.length)return;const players=Array.from({length:n},()=>[] as RoleId[]);ROLES.forEach((r,i)=>players[i%n].push(r));const signoffs={...s.signoffs};ROLES.forEach(role=>{if(s.players.findIndex(p=>p.includes(role))!==players.findIndex(p=>p.includes(role)))signoffs[role]=false;});set({players,facilitator:Math.min(s.facilitator,n-1),signoffs,team:{...s.team,roles:n===1?1:4},rosterHistory:[...s.rosterHistory,{before:s.players.map(r=>[...r]),after:players.map(r=>[...r]),time:s.telemetry?.t??0}].slice(-100)});},
- assignRole(role,player){const s=get();if(s.sim&&!s.pauseReasons.includes('settings')||player<0||player>=s.players.length||s.players[player].includes(role))return;const players=s.players.map((roles,i)=>i===player?[...roles.filter(r=>r!==role),role]:roles.filter(r=>r!==role));set({players,signoffs:{...s.signoffs,[role]:false},rosterHistory:[...s.rosterHistory,{before:s.players.map(r=>[...r]),after:players.map(r=>[...r]),time:s.telemetry?.t??0}].slice(-100)});},
- previewScenario(previewMissionId,previewLevelId){get().pause('chooser');set({previewMissionId,previewLevelId});},
- cancelPreview(){set({previewMissionId:null,previewLevelId:null});get().clearPauseReason('chooser');},
- startScenario(scenarioId,levelId=get().levelId,retainHardware=false){
-  const s=get(),starter=core.createStarterDesign(scenarioId,levelId);
-  const design=retainHardware&&s.design&&s.design.scenarioId===scenarioId?{...s.design,levelId:starter.levelId,rulesVersion:starter.rulesVersion,revision:s.design.revision+1}:starter;
-  const budgets=core.computeBudgets(design),cues=cuesFor(design,emptyCues(),null);
-  const revisitBuild=retainHardware&&s.design?.scenarioId===scenarioId&&s.furthestStage>=3&&!!s.artifacts?.objectiveConfirmed&&Object.values(s.artifacts.segments).every(Boolean);
-  const artifacts=core.createMissionArtifacts(design);
-  const acceptedBrief=revisitBuild?{...artifacts,objectiveConfirmed:true,segments:{...s.artifacts!.segments}}:artifacts;
-  liveMission.state=null;liveMission.telemetry=null;liveMission.generation++;resetAudioGate();
-  set({scenarioId,levelId,attemptId:s.attemptId+1,settings:s.settings.presentationExplicit?s.settings:{...s.settings,presentation:levelId==='EXPERT'?'DETAILED':'GUIDED'},artifacts:acceptedBrief,designNotes:[],rosterHistory:[],facilitator:0,acceptedTrades:[],design,budgets,cues,activeStage:revisitBuild?'DESIGN':'NEED_GOALS',furthestStage:revisitBuild?3:0,activeSubstep:revisitBuild?'equipment':'brief',activeView:revisitBuild?'DESIGN':'GOAL',previewMissionId:null,previewLevelId:null,sim:null,telemetry:null,running:false,pendingDecisions:[],events:[],historyVersion:0,signoffs:blankSignoffs(),team:{...emptyTeam(),roles:s.players.length===1?1:4},lastRefusal:null,explanation:null,learningPause:false,handoff:null,previewImage:null,pauseReasons:[],advancing:false,advanceMessage:null,practiceCheckpoints:[],assisted:false});
+ ...projection(authority),remoteMode:false,activeRole:'SCIENCE',previewMissionId:null,previewLevelId:null,lastRefusal:null,explanation:null,learningPause:false,settings:readSettings(),handoff:null,previewImage:null,
+ actor:()=>actorContext().role,
+ setStage(stage){dispatch({kind:'SET_STAGE',stage});},setView(view){dispatch({kind:'SET_VIEW',view});},setSubstep(step){dispatch({kind:'SET_SUBSTEP',step});},
+ completeStage(){return dispatch({kind:'COMPLETE_STAGE',designRevision:get().design?.revision??0});},
+ updateArtifacts(patch){if(patch.objectiveConfirmed!==undefined)dispatch({kind:'CONFIRM_OBJECTIVE',confirmed:patch.objectiveConfirmed});if(patch.segments)for(const segment of ['launch','space','ground','user'] as const)if(patch.segments[segment]!==get().artifacts?.segments[segment])dispatch({kind:'SET_SEGMENT',segment,selected:patch.segments[segment]});if(patch.baselineRevision===null)dispatch({kind:'INVALIDATE_BASELINE'});},
+ recordTrade(description,revision,before,after,actor){if(get().remoteMode){set({lastRefusal:{ok:false,code:'MODE_FORBIDS',values:{missing:'typedTradeQuote'}}});return;}dispatch({kind:'LOCAL_TRADE',description,revision,before,after,actor});},
+ recordTradeQuote(description,quote){
+  const s=get();if(!quote.ok){set({lastRefusal:quote});return;}if(!s.design||s.sim)return;
+  const edit=quoteEdit(s.design,quote.value.next),checked=edit?quoteDesign(s.design,edit,s.actor()):null;
+  if(!edit||!checked?.ok||JSON.stringify(checked.value.next)!==JSON.stringify(quote.value.next)){set({lastRefusal:{ok:false,code:'NOT_READY',values:{missing:'designRevision'}}});return;}
+  dispatch({kind:'RECORD_TRADE',edit,description,baseRevision:s.design.revision});
  },
- setActiveRole(activeRole){const s=get();if(s.activeRole===activeRole)return;if(s.players.length>1){s.pause('handoff');set({activeRole,handoff:activeRole});}else set({activeRole});},
- signOff(){
-  const s=get();if(!s.design||s.sim)return;
-  const cues=cuesFor(s.design,s.cues,null),roles=s.actor()==='ALL'?ROLES:[s.activeRole];
-  const blocked=roles.find(role=>cues.active.some(c=>c.severity===3&&(c.role===role||c.role==='ALL')));
-  if(blocked){set({cues,lastRefusal:{ok:false,code:'SIGNOFF_BLOCKED',values:{role:blocked}},team:{...s.team,blockedSignoffAttempts:s.team.blockedSignoffAttempts+1}});playCue('refusal');return;}
-  const signoffs={...s.signoffs};let added=0;roles.forEach(role=>{if(!signoffs[role])added++;signoffs[role]=true;});
-  set({cues,signoffs,team:{...s.team,signoffs:s.team.signoffs+added},lastRefusal:null});playCue('signoff');
+ freezeBaseline(){return dispatch({kind:'FREEZE_BASELINE',designRevision:get().design?.revision??0});},verifyBaseline(){return dispatch({kind:'VERIFY_BASELINE',designRevision:get().design?.revision??0});},
+ addDesignNote(category,target,text){dispatch({kind:'NOTE',category,target,text,designRevision:get().design?.revision??0});},resolveDesignNote(index){const note=get().designNotes[index];if(note)dispatch({kind:'RESOLVE_NOTE',noteId:note.id});},rotateFacilitator(){dispatch({kind:'ROTATE_FACILITATOR',rosterRevision:get().rosterRevision});},
+ setTeam(count){dispatch({kind:'SET_TEAM',count});},assignRole(role,player){const target=get().roster[player];if(target)dispatch({kind:'ASSIGN_ROLE',role,playerId:target.id,rosterRevision:get().rosterRevision});},
+ startScenario(scenarioId,levelId=get().levelId,retainHardware=false){const s=get();dispatch({kind:'START_SCENARIO',scenarioId,levelId,retainHardware},{previewMissionId:null,previewLevelId:null,explanation:null,learningPause:false,handoff:null,previewImage:null,...(!s.settings.presentationExplicit?{settings:{...s.settings,presentation:levelId==='EXPERT'?'DETAILED':'GUIDED'}}:{})});},
+ previewScenario(previewMissionId,previewLevelId){get().pause('chooser');set({previewMissionId,previewLevelId});},cancelPreview(){set({previewMissionId:null,previewLevelId:null});get().clearPauseReason('chooser');},
+ setActiveRole(activeRole){const s=get();if(s.activeRole===activeRole)return;if(!s.remoteMode&&s.players.length>1){s.pause('handoff');set({activeRole,handoff:activeRole});}else set({activeRole});},
+ signOff(){const s=get();dispatch({kind:'SIGN_OFF',role:s.activeRole,designRevision:s.design?.revision??0,rosterRevision:s.rosterRevision});},
+ applyDesign(quote){const s=get();if(!quote.ok){set({lastRefusal:quote});return false;}if(!s.design||s.sim){set({lastRefusal:{ok:false,code:'NOT_READY',values:{missing:'frozenDesign'}}});return false;}
+  const edit=quoteEdit(s.design,quote.value.next),checked=edit?quoteDesign(s.design,edit,s.actor()):null;
+  if(!edit||!checked?.ok||JSON.stringify(checked.value.next)!==JSON.stringify(quote.value.next)){set({lastRefusal:{ok:false,code:'NOT_READY',values:{missing:'designRevision'}}});return false;}
+  return dispatch({kind:'COMMIT_DESIGN',edit,baseRevision:s.design.revision});
  },
- applyDesign(quote){
-  const s=get();if(s.sim||!s.design){set({lastRefusal:{ok:false,code:'NOT_READY',values:{missing:'frozenDesign'}}});return false;}
-  if(!quote.ok){set({lastRefusal:quote});playCue('refusal');return false;}
-  if(quote.value.next.revision!==s.design.revision+1){set({lastRefusal:{ok:false,code:'NOT_READY',values:{missing:'designRevision'}}});return false;}
-  const next=quote.value.next,signoffs={...s.signoffs};core.rolesAffectedBy(s.design,next).forEach(role=>signoffs[role]=false);
-  const cues=cuesFor(next,s.cues,null),before=s.cues.active.filter(c=>c.severity===3),after=cues.active.filter(c=>c.severity===3),beforeBudget=s.budgets??core.computeBudgets(s.design),afterBudget=core.computeBudgets(next);
-  const changedPart=[...s.design.parts,...next.parts].find(part=>{const a=s.design!.parts.find(p=>p.partId===part.partId),b=next.parts.find(p=>p.partId===part.partId);return a?.qty!==b?.qty||a?.propellantKg!==b?.propellantKg;});
-  const description=changedPart?.partId??(s.design.rideId!==next.rideId?'ride':'orbit'),actor=s.actor(),entry:AcceptedTrade={revision:s.design.revision,actor,player:actor==='ALL'?null:s.players.findIndex(roles=>roles.includes(s.activeRole)),description,before:beforeBudget,after:afterBudget};
-  set({design:next,budgets:afterBudget,acceptedTrades:[...s.acceptedTrades,entry].slice(-100),signoffs,cues,lastRefusal:null,team:{...s.team,sev3Raised:s.team.sev3Raised+after.filter(c=>!before.some(p=>p.id===c.id)).length,sev3ResolvedBeforeLaunch:s.team.sev3ResolvedBeforeLaunch+before.filter(c=>!after.some(p=>p.id===c.id)).length}});playCue('part');return true;
- },
- addPart(id){const s=get();if(s.design)s.applyDesign(core.quoteAddPart(s.design,id,s.actor()));},removePart(id){const s=get();if(s.design)s.applyDesign(core.quoteRemovePart(s.design,id,s.actor()));},setRide(id){const s=get();if(s.design)s.applyDesign(core.quoteSetRide(s.design,id,s.actor()));},setOrbit(orbit){const s=get();if(s.design)s.applyDesign(core.quoteSetOrbit(s.design,orbit,s.actor()));},setPropellant(kg){const s=get();if(s.design)s.applyDesign(core.quoteSetPropellant(s.design,kg,s.actor()));},
- launch(revision){
-  const s=get();if(!s.design||!s.artifacts||s.sim||s.previewMissionId||s.activeStage!=='IMPLEMENT')return false;
-  if(revision!==undefined&&revision!==s.design.revision){set({lastRefusal:{ok:false,code:'NOT_READY',values:{missing:'designRevision'}}});return false;}
-  if(s.actor()!=='ALL'&&s.actor()!=='LAUNCH_ORBIT'){set({lastRefusal:{ok:false,code:'ROLE_LOCKED',values:{role:'LAUNCH_ORBIT'}}});return false;}
-  const signs=s.signoffs,refused=core.launchReadiness(s.design,signs);
-  if(refused.length){set({lastRefusal:refused[0]});return false;}
-  if(core.evaluateJourneyStage(s.design,s.artifacts,'IMPLEMENT',signs).length)return false;
-  const scenario=core.listScenarios().find(x=>x.id===s.scenarioId)!,sim=core.createSim(s.design,scenario.seed),telemetry=core.telemetry(sim);
-  liveMission.state=sim;liveMission.telemetry=telemetry;
-  set({sim,telemetry,running:false,cues:cuesFor(s.design,emptyCues(),sim),lastRefusal:null,signoffs:signs,pauseReasons:['manual'],handoff:null,activeStage:'IMPLEMENT',activeSubstep:'operations',activeView:'OPERATE'});get().saveCheckpoint('launch');return true;
- },
- endMission(){const s=get();if(!liveMission.state||s.telemetry?.ended)return;const sim=core.endMission(liveMission.state),telemetry=core.telemetry(sim);advanceOperation++;liveMission.state=sim;liveMission.telemetry=telemetry;set({sim,telemetry,running:false,advancing:false,pendingDecisions:[],pauseReasons:['manual']});},
- command(command,gestureId){return get().commands([command.kind==='ATTITUDE_TARGET'&&gestureId?{...command,gestureId}:command]);},
- commands(commands){
-  const s=get();let sim=liveMission.state;if(!sim||s.telemetry?.ended||s.explanation||s.advancing||s.previewMissionId)return false;
-  if(s.warp>10&&commands.some(command=>command.kind==='ATTITUDE_TARGET')){set({lastRefusal:{ok:false,code:'INVALID_PARAMETER',values:{parameter:'warp',max:10}}});return false;}
-  for(const command of commands){const actor=s.actor(),quote=core.issueCommand(sim,command,actor,{role:actor,playerId:actor==='ALL'?undefined:String(s.players.findIndex(roles=>roles.includes(s.activeRole))+1)});if(!quote.ok){set({lastRefusal:quote});playCue('refusal');return false;}sim=quote.value;}
-  const result=core.stepSim(sim,0),telemetry=core.telemetry(result.state),ended=!!telemetry.ended,pending=ended?[]:[...s.pendingDecisions,...result.events.filter(e=>e.autoPause)];
-  liveMission.state=result.state;liveMission.telemetry=telemetry;
-  let pauseReasons=s.pauseReasons;if(pending.length)pauseReasons=withReason(pauseReasons,'decision');
-  set({sim:result.state,telemetry,lastRefusal:null,historyVersion:s.historyVersion+1,running:ended||pending.length?false:s.running,events:[...s.events,...result.events].slice(-500),pendingDecisions:pending,pauseReasons});
-  result.events.forEach(emitGameEvent);if(ended&&s.design)saveMissionBest(result.state,s.design,s.team,s.assisted);playCue('part');return true;
- },
- pause(reason='manual'){advanceOperation++;set({running:false,advancing:false,pauseReasons:withReason(get().pauseReasons,reason)});},
- clearPauseReason(reason){const s=get(),pauseReasons=s.pauseReasons.filter(r=>r!==reason);set({pauseReasons:s.sim&&!pauseReasons.length?['manual']:pauseReasons,running:false});},
- resume(){const s=get();if(s.sim&&!s.telemetry?.ended&&!s.telemetry?.cruise&&!s.telemetry?.capturePending&&!s.pendingDecisions.length&&!s.pauseReasons.some(r=>blockingReasons.includes(r))){set({running:true,advancing:false,learningPause:false,pauseReasons:[]});}},
- setWarp(warp){const s=get();if(s.sim&&!s.pauseReasons.includes('settings')&&!s.pauseReasons.includes('home')&&s.actor()!=='ALL'&&s.actor()!=='LAUNCH_ORBIT'){set({lastRefusal:{ok:false,code:'ROLE_LOCKED',values:{role:'LAUNCH_ORBIT'}}});return;}if(WARPS.some(w=>w===warp))set({warp});},
- advance(dt,publish){
-  const s=get();if(!s.running||!liveMission.state||s.pauseReasons.some(r=>blockingReasons.includes(r)))return;
-  let remaining=dt,state=liveMission.state;const events:SimEvent[]=[];let count=0;
-  while(remaining>1e-8&&count++<400){const chunk=Math.min(10,remaining),result=core.stepSim(state,chunk);state=result.state;events.push(...result.events);remaining-=chunk;if(result.events.some(e=>e.autoPause)||core.telemetry(state).ended)break;}
-  liveMission.state=state;liveMission.telemetry=core.telemetry(state);
-  if(events.length||publish){const ended=!!liveMission.telemetry.ended,pending=events.filter(e=>e.autoPause&&!ended);let pauseReasons=s.pauseReasons;if(pending.length)pauseReasons=withReason(pauseReasons,'decision');
-   set({sim:state,telemetry:liveMission.telemetry,historyVersion:s.historyVersion+1,events:[...s.events,...events].slice(-500),pendingDecisions:ended?[]:[...s.pendingDecisions,...pending],running:!ended&&!pending.length&&remaining<=1e-8?s.running:false,pauseReasons,cues:s.design?cuesFor(s.design,s.cues,state):s.cues});
-   events.forEach(emitGameEvent);if(pending.length)get().saveCheckpoint('decision');if(ended&&s.design)saveMissionBest(state,s.design,s.team,s.assisted);
-  }
- },
- advanceToEvent(targetSec){
-  const s=get();if(!s.sim||s.telemetry?.ended||s.pendingDecisions.length||s.pauseReasons.some(r=>blockingReasons.includes(r)))return;
-  if(targetSec!==undefined&&(!Number.isFinite(targetSec)||targetSec<=s.sim.t+(s.telemetry?.remainderSec??0)))return;
-  const generation=liveMission.generation,operation=++advanceOperation,boundary=core.nextBoundary(s.sim),target=targetSec??(boundary?s.sim.t+boundary.inSec:null);set({advancing:true,running:false,advanceMessage:null,pauseReasons:[]});let work=0;
-  const batch=()=>{const current=get();if(!current.advancing||operation!==advanceOperation||generation!==liveMission.generation||!liveMission.state)return;
-   let state=liveMission.state,telemetry=core.telemetry(state);const events:SimEvent[]=[];let found=false;
-   // Sub-tick requests are already carried by core: never request that time twice.
-   for(let n=0;n<120;n++){
-    const dt=target===null?10:Math.max(0,Math.min(10,target-state.t-telemetry.remainderSec));
-    if(dt<=1e-8){found=true;break;}
-    const result=core.stepSim(state,dt);state=result.state;telemetry=core.telemetry(state);events.push(...result.events);work++;
-    if(result.events.some(event=>event.autoPause)||telemetry.ended||telemetry.capturePending||target!==null&&state.t+telemetry.remainderSec>=target-1e-8){found=true;break;}
-   }
-   liveMission.state=state;liveMission.telemetry=telemetry;const pending=telemetry.ended?[]:events.filter(e=>e.autoPause);let pauseReasons=current.pauseReasons;if(pending.length)pauseReasons=withReason(pauseReasons,'decision');
-   if(found||work>=8640)pauseReasons=withReason(pauseReasons,'self-paced');
-   set({sim:state,telemetry,historyVersion:current.historyVersion+1,events:[...current.events,...events].slice(-500),pendingDecisions:[...current.pendingDecisions,...pending],pauseReasons,advancing:!found&&work<8640,advanceMessage:found?'event':work>=8640?'limit':null,cues:current.design?cuesFor(current.design,current.cues,state):current.cues});events.forEach(emitGameEvent);
-   if(found)get().saveCheckpoint(telemetry.capturePending?'arrival':'decision');if(telemetry.ended&&current.design)saveMissionBest(state,current.design,current.team,current.assisted);
-   if(!found&&work<8640)requestAnimationFrame(batch);
-  };requestAnimationFrame(batch);
- },
- cancelAdvance(){advanceOperation++;set({advancing:false,running:false,pauseReasons:withReason(get().pauseReasons,'manual')});},
- publish(){if(liveMission.state)set({sim:liveMission.state,telemetry:liveMission.telemetry,historyVersion:get().historyVersion+1});},
- decide(commands){if(commands.length&&!get().commands(commands))return false;get().acknowledgeDecision();return true;},
- acknowledgeDecision(){const pendingDecisions=get().pendingDecisions.slice(1);set({pendingDecisions,running:false,pauseReasons:pendingDecisions.length?withReason(get().pauseReasons,'decision'):withReason(get().pauseReasons.filter(r=>r!=='decision'),'manual')});},
- skipCruise(){const s=get();if(!liveMission.state||!s.telemetry?.cruise||s.previewMissionId)return;if(s.actor()!=='ALL'&&s.actor()!=='LAUNCH_ORBIT'){set({lastRefusal:{ok:false,code:'ROLE_LOCKED',values:{role:'LAUNCH_ORBIT'}}});return;}const result=core.skipCruise(liveMission.state);liveMission.state=result.state;liveMission.telemetry=core.telemetry(result.state);const pendingDecisions=result.events.filter(e=>e.autoPause);set({sim:result.state,telemetry:liveMission.telemetry,running:false,events:[...s.events,...result.events],pendingDecisions,historyVersion:s.historyVersion+1,pauseReasons:pendingDecisions.length?withReason(s.pauseReasons,'decision'):withReason(s.pauseReasons,'manual')});result.events.forEach(emitGameEvent);get().saveCheckpoint('arrival');},
- resetMission(keepDesign=false){
-  const s=get();if(keepDesign&&s.design){s.startScenario(s.scenarioId,s.levelId,true);return;}liveMission.state=null;liveMission.telemetry=null;liveMission.generation++;resetAudioGate();
-  set({attemptId:s.attemptId+1,artifacts:null,designNotes:[],rosterHistory:[],facilitator:0,acceptedTrades:[],design:null,budgets:null,cues:emptyCues(),activeStage:'NEED_GOALS',furthestStage:0,activeSubstep:'brief',activeView:'GOAL',previewMissionId:null,previewLevelId:null,sim:null,telemetry:null,running:false,warp:100,historyVersion:0,events:[],pendingDecisions:[],signoffs:blankSignoffs(),team:{...emptyTeam(),roles:s.players.length===1?1:4},lastRefusal:null,explanation:null,learningPause:false,handoff:null,previewImage:null,pauseReasons:[],advancing:false,advanceMessage:null,practiceCheckpoints:[],assisted:false});
- },
- saveCheckpoint(name){const s=get();if(s.levelId!=='ASPIRING'||!s.design||!liveMission.state||s.telemetry?.ended)return;const snapshot=structuredClone({design:s.design,sim:liveMission.state,events:s.events,pendingDecisions:s.pendingDecisions,team:s.team,signoffs:s.signoffs,cues:s.cues});const checkpoint:PracticeCheckpoint={id:++nextCheckpointId,name,time:liveMission.state.t,snapshot};set({practiceCheckpoints:[...s.practiceCheckpoints.filter(c=>c.name!==name),checkpoint].slice(-3)});},
- retryCheckpoint(id){const s=get(),checkpoint=s.practiceCheckpoints.find(c=>c.id===id);if(s.levelId!=='ASPIRING'||!checkpoint)return;const snapshot=structuredClone(checkpoint.snapshot),sim=core.markPracticeRetry(snapshot.sim),telemetry=core.telemetry(sim);liveMission.generation++;liveMission.state=sim;liveMission.telemetry=telemetry;set({...snapshot,sim,telemetry,budgets:core.computeBudgets(snapshot.design),assisted:true,historyVersion:s.historyVersion+1,running:false,advancing:false,explanation:null,handoff:null,previewMissionId:null,previewLevelId:null,pauseReasons:snapshot.pendingDecisions.length?['manual','decision']:['manual'],lastRefusal:null,practiceCheckpoints:s.practiceCheckpoints.filter(c=>c.id<=checkpoint.id)});},
- openExplanation(topicId,contextId,opener=null){const s=get();s.pause('explanation');set({learningPause:!!s.sim||s.learningPause,explanation:{topicId,contextId,opener,snapshot:{design:s.design,budgets:s.budgets,telemetry:liveMission.telemetry??s.telemetry}}});},
+ addPart(partId){commit({kind:'ADD_PART',partId});},removePart(partId){commit({kind:'REMOVE_PART',partId});},setRide(rideId){commit({kind:'SET_RIDE',rideId});},setOrbit(orbit){commit({kind:'SET_ORBIT',orbit});},setPropellant(kg){commit({kind:'SET_PROPELLANT',kg});},
+ launch(revision){const s=get();if(s.previewMissionId)return false;return dispatch({kind:'LAUNCH',designRevision:revision??s.design?.revision??0,rosterRevision:s.rosterRevision},{handoff:null});},endMission(){dispatch({kind:'END_MISSION',confirmationId:`${get().attemptId}:end`});},
+ command(command,gestureId){return get().commands([command.kind==='ATTITUDE_TARGET'&&gestureId?{...command,gestureId}:command]);},commands(commands){if(get().previewMissionId)return false;return dispatch({kind:'COMMANDS',commands});},
+ pause(reason='manual'){advanceOperation++;dispatch({kind:'PAUSE',reason});},clearPauseReason(reason){dispatch({kind:'CLEAR_PAUSE',reason});},resume(){dispatch({kind:'RESUME'},{learningPause:false});},setWarp(warp){dispatch({kind:'SET_WARP',warp});},
+ advance(dt,_publish){if(get().remoteMode)return;const next=advanceSession(authority,dt);if(next!==authority)project(next);},
+ advanceToEvent(targetSec){if(!dispatch({kind:'ADVANCE_NEXT',...(targetSec!==undefined?{targetSec}:{})})||get().remoteMode)return;const operation=++advanceOperation,initialGeneration=generation;const batch=()=>{if(operation!==advanceOperation||generation!==initialGeneration||get().remoteMode||!authority.advancing)return;project(tickSession(authority,0));if(authority.advancing)requestAnimationFrame(batch);};requestAnimationFrame(batch);},
+ cancelAdvance(){advanceOperation++;dispatch({kind:'CANCEL_ADVANCE'});},publish(){if(!get().remoteMode)project(authority);},
+ decide(commands){if(commands.length&&!get().commands(commands))return false;get().acknowledgeDecision();return true;},acknowledgeDecision(){const decision=get().decisions[0];if(decision)dispatch({kind:'ACK_DECISION',decisionId:decision.id});},skipCruise(){if(!get().previewMissionId)dispatch({kind:'SKIP_CRUISE'});},
+ resetMission(keepDesign=false){dispatch({kind:'RESET_MISSION',keepDesign},{previewMissionId:null,previewLevelId:null,explanation:null,learningPause:false,handoff:null,previewImage:null,lastRefusal:null});},
+ saveCheckpoint(name){dispatch({kind:'SAVE_CHECKPOINT',name});},retryCheckpoint(checkpointId){dispatch({kind:'RETRY_CHECKPOINT',checkpointId},{explanation:null,handoff:null,previewMissionId:null,previewLevelId:null});},
+ openExplanation(topicId,contextId,opener=null){const s=get();s.pause('explanation');set({learningPause:!!s.sim||s.learningPause,explanation:{topicId,contextId,opener,snapshot:{design:s.design,budgets:s.budgets,telemetry:liveMission.telemetry}}});},
  closeExplanation(restoreFocus=true){const opener=get().explanation?.opener;set({explanation:null});get().clearPauseReason('explanation');if(restoreFocus&&typeof requestAnimationFrame==='function')requestAnimationFrame(()=>{if(opener?.isConnected&&!opener.closest('[inert]'))opener.focus();else document.getElementById('mission-primary')?.focus();});},
  setSettings(patch){const settings={...get().settings,...patch,...(patch.presentation!==undefined&&patch.presentationExplicit===undefined?{presentationExplicit:true}:{})};persistSettings(settings);set({settings});},setPreviewImage(previewImage){set({previewImage});},clearRefusal(){set({lastRefusal:null});},dismissHandoff(){set({activeRole:get().handoff??get().activeRole,handoff:null});get().clearPauseReason('handoff');}
 }));
+/** Browser wall clock only; LAN browsers are snapshot renderers even if disconnected. */
+export function tickLocalSession(dtSec:number,publish=true):void {
+ if(useMission.getState().remoteMode||authority.advancing)return;
+ const next=tickSession(authority,dtSec);
+ if(next===authority)return;
+ if(publish||next.running!==authority.running||next.events.at(-1)!==authority.events.at(-1))project(next);else authority=next;
+}
+export function setIntentSink(sink:IntentSink|null,context?:{playerId:string;isHost:boolean}):void {
+ advanceOperation++;
+ if(sink){
+  const entering=!useMission.getState().remoteMode;
+  if(entering)authority=reduceSession(authority,{kind:'PAUSE',reason:'manual'},actorContext()).state;
+  intentSink=sink;remoteIdentity=context??null;
+  useMission.setState({remoteMode:true,running:false,...(entering?{explanation:null,handoff:null,lastRefusal:null,previewMissionId:null,previewLevelId:null}:{})});
+ }
+ else{intentSink=null;remoteIdentity=null;generation++;useMission.setState({...projection(authority),remoteMode:false,explanation:null,handoff:null});}
+}
+export function applyRemoteSnapshot(snapshot:SessionSnapshot):void {
+ const s=useMission.getState();if(!s.remoteMode)return;if(s.epoch===snapshot.epoch&&s.seq>snapshot.seq)return;
+ if(s.attemptId!==snapshot.attemptId||s.epoch!==snapshot.epoch)generation++;
+ const owned=snapshot.roster.find(p=>p.id===remoteIdentity?.playerId)?.roles??[],activeRole=owned.includes(s.activeRole)?s.activeRole:owned[0]??s.activeRole;
+ useMission.setState({...snapshot,activeRole,remoteMode:true});
+}
+/** Result UI is local feedback; a result never predicts or mutates the room mission. */
+export function applyRemoteResult(result:IntentResult):void {
+ if(!useMission.getState().remoteMode)return;
+ const lastRefusal=!result.ok&&isCoreRefusal(result.refusal)?result.refusal:null;
+ useMission.setState({lastRefusal});
+ if(lastRefusal)playCue('refusal');
+}
+/** Renderer preparation may roll back a local candidate, never a LAN room. */
+export function captureMissionPreparation():()=>void {
+ const saved=authority,local=useMission.getState();return ()=>{if(useMission.getState().remoteMode)return;dispatch({kind:'LOCAL_RESTORE',state:saved},{activeRole:local.activeRole,explanation:local.explanation,previewMissionId:local.previewMissionId,previewLevelId:local.previewLevelId,settings:local.settings,handoff:local.handoff});};
+}

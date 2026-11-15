@@ -1,6 +1,6 @@
-/** Docked panels always have a header; `part` is a transient component sheet opened from the spacecraft. */
-export const DOCKED_PANEL_IDS = ['mission', 'readiness', 'review', 'log'] as const;
-export const PANEL_IDS = [...DOCKED_PANEL_IDS, 'part'] as const;
+/** Persistent tools are reached from mission control; `part` is a transient anchored component sheet. */
+export const MISSION_PANEL_IDS = ['mission', 'readiness', 'review', 'log'] as const;
+export const PANEL_IDS = [...MISSION_PANEL_IDS, 'part'] as const;
 export type PanelId = typeof PANEL_IDS[number];
 export type LayoutClass = 'desktop' | 'compact' | 'reading';
 export interface Point { x: number; y: number }
@@ -50,7 +50,7 @@ export function defaultRectangle(id: PanelId, bounds: Rectangle): Rectangle {
   return clampRectangle({ x: bounds.x + bounds.width - width - 296, y: bounds.y + 8, width, height }, bounds, MINIMUM_SIZE[id]);
  }
  const width = id === 'mission' ? Math.min(380, bounds.width * .3) : 280;
- const height = id === 'mission' ? Math.min(390, bounds.height * .55) : 240;
+ const height = id === 'mission' ? Math.min(320, bounds.height * .5) : 240;
  return clampRectangle({ x: id === 'mission' ? bounds.x + Math.min(192,bounds.width*.15) : id === 'log' ? bounds.x : bounds.x + bounds.width - width,
   y: id === 'mission' ? bounds.y + bounds.height - height : id === 'log' ? bounds.y + bounds.height - 44 : bounds.y + (id === 'review' ? 270 : 218), width, height }, bounds, MINIMUM_SIZE[id]);
 }
@@ -60,13 +60,12 @@ export function sheetRectangle(preferredHeight: number, bounds: Rectangle, id: P
  return { x: bounds.x, y: bounds.y + bounds.height - height, width: bounds.width, height };
 }
 
-/** Compact sheets leave both rows of panel headers reachable below the body. */
-export function compactSheetBounds(bounds: Rectangle): Rectangle {
- const headerRows = Math.ceil(DOCKED_PANEL_IDS.length / 2);
- return { ...bounds, height: Math.max(0, bounds.height - headerRows * 44 - 8) };
-}
-
 export function layoutClass(viewport: Size, usableHeight: number, scale = 1): LayoutClass {
  if (usableHeight < 260 || (scale > 1.5 && usableHeight < 440)) return 'reading';
  return viewport.width < 900 ? 'compact' : 'desktop';
+}
+
+/** Status notices do not choose the layout mode; actual panel bounds still reserve their full height. */
+export function closedControllerHeight(baseHeight:number,statusHeight=0,rowGap=0):number {
+ return Math.max(0,baseHeight-(statusHeight>0?statusHeight+rowGap:0));
 }

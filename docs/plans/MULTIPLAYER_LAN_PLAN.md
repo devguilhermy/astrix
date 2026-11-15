@@ -1,10 +1,10 @@
 # LAN multiplayer plan
 
-**Status:** Proposed; research and implementation plan, not an implemented or verified multiplayer feature.  
+**Status (2026-11-15):** W1–W4 session/host/pairing groundwork implemented. W5/W6 dedicated phone design and flight consoles remain unimplemented. W7 has a [deployment runbook](../MULTIPLAYER.md); physical-device/network acceptance remains pending. This roadmap is not a claim that its complete multiplayer gameplay has shipped.
 **Date:** 2026-11-14.  
 **Recommendation:** Add `bun run host`: one local Bun process serves the production web app and owns one in-memory mission room over same-origin WebSockets. The main computer displays the 3D mission; up to three phones join its LAN URL by QR code. The host browser is a privileged client, **not** the simulation process. Keep static solo and shared-screen play available.
 
-This document records source inspection and platform documentation only. No builds, tests, servers or device sessions were run for this plan. Proposed behavior is explicitly specified below; unverified empirical or deployment expectations are marked **[INFERENCE]**. Links to repository files are relative to this document. `file:line` references describe the inspected working tree; VP references always describe the pinned commit.
+Original research below records source inspection and platform documentation on 2026-11-14. Subsequent implementation evidence belongs in [VERIFICATION.md](../VERIFICATION.md), not in the original proposed acceptance cases. Unverified empirical/deployment expectations remain **[INFERENCE]**. Links are relative to this document; VP references always describe the pinned commit.
 
 ## 1. Problem, goals and boundaries
 
@@ -407,7 +407,7 @@ Before arriving: install dependencies, prepare/build local assets, confirm Bun a
 
 ### Decisions needed from the user
 
-Recommended defaults make the implementation coherent; these are product/deployment approvals, not questions tools can answer:
+Implementation groundwork proceeded with these recommended defaults on 2026-11-15 after the owner's request to break ground on LAN multiplayer. The original decisions remain recorded below; actual iOS/Android and network qualification in decision 6 is still pending:
 
 1. **Approve A and local installation:** local Bun authoritative server on the main computer, static solo kept, no internet rooms or host migration. Default **yes**.
 2. **Confirm the four-device interpretation:** main display counts toward the maximum, leaving three phones; no fifth read-only display. Default **yes**, as specified by this plan.
@@ -416,4 +416,4 @@ Recommended defaults make the implementation coherent; these are product/deploym
 5. **Approve ownership/admission model:** host-approved devices, one owner per role, multiple roles per device, explicit solo-with-phones mode, advisory concerns rather than binding votes, host session coordination but no hidden role bypass. Default **as written**.
 6. **Confirm supported demo environment:** operator-controlled peer-access router/hotspot and actual iOS Safari + Android Chrome minimum test matrix; identify any required Windows/macOS host packaging beyond the Bun CLI. Default **CLI on the prepared host, no native installer**.
 
-No code implementation is authorized by this document alone; the recommendation, workstreams and verification gates define what a complete implementation must deliver.
+The owner's subsequent implementation request authorized the groundwork; these recommendations and verification gates still define the complete implementation. W5/W6 and unexecuted device/network acceptance must not be reported as completed.

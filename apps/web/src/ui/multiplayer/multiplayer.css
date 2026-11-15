@@ -1,0 +1,22 @@
+.lan-screen { height: 100dvh; overflow: auto; padding: max(1rem,env(safe-area-inset-top)) max(1rem,env(safe-area-inset-right)) max(2rem,env(safe-area-inset-bottom)) max(1rem,env(safe-area-inset-left)); background: var(--bg,#07101a); }
+.lan-content { width: min(960px,100%); margin: auto; display: grid; gap: 1rem; }
+.lan-content h1 { font-size: clamp(2rem,5vw,3.2rem); line-height: 1.1; }
+.lan-content h2 { font-size: 1.3rem; margin-top: 1rem; }
+.lan-content p { max-width: 70ch; }
+.lan-content label { display: grid; gap: .35rem; min-width: 0; }
+.lan-content input,.lan-content select,.lan-content button,.lan-content a.button { min-height: 44px; max-width: 100%; }
+.lan-content input { width: 100%; }
+.lan-content form { display: grid; gap: 1rem; width: min(560px,100%); }
+.lan-content input[type='checkbox'] { width: 24px; height: 24px; min-height: 24px; margin: 10px; accent-color: var(--cyan,#75dce4); }
+.lan-content button:focus-visible,.lan-content input:focus-visible,.lan-content select:focus-visible { outline: 2px solid var(--cyan,#75dce4); outline-offset: 3px; }
+.lan-content ul { padding-inline-start: 1.2rem; }
+.lan-content li { padding-block: .4rem; overflow-wrap: anywhere; }
+.lan-content small { color: var(--muted,#b7c8d3); }
+.lan-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.lan-invitation { display: grid; grid-template-columns: minmax(0,220px) minmax(0,1fr); gap: 1.25rem; align-items: start; padding-block: 1rem; border-block: 1px solid var(--line,#42525d); }
+.lan-qr { width: 100%; height: auto; display: block; background: white; }
+.lan-invitation > div { display: grid; gap: .75rem; }
+.lan-assignments { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,220px),1fr)); gap: .75rem; }
+.lan-error { color: #ffd0a8; overflow-wrap: anywhere; }
+.lan-notice { padding-block: .75rem; border-block: 1px solid var(--line,#42525d); color: #c5d6df; }
+@media(max-width:560px) { .lan-invitation { grid-template-columns: minmax(0,1fr); } .lan-qr { width: min(220px,100%); } }

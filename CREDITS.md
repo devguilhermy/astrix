@@ -55,6 +55,7 @@ Versions below were observed after the initial `bun install`; the resolved lockf
 | react-i18next | 16.6.6 | MIT |
 | i18next-browser-languagedetector | 8.3.0 | MIT |
 | @fontsource/rajdhani / @fontsource/jetbrains-mono | 5.3.0 | OFL-1.1 |
+| qrcode-generator | 2.0.4 | MIT; Kazuhiko Arase; self-hosted lobby QR encoding, no remote service |
 
 Bun, TypeScript, Vite, Tailwind CSS and their tooling dependencies are development tools. Their licence files are distributed with the installed packages. Preserve dependency notices when redistributing bundles or fonts.
 
@@ -104,6 +105,7 @@ Pinned source: `~/dev/void_protocol` commit `218625d`, owner-authorized for this
 | `apps/web/src/three/space/FloatingOrigin.ts` | `apps/web/src/rendering/renderOrigin.ts` | PATTERN: CPU origin subtraction before float upload; ASTRIX km/basis |
 | `apps/web/src/three/spacecraft/RcsPuffs.tsx` | `apps/web/src/components/RcsThrusters.tsx`, `rendering/rcsBurstMath.ts` | PATTERN: independently authored bounded paired-vent illustration from actual slew, not hardware/fuel simulation; no `rcsShader` copied |
 | `apps/web/src/ui/flight/pilotState.ts` | `apps/web/src/utils/flightInput.ts`, `constants/flightTuning.ts` | ADAPT selected sensitivity; PATTERN input routing. All mission commands, authority and transport are ASTRIX |
+| `apps/web/src/multiplayer/reconnect.ts` | `apps/web/src/net/transportPolicy.ts:15–18` | COPY equal-jitter backoff only; new LAN terminal-code handling |
 
 The floating-panel implementation is original ASTRIX code, informed by Void Protocol's draggable HUD pattern. Its panel positions, roles, scientific simulation, mission content and source registries are not copied from the Void Protocol world.
 

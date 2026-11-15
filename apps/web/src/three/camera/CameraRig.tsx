@@ -77,14 +77,14 @@ export function CameraRig({ identity, kit, kind, mode, radius, orbit, reducedMot
   const canvas = gl.domElement.getBoundingClientRect();
   let top = 0, bottom = 0, left = 0, right = 0;
   if (document.documentElement.dataset.windowLayout !== 'reading' && canvas.height > 0) {
-   for (const element of document.querySelectorAll<HTMLElement>('[data-hud-zone], .top-bar, .resource-grid, .capcom-card, .flight-bar')) {
+   for (const element of document.querySelectorAll<HTMLElement>('[data-hud-zone]')) {
     const box = element.getBoundingClientRect();
     if (box.bottom <= canvas.top || box.top >= canvas.bottom || box.right <= canvas.left || box.left >= canvas.right) continue;
     const zone = element.dataset.hudZone;
-    if (zone === 'bottom' || element.classList.contains('flight-bar')) bottom = Math.max(bottom, canvas.bottom - box.top);
+    if (zone === 'bottom') bottom = Math.max(bottom, canvas.bottom - box.top);
     else if (box.width > canvas.width * .65 || zone === 'top') top = Math.max(top, box.bottom - canvas.top);
     else if (zone === 'left' || element.classList.contains('resource-grid')) left = Math.max(left, box.right - canvas.left);
-    else if (zone === 'right' || element.classList.contains('capcom-card')) right = Math.max(right, canvas.right - box.left);
+    else if (zone === 'right') right = Math.max(right, canvas.right - box.left);
    }
   }
   const sy = size.height / Math.max(canvas.height, 1), sx = size.width / Math.max(canvas.width, 1);
@@ -99,7 +99,7 @@ export function CameraRig({ identity, kit, kind, mode, radius, orbit, reducedMot
  useLayoutEffect(() => {
   frameClearBand();
   const observer = new ResizeObserver(frameClearBand);
-  const bind = () => { for (const node of document.querySelectorAll('[data-hud-zone], .top-bar, .resource-grid, .capcom-card, .flight-bar')) observer.observe(node); frameClearBand(); };
+  const bind = () => { for (const node of document.querySelectorAll('[data-hud-zone]')) observer.observe(node); frameClearBand(); };
   bind();
   const mutations = new MutationObserver(bind);
   const root = document.querySelector('.floating-studio') ?? gl.domElement.parentElement;

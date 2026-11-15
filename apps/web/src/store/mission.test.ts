@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
-import { attemptAudit, computeBudgets, history, listScenarios, makeOrbit, planPropellant, quoteAddPart, rolesAffectedBy, telemetry, type SimEvent } from '@astrix/core';
-import { liveMission, ROLES, STAGES, SUBSTEPS, readBest, useMission } from './index';
+import { attemptAudit, computeBudgets, history, listScenarios, makeOrbit, planPropellant, quoteAddPart, rolesAffectedBy, telemetry } from '@astrix/core';
+import { applyRemoteResult, applyRemoteSnapshot, getSessionState, liveMission, ROLES, STAGES, SUBSTEPS, readBest, setIntentSink, tickLocalSession, useMission } from './index';
+import { toPublicSnapshot } from '@astrix/session';
+import type { SessionIntent } from '@astrix/session';
 
 function reachLaunch(){
  const s=useMission.getState();s.updateArtifacts({objectiveConfirmed:true});expect(s.completeStage()).toBe(true);expect(s.completeStage()).toBe(true);expect(s.completeStage()).toBe(true);
@@ -27,8 +29,8 @@ describe('design authority and signoffs',()=>{
   expect(useMission.getState().budgets).toBe(budgets);
  });
  test('successful real edits clear every affected signoff',()=>{
-  const store=useMission.getState();store.startScenario('FIRST_LIGHT');
-  useMission.setState({signoffs:{SCIENCE:true,SPACECRAFT:true,LAUNCH_ORBIT:true,GROUND_COMMS:true}});
+  const store=useMission.getState();store.startScenario('FIRST_LIGHT');store.addPart('CAM_EO');store.signOff();
+  expect(Object.values(useMission.getState().signoffs).every(Boolean)).toBe(true);
   const before=useMission.getState().design!;
   store.addPart('STORAGE_32G');
   const after=useMission.getState().design!;
@@ -82,13 +84,14 @@ describe('learning pauses preserve authoritative state',()=>{
  });
  test('Explain leaves the unresolved decision and command receipts unchanged',()=>{
   launchEarth();
-  const event:SimEvent={kind:'PASS_START',t:0,autoPause:true,values:{}};
-  useMission.setState({pendingDecisions:[event],running:false});
+  const actions=useMission.getState();actions.resume();
+  for(let n=0;n<22&&!useMission.getState().pendingDecisions.length;n++)actions.advance(4000,true);
+  const pending=useMission.getState().pendingDecisions;expect(pending.length).toBeGreaterThan(0);
   const store=useMission.getState(),sim=liveMission.state!,queue=store.telemetry!.commandQueue;
   store.openExplanation('ground-contact','event.PASS_START');
   store.closeExplanation();store.resume();
   expect(useMission.getState().running).toBe(false);
-  expect(useMission.getState().pendingDecisions).toEqual([event]);
+  expect(useMission.getState().pendingDecisions).toEqual(pending);
   expect(liveMission.state).toBe(sim);
   expect(useMission.getState().telemetry!.commandQueue).toBe(queue);
  });
@@ -100,7 +103,7 @@ describe('learning pauses preserve authoritative state',()=>{
  });
  test('flight commands respect current role and a refusal is atomic',()=>{
   launchEarth();
-  useMission.setState({players:[['SCIENCE','GROUND_COMMS'],['SPACECRAFT','LAUNCH_ORBIT']],activeRole:'SCIENCE'});
+  const actions=useMission.getState();actions.pause('settings');actions.setTeam(2);actions.assignRole('GROUND_COMMS',0);actions.setActiveRole('SCIENCE');actions.dismissHandoff();actions.clearPauseReason('settings');
   const before=liveMission.state;
   expect(useMission.getState().command({kind:'SAFE',on:true})).toBe(false);
   expect(useMission.getState().lastRefusal?.code).toBe('ROLE_LOCKED');
@@ -226,12 +229,12 @@ describe('independent lifecycle and practice orchestration',()=>{
  });
  test('launch confirmation rejects a changed revision',()=>{
   const store=useMission.getState();store.startScenario('FIRST_LIGHT');store.addPart('CAM_EO');reachLaunch();const revision=useMission.getState().design!.revision;
-  useMission.setState({design:{...useMission.getState().design!,revision:revision+1}});
+  store.addPart('STORAGE_32G');
   expect(store.launch(revision)).toBe(false);expect(useMission.getState().sim).toBeNull();
   expect(useMission.getState().lastRefusal?.code).toBe('NOT_READY');
  });
  test('practice retry restores a coherent immutable checkpoint and marks core assistance',()=>{
-  launchEarth();const store=useMission.getState(),checkpoint=store.practiceCheckpoints[0];
+  launchEarth();const store=useMission.getState(),checkpoint=getSessionState().practiceCheckpoints[0];
   const original=structuredClone(checkpoint.snapshot);
   store.command({kind:'SAFE',on:true});store.resume();store.advance(100,true);
   store.saveCheckpoint('decision');store.saveCheckpoint('arrival');store.saveCheckpoint('decision');
@@ -288,5 +291,22 @@ describe('independent lifecycle and practice orchestration',()=>{
    expect(readBest('FIRST_LIGHT','EXPERT',3)).toBe(11);
    expect(readBest('FIRST_LIGHT','ASPIRING',2)).toBe(0);
   }finally{if(descriptor)Object.defineProperty(globalThis,'localStorage',descriptor);else Reflect.deleteProperty(globalThis,'localStorage');}
+ });
+});
+
+describe('remote projection boundary',()=>{
+ test('remote browsers never advance or write a second mission and role tabs do not hand off',()=>{
+  launchEarth();const local=getSessionState(),intents:SessionIntent[]=[];
+  setIntentSink(intent=>{intents.push(intent);},{playerId:local.roster[0].id,isHost:false});
+  try{
+   const snapshot=toPublicSnapshot({...local,epoch:'remote-room',mode:'LAN',running:true,seq:1});applyRemoteSnapshot(snapshot);
+   const projected=useMission.getState().sim,authority=getSessionState();useMission.getState().advance(1000,true);tickLocalSession(1);useMission.getState().publish();
+   expect(useMission.getState().sim).toBe(projected);expect(getSessionState()).toBe(authority);
+   useMission.getState().setActiveRole('SPACECRAFT');expect(useMission.getState().handoff).toBeNull();expect(intents).toHaveLength(0);
+   useMission.getState().command({kind:'SAFE',on:true});expect(intents.at(-1)?.kind).toBe('COMMANDS');expect(useMission.getState().sim).toBe(projected);expect(getSessionState().sim).toBe(local.sim);
+   applyRemoteResult({ok:false,refusal:{ok:false,code:'ROLE_LOCKED',values:{role:'SPACECRAFT'}}});expect(useMission.getState().lastRefusal?.code).toBe('ROLE_LOCKED');
+   applyRemoteResult({ok:true,seq:2,receiptIds:[]});expect(useMission.getState().lastRefusal).toBeNull();
+  }finally{setIntentSink(null);}
+  expect(useMission.getState().remoteMode).toBe(false);expect(useMission.getState().running).toBe(false);
  });
 });

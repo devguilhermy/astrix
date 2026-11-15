@@ -3,6 +3,7 @@ import { useWorkbench } from '../../three/spacecraft/workbenchState';
 import { showWindow } from '../layout/windows';
 import { requestCue } from './cueStore';
 import type { NextStep } from './nextSteps';
+import { revealControl } from './missionControlState';
 export function showStep(step:NextStep):void {
  const state=useMission.getState();
  const orbit=step.section==='orbit'||['orbit','rides','fuel-planner'].includes(step.target);
@@ -15,6 +16,7 @@ export function showStep(step:NextStep):void {
   if(current.activeStage==='DESIGN')current.setSubstep(orbit?'orbit':'equipment');
  }
  if(step.sceneTarget){useWorkbench.getState().selectCategory(step.sceneTarget);useWorkbench.getState().setHoveredCategory(step.sceneTarget);}
- if(step.panel)showWindow(step.panel,`[data-cue-target="${step.target}"], [id="${step.target}"]`);
+ revealControl(step.target);
+ if(step.panel&&step.target!=='requirements')showWindow(step.panel,`[data-cue-target="${step.target}"], [id="${step.target}"]`);
  requestCue(step.target);
 }

@@ -1,15 +1,18 @@
 import { afterEach, describe, expect, it } from 'bun:test';
-import { createSim, createStarterDesign, quoteAddPart, telemetry, type AttitudeQuaternion } from '@astrix/core';
-import { liveMission, useMission } from '../../store';
+import { quoteAddPart, type AttitudeQuaternion } from '@astrix/core';
+import { useMission } from '../../store';
 import { pilotInput, usePilot } from './pilotState';
 
 function flight() {
- const installed = quoteAddPart(createStarterDesign('FIRST_LIGHT', 'ASPIRING'), 'CAM_EO', 'ALL');
- if (!installed.ok) throw new Error(`Pilot fixture installation refused: ${installed.code}`);
- const design = installed.value.next;
- const sim = createSim(design, 42), current = telemetry(sim);
- liveMission.state = sim; liveMission.telemetry = current; liveMission.generation++;
- useMission.setState({ design, sim, telemetry: current, players: [['SCIENCE', 'SPACECRAFT', 'LAUNCH_ORBIT', 'GROUND_COMMS']], activeStage: 'IMPLEMENT', activeRole: 'SPACECRAFT', warp: 1, running: false, pendingDecisions: [], pauseReasons: [], explanation: null, handoff: null });
+ const s=useMission.getState();s.resetMission();s.setTeam(1);s.startScenario('FIRST_LIGHT','ASPIRING');s.addPart('CAM_EO');
+ s.updateArtifacts({objectiveConfirmed:true});
+ for(let stage=0;stage<3;stage++)expect(s.completeStage()).toBe(true);
+ const design=useMission.getState().design!,quote=quoteAddPart(design,'MAG','ALL');
+ if(!quote.ok)throw new Error(`Pilot fixture comparison refused: ${quote.code}`);
+ s.recordTradeQuote('MAG',quote);expect(s.freezeBaseline()).toBe(true);expect(s.completeStage()).toBe(true);
+ s.signOff();expect(s.verifyBaseline()).toBe(true);expect(s.completeStage()).toBe(true);s.launch();
+ s.setWarp(1);s.setActiveRole('SPACECRAFT');
+ const current=useMission.getState().telemetry!;
  usePilot.getState().setEnabled(true);
  return current;
 }
@@ -32,10 +35,10 @@ describe('continuous attitude input through real store/core commands', () => {
  });
  it('rejects steering over 10× and supports continuous keyboard/touch hold input', () => {
   flight();
-  useMission.setState({ warp: 100 });
+  useMission.getState().setWarp(100);
   pilotInput.begin(); pilotInput.drag(50, 50);
   expect(useMission.getState().telemetry!.commandQueue.length).toBe(0);
-  useMission.setState({ warp: 10 });
+  useMission.getState().setWarp(10);
   pilotInput.hold('pitchUp'); pilotInput.tick(performance.now(), .1);
   const command = useMission.getState().telemetry!.commandQueue[0].command;
   expect(command.kind).toBe('ATTITUDE_TARGET');

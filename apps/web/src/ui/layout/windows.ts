@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { clampRectangle, compactSheetBounds, defaultRectangle, MINIMUM_SIZE, PANEL_IDS, sheetRectangle, type LayoutClass, type PanelId, type Rectangle } from './panelLayout';
+import { clampRectangle, defaultRectangle, MINIMUM_SIZE, PANEL_IDS, sheetRectangle, type LayoutClass, type PanelId, type Rectangle } from './panelLayout';
 
 export interface WindowIntent {
  visibility: 'EXPANDED' | 'COLLAPSED';
@@ -19,7 +19,6 @@ interface WindowsState {
  revision: number;
  setViewport(bounds: Rectangle, layout: LayoutClass): void;
  setGeometry(id: PanelId, geometry: Rectangle): void;
- setPosition(id: PanelId, position: Pick<Rectangle, 'x' | 'y'>): void;
  setCompactHeight(id: PanelId, height: number): void;
  toggleExpanded(id: PanelId): void;
  collapse(id: PanelId): void;
@@ -41,8 +40,8 @@ export const useWindows = create<WindowsState>((set, get) => ({
  setViewport(bounds, layout) {
   const state = get(), old = state.bounds;
   if (old.x === bounds.x && old.y === bounds.y && old.width === bounds.width && old.height === bounds.height && state.layout === layout) return;
-  let compactWindow = state.compactWindow;
-  if (layout !== 'desktop' && typeof document !== 'undefined') {
+  let compactWindow = layout === 'compact' && state.layout === 'desktop' ? null : state.compactWindow;
+  if (layout !== 'desktop' && !(layout === 'compact' && state.layout === 'desktop') && typeof document !== 'undefined') {
    const focused = PANEL_IDS.find(id => state.windows[id].visibility === 'EXPANDED' && document.getElementById(`floating-${id}`)?.contains(document.activeElement));
    if (focused) compactWindow = focused;
   }
@@ -50,9 +49,6 @@ export const useWindows = create<WindowsState>((set, get) => ({
  },
  setGeometry(id, geometry) {
   set(state => ({ windows: { ...state.windows, [id]: { ...state.windows[id], preferredDesktop: { ...geometry } } } }));
- },
- setPosition(id, position) {
-  set(state => ({ windows: { ...state.windows, [id]: { ...state.windows[id], preferredDesktop: { ...(state.windows[id].preferredDesktop ?? defaultRectangle(id, state.bounds)), x: position.x, y: position.y } } } }));
  },
  setCompactHeight(id, height) {
   if (!Number.isFinite(height)) return;
@@ -71,7 +67,7 @@ export const useWindows = create<WindowsState>((set, get) => ({
   set({ windows: { ...state.windows, [id]: { ...entry, visibility: 'COLLAPSED', focusTarget: inside ? focused : entry.focusTarget } },
    compactWindow: state.compactWindow === id ? remaining.sort((a, b) => state.windows[b].order - state.windows[a].order)[0] ?? null : state.compactWindow,
    announcement: { id, action: 'collapsed' } });
-  if (inside) queueMicrotask(() => document.getElementById(`window-handle-${id}`)?.focus());
+  if (inside) queueMicrotask(() => (document.getElementById(`control-panel-${id}`) ?? document.getElementById('simulator-heading'))?.focus());
  },
  expand(id) {
   const state = get(), wasCollapsed = state.windows[id].visibility === 'COLLAPSED';
@@ -98,12 +94,11 @@ export function effectiveRectangle(id: PanelId, state = useWindows.getState()): 
  const expanded = entry.visibility === 'EXPANDED' && (state.layout === 'desktop' || state.compactWindow === id);
  const preferred = entry.preferredDesktop ?? defaultRectangle(id, state.bounds);
  if (state.layout === 'desktop') {
-  if (!expanded) return clampRectangle({ ...preferred, width: 220, height: 44 }, state.bounds, { width: 180, height: 44 });
+  if (!expanded) return { ...preferred, width: 0, height: 0 };
   return clampRectangle(preferred, state.bounds, MINIMUM_SIZE[id]);
  }
- if (expanded) return sheetRectangle(entry.compactHeight, compactSheetBounds(state.bounds), id, entry.compactExpanded);
- const index = PANEL_IDS.indexOf(id);
- return { x: state.bounds.x + (index % 2) * state.bounds.width / 2, y: state.bounds.y + state.bounds.height - 88 + Math.floor(index / 2) * 44, width: state.bounds.width / 2, height: 44 };
+ if (expanded) return sheetRectangle(entry.compactHeight, state.bounds, id, entry.compactExpanded);
+ return { x:state.bounds.x, y:state.bounds.y + state.bounds.height, width:0, height:0 };
 }
 
 /** Programmatic reveal must precede focus; the next animation frame sees React's expanded DOM. */

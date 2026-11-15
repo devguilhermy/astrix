@@ -50,9 +50,9 @@ export function PartInspector() {
       {traits.length > 0 && <section aria-labelledby="part-traits"><h3 id="part-traits">{t('inspector.traits')}</h3><ul className="part-traits">{traits.map(trait => <li key={trait}>{t(`inspector.trait.${trait}`)}</li>)}</ul></section>}
       <div className="button-wrap">
         <ExplainButton topic={categoryTopic[part.category]}/>
-        {!sim && stage === 'DESIGN' && <button type="button" className="button" onClick={() => { useWorkbench.getState().selectCategory(part.category); showWindow('mission', `#part-${part.id}`); }}>{t('inspector.findInWorkshop')}</button>}
+        {!sim && stage === 'DESIGN' && <button type="button" className="button" data-cue-target="component-find" onClick={() => { useWorkbench.getState().selectCategory(part.category); showWindow('mission', `#part-${part.id}`); }}>{t('inspector.findInWorkshop')}</button>}
         {layout === 'desktop' && !tracking && <button type="button" className="button" title={t('inspector.followHint')} onClick={() => setTracking('part', true)}>{t('inspector.follow')}</button>}
-        <button type="button" className="button" onClick={closePartDetails}>{t('inspector.close')}</button>
+        <button type="button" className="button" data-cue-target="component-close" onClick={closePartDetails}>{t('inspector.close')}</button>
       </div>
     </article>
   </DraggablePanel>;

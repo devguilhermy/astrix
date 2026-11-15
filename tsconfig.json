@@ -20,6 +20,8 @@
     ],
     "baseUrl": ".",
     "paths": {
+      "@astrix/session": ["packages/session/src/index.ts"],
+      "@astrix/session/*": ["packages/session/src/*"],
       "@astrix/core": [
         "packages/core/src/index.ts"
       ],
@@ -37,6 +39,7 @@
   "include": [
     "packages",
     "apps/web/src",
+    "apps/host/src",
     "apps/web/vite.config.ts",
     "scripts"
   ]

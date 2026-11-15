@@ -215,3 +215,7 @@ The approved [Line B plan](../plans/GUIDED_IMMERSIVE_REDESIGN_PLAN.md) adds the 
 
 New mission guidance, resource mapping, spacecraft parts, quaternion simulation, solar ephemeris and forecast policies are original ASTRIX domain work. NASA sky/day/night derivatives are local assets, not VP imagery. The packed lossless Earth texture stores Blue Marble day RGB and Black Marble night luminance in alpha; source URLs, credits and derivative commands are committed in `apps/web/public/textures/asset-sources.json`. No unknown-origin audio or external spacecraft model was introduced.
 
+### LAN groundwork (15 November 2026)
+
+The authorized reuse boundary now includes `apps/web/src/net/transportPolicy.ts:15–18` at `218625d`: COPY equal-jitter backoff into `apps/web/src/multiplayer/reconnect.ts`, with adapted tests. Selected same-owner code is distributed under ASTRIX Apache-2.0 (§8.6). Other LAN host, ticket, rate-limit and client code is newly authored for ASTRIX; the §10 LAN-plan registry/socket references inform patterns only, not copied implementations. No VP database, JWT, universe or game server is imported.
+

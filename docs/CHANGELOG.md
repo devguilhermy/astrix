@@ -2,6 +2,32 @@
 
 Shipped changes, newest first. Evidence for each entry is in [VERIFICATION.md](./VERIFICATION.md); scope and decisions are in the linked plans.
 
+## 2026-11-15 — Bottom mission control and LAN groundwork
+
+### Interface
+
+- Consolidated the contextual instruction and primary action into one bottom mission controller; removed the separate top-bar Continue and floating CAPCOM card.
+- Moved requirements, spacecraft slots and checklist into disclosed bottom trays. Added chapter/stage navigation and four panel buttons in the same surface instead of scattered collapsed panel pills.
+- Embedded flight controls in the controller, retaining the next geometric event summary and advance action when the flight tray is closed.
+- Extended tours to individual controller options, with progress counts, Skip and state-specific Build/Launch/Flight/Debrief coverage. Component inspection remains device-local and anchored clear of the controller.
+- Refined mission setup: icon toggle cards for Aspiring/Expert, team controls expanded by default, horizontal player columns with role dropdowns (reflowing on narrow screens), and informative local-play/LAN entry cards. Role reassignment swaps/transfers ownership without losing a required discipline.
+- Design and baseline measurements: [reviewed UI plan](./plans/STREAMLINED_MISSION_CONTROL_PLAN.md).
+
+### LAN groundwork
+
+- Added pure `@astrix/session` authority shared by static solo/hot-seat and the Bun room: mission transactions, actor/role permissions, scoped pauses, bounded snapshots/history, request validation and deduplicated outcomes.
+- Added `bun run host`: selected private-interface HTTP serving, loopback-only host bootstrap, one in-memory authoritative room, QR/manual invitations, host admission and a four-device cap including the display.
+- Added lobby ownership/Ready controls, presence, reconnect/resynchronization, stale-input handling, browser-refresh continuity and explicit host-only continuation. LAN browsers project snapshots rather than stepping their own simulation.
+- Added locally bundled MIT `qrcode-generator`; recorded attribution and notices. Removed the startup recovery button's inline JavaScript handler for the host's self-only script CSP; allowed bundled data-font URLs separately.
+- Deployment and plaintext trusted-LAN boundary: [MULTIPLAYER.md](./MULTIPLAYER.md).
+
+### Scope and evidence
+
+- Dedicated phone design/flight consoles (multiplayer W5/W6) are not implemented. This is admission/session/network groundwork, not complete phone gameplay.
+- Bun process loss ends the room; no internet matchmaking, persistent room restore or host migration. Physical iOS/Android, access-point isolation, firewall and suspension testing remain separate from desktop-browser checks.
+- Current observed checks and limitations are recorded in [VERIFICATION.md](./VERIFICATION.md).
+- Canonical architecture, simulation, rendering, layout, science UX, resources, missions and deployment guidance were reconciled with the implementation. [Delivery report](./reports/STREAMLINED_UI_LAN_REPORT.md) records scope, integration findings and remaining qualification limits.
+
 ## 2026-11-15 — Guided, immersive redesign (rules v4)
 
 Implements Line B of the [guided immersive redesign plan](./plans/GUIDED_IMMERSIVE_REDESIGN_PLAN.md). Commits `0156efe`, `e77e7df` and the documentation commit that adds this file.

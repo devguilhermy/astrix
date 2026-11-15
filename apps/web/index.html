@@ -23,7 +23,7 @@
         <p class="startup-message" id="startup-status" role="status"><span lang="en">Preparing the application…</span><span lang="pt-BR">Preparando o aplicativo…</span></p>
         <progress class="startup-progress" aria-labelledby="startup-status"></progress>
         <div class="startup-actions" id="startup-recovery" hidden>
-          <button type="button" onclick="location.reload()">Reload / Recarregar</button>
+          <button type="button" id="startup-reload">Reload / Recarregar</button>
           <a href="./docs/INDEX.md">Documentation / Documentação</a>
         </div>
       </section>
@@ -41,6 +41,7 @@
       status.setAttribute('role', 'alert');
       status.querySelector('[lang="en"]').textContent = 'The application could not start. Reload to try again.';
       status.querySelector('[lang="pt-BR"]').textContent = 'O aplicativo não pôde iniciar. Recarregue para tentar novamente.';
+      document.getElementById('startup-reload').addEventListener('click', () => location.reload());
       document.getElementById('startup-recovery').hidden = false;
     });
   </script>

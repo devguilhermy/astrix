@@ -13,6 +13,9 @@ import { forecastEnglish, forecastPortuguese } from '../ui/forecast/copy';
 import { flightEnglish, flightPortuguese } from '../ui/flight/copy';
 import { recoveryEnglish, recoveryPortuguese } from '../ui/recovery/copy';
 import { inspectorEnglish, inspectorPortuguese } from '../ui/inspector/copy';
+import { multiplayerEnglish, multiplayerPortuguese } from '../ui/multiplayer/copy';
+import { controlEnglish, controlPortuguese } from '../ui/guide/copy';
+import { wizardEnglish, wizardPortuguese } from '../ui/screens/wizardCopy';
 
-export const english:Readonly<Record<string,string>> = {...en,...CORE_I18N_DEFAULTS,...modelEnglish,...refinementEnglish,...shellEnglish,...sceneTranslations.en,...windowResources.en,...learningEnglish,...flowEnglish,...forecastEnglish,...flightEnglish,...recoveryEnglish,...inspectorEnglish};
-export const portuguese:Readonly<Record<string,string>> = {...pt,...CORE_TECHNICAL_PT,...modelPortuguese,...refinementPortuguese,...shellPortuguese,...sceneTranslations['pt-BR'],...windowResources['pt-BR'],...learningPortuguese,...flowPortuguese,...forecastPortuguese,...flightPortuguese,...recoveryPortuguese,...inspectorPortuguese};
+export const english:Readonly<Record<string,string>> = {...en,...CORE_I18N_DEFAULTS,...modelEnglish,...refinementEnglish,...shellEnglish,...sceneTranslations.en,...windowResources.en,...learningEnglish,...flowEnglish,...forecastEnglish,...flightEnglish,...recoveryEnglish,...inspectorEnglish,...multiplayerEnglish,...controlEnglish,...wizardEnglish};
+export const portuguese:Readonly<Record<string,string>> = {...pt,...CORE_TECHNICAL_PT,...modelPortuguese,...refinementPortuguese,...shellPortuguese,...sceneTranslations['pt-BR'],...windowResources['pt-BR'],...learningPortuguese,...flowPortuguese,...forecastPortuguese,...flightPortuguese,...recoveryPortuguese,...inspectorPortuguese,...multiplayerPortuguese,...controlPortuguese,...wizardPortuguese};

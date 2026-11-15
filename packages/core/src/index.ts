@@ -1,5 +1,6 @@
 export * from './contracts';
 export { computeBudgets, quoteAddPart, quoteRemovePart, quoteSetRide, quoteSetOrbit, quoteSetPropellant, launchReadiness, rolesAffectedBy, previewOrbit, planPropellant } from './design';
+export { commandRole } from './design';
 export { listScenarios, listParts, listRides, captureOrbits, listSources, listAssumptions, createStarterDesign, listOrbitPresets } from './catalog';
 export { createSim, markPracticeRetry } from './sim/state';
 export { issueCommand } from './sim/commands';

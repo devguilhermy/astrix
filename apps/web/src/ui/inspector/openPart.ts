@@ -1,13 +1,17 @@
 import { useWorkbench } from '../../three/spacecraft/workbenchState';
 import { showWindow, useWindows } from '../layout/windows';
 import { setTracking } from '../layout/trackedTargets';
+import { useMissionControl } from '../guide/missionControlState';
 
 let opener: HTMLElement | null = null;
+let fromSlots = false;
 
 /** Opens the component sheet. Viewing is device-local: it never installs, removes or commands anything. */
 export function openPartDetails(partId: string, from: HTMLElement | null = null): void {
   const active = typeof document === 'undefined' ? null : document.activeElement;
   opener = from ?? (active instanceof HTMLElement && active !== document.body ? active : null);
+  fromSlots = !!opener?.closest('.control-workbench');
+  useMissionControl.getState().setTray(null);
   useWorkbench.getState().inspect(partId);
   // Every new inspection re-anchors the panel beside the component, even after a manual move.
   setTracking('part', true);
@@ -19,7 +23,8 @@ export function closePartDetails(): void {
   const panel = document.getElementById('floating-part'), inside = !!panel?.contains(document.activeElement);
   useWorkbench.getState().inspect(null);
   useWindows.getState().collapse('part');
-  const back = opener?.isConnected ? opener : document.getElementById('mission-primary');
+  if (fromSlots) useMissionControl.getState().setTray('slots');
+  const back = opener?.isConnected && (fromSlots || opener.getClientRects().length > 0) ? opener : document.getElementById('control-slots') ?? document.getElementById('mission-primary');
   opener = null;
   if (inside) requestAnimationFrame(() => back?.focus({ preventScroll: true }));
 }

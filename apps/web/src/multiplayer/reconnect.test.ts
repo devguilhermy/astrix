@@ -1,0 +1,4 @@
+import { expect, test } from 'bun:test';
+import { backoffDelayMs, terminalClose, terminalHttp, RECONNECT_CAP_MS } from './reconnect';
+test('equal-jitter backoff is bounded and injectable',()=>{expect(backoffDelayMs(0,()=>0)).toBe(500);expect(backoffDelayMs(0,()=>1)).toBe(1000);expect(backoffDelayMs(1,()=>0)).toBe(1000);expect(backoffDelayMs(30,()=>1)).toBe(RECONNECT_CAP_MS);expect(backoffDelayMs(30,()=>0)).toBe(RECONNECT_CAP_MS/2);});
+test('revocation, replacement, version and room closure never loop reconnect',()=>{for(const code of [1000,1008,1009,4401,4403,4406,4409])expect(terminalClose(code)).toBe(true);for(const code of [1001,1006,1011])expect(terminalClose(code)).toBe(false);for(const status of [400,401,403,404,409,410,426])expect(terminalHttp(status)).toBe(true);for(const status of [429,500,503])expect(terminalHttp(status)).toBe(false);});

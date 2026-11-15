@@ -9,5 +9,5 @@ export function ResourceGrid(){
  const s=useMission(),proposal=useProposal(),{t}=useTranslation(),[compact,setCompact]=useState(false);
  if(!s.design||!s.budgets)return null;
  const models=resourceModel(s.design,s.budgets,s.telemetry,proposal.revision===s.design.revision?proposal.after:null);
- return <section className="resource-grid" data-hud-zone="left" data-cue-target="resources" data-icons={compact} aria-label={t('hud.resources')}><header><span>{t(s.sim?'hud.live':'hud.forecast')}</span><button aria-label={t('hud.compactResources')} aria-pressed={compact} onClick={()=>setCompact(!compact)}>◫</button></header><div>{models.map(model=><ResourceBadge key={model.id} model={model}/>)}</div></section>;
+ return <section className="resource-grid" data-hud-zone="left" data-cue-target="resources" data-icons={compact} aria-label={t('hud.resources')}><header><span>{t(s.sim?'hud.live':'hud.forecast')}</span><button data-cue-target="resources-compact" aria-label={t('hud.compactResources')} aria-pressed={compact} onClick={()=>setCompact(!compact)}>◫</button></header><div>{models.map(model=><ResourceBadge key={model.id} model={model}/>)}</div></section>;
 }

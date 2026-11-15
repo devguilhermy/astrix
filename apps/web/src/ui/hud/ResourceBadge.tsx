@@ -15,8 +15,8 @@ export function ResourceBadge({model:m}:{model:ResourceModel}){
  const nextContact=m.detail.find(item=>item.key==='flow.nextContact')?.value;
  const battery=m.id==='power'&&m.mode==='live';
  const value=m.value===null?t(m.status==='na'?'hud.na':'flow.unknown'):format.format(m.value);
- return <><button className="resource-badge" data-status={m.status} onClick={()=>setOpen(true)} aria-haspopup="dialog" aria-label={`${t(`flow.${m.id}`)}: ${value} ${m.unit}, ${t(`hud.status.${m.status}`)}`}>
-  <span className="resource-label"><Icon size={14}/>{t(`flow.${m.id}`)}</span>
+ return <><button className="resource-badge" data-cue-target={`resource-${m.id}`} data-status={m.status} onClick={()=>setOpen(true)} aria-haspopup="dialog" aria-label={`${t(`flow.${m.id}`)}: ${value} ${m.unit}, ${t(`hud.status.${m.status}`)}`}>
+  <span className="resource-label"><Icon size={14}/><span className="resource-label-text">{t(`flow.${m.id}`)}</span></span>
   <span className="resource-value">{m.direction&&<span aria-hidden="true">{m.direction==='up'?'↑':m.direction==='down'?'↓':'→'} </span>}{m.id==='comms'&&m.mode==='live'?m.value===1?t('ui.connected'):nextContact==null?t('ui.noContact'):`${Math.ceil(nextContact)} s`:battery?`${format.format((m.limit??0)>0?(m.value??0)/m.limit!*100:0)}%`:value}{!battery&&m.limit!==null&&m.id!=='comms'&&<small> / {format.format(m.limit)}</small>} <small>{battery?'':m.unit}</small></span>
   <span className="resource-bar" aria-hidden="true"><span style={{width:`${m.fill*100}%`}}/>{m.previewFill!==null&&<i style={{left:`${Math.min(m.fill,m.previewFill)*100}%`,width:`${Math.abs(m.previewFill-m.fill)*100}%`}}/>}</span>
   <span className="resource-status">{t(`hud.status.${m.status}`)}{m.deltas?.length?m.deltas.map((delta,index)=><b key={index} title={t(delta.key)}> {delta.value!>0?'+':''}{format.format(delta.value!)} {delta.unit}</b>):m.delta!==null&&Math.abs(m.delta)>.001&&<b> {m.delta>0?'+':''}{format.format(m.delta)} {m.unit}</b>}</span>

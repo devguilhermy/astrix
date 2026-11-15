@@ -28,6 +28,14 @@ Crew Pathfinder is a fictional four-person exercise, not a vehicle replica or he
 
 Ground requests, onboard procedures and session actions have distinct transports and actor receipts. Unsent attitude targets may coalesce by actor/gesture, but transmitted targets cannot be recalled or rewritten. Core `nextBoundary` predicts known opportunities/deadlines, not a guarantee against other events. Long attempts retain bounded, decimated samples (including actual attitude) and audit information; sampling and causality limits are disclosed. Earlier results cannot be relabelled as rules-v4 scores.
 
+## Collaboration and session authority
+
+Static solo and 2–4-player shared-screen play use the same pure session transactions as the LAN host. Roles remain Science, Spacecraft, Launch/Orbit and Ground/Comms; `ALL` is the solo actor, not an unrestricted remote-host capability.
+
+The current [LAN groundwork](./MULTIPLAYER.md) admits the main display plus up to three phones, assigns one owner per discipline, records Ready separately from design sign-off, and retains the mission in Bun across a browser refresh. Only Bun advances a LAN flight. The phone page currently handles pairing, ownership/readiness, presence and team pause; dedicated phone design and execution consoles are not implemented. Static hot-seat remains the complete shared-screen gameplay path.
+
+Optional phone reading/visibility changes are device-local; shared decisions and explicit team pauses remain authoritative. Reconnect and host-only takeover never implicitly resume. Host-only continuation revokes phone credentials and transfers role ownership without discarding physical state or historical actors. Plain HTTP is supported only on a trusted isolated LAN; process loss ends the room.
+
 ## Expansion research — not implemented
 
 The following twelve entries preserve the original mission concepts, numerical research and links. Their goals, proposed events, explanatory topics and “engine features” are **requirements for possible future work**, not descriptions of the current runtime. Proposed IDs are not members of `ScenarioId`; current `BodyId` supports only Earth and Mars. Sources still needed are research gaps, not hidden runtime dependencies. “Real missions like yours” counts below are historical `nasa.json` search/facet context, not automatically shipped report panels or verified mission attribution.

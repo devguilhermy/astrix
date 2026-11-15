@@ -1,25 +1,28 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CONSTANTS, forecastTimeline, orbitalPeriod, type TimelineWindow } from '@astrix/core';
+import { CONSTANTS, forecastTimeline, orbitalPeriod, type TimelineWindow, type TimelineForecast } from '@astrix/core';
 import { liveMission, useMission } from '../../store';
 
 const LANES: readonly TimelineWindow['kind'][] = ['SUNLIGHT', 'ECLIPSE', 'CONTACT', 'TARGET', 'STORM', 'EVENT', 'MISSION_END'];
-export function Timeline() {
- const { t, i18n } = useTranslation();
+export function useTimelineForecast() {
  const sim = useMission(state => state.sim);
  const design = useMission(state => state.design);
  const telemetry = useMission(state => state.telemetry);
  const attempt = useMission(state => state.attemptId);
- const advancing = useMission(state => state.advancing);
- const pending = useMission(state => state.pendingDecisions.length);
+ const activeStage = useMission(state => state.activeStage);
  const bucket = Math.floor((telemetry?.t ?? 0) / 30);
  // Forecast sampling is bounded in core and refreshed each 30 simulated seconds,
  // not each 100ms DOM publication. The playhead still follows every publication.
- const forecast = useMemo(() => {
-  if (!sim || !design?.orbit) return null;
+ return useMemo(() => {
+  if (!sim || !design?.orbit || activeStage !== 'IMPLEMENT' || telemetry?.ended) return null;
   const horizon = design.orbit.body === 'MARS' ? 88775.244 : orbitalPeriod(design.orbit.smaKm, CONSTANTS[design.orbit.body].mu.v);
   return forecastTimeline(sim, horizon);
- }, [attempt, liveMission.generation, design?.scenarioId, design?.revision, bucket, telemetry?.ended]);
+ }, [attempt, liveMission.generation, design?.scenarioId, design?.revision, bucket, telemetry?.ended, activeStage]);
+}
+export function Timeline({forecast}:{forecast:TimelineForecast|null}) {
+ const { t, i18n } = useTranslation();
+ const design = useMission(state => state.design), telemetry = useMission(state => state.telemetry);
+ const advancing = useMission(state => state.advancing), pending = useMission(state => state.pendingDecisions.length);
  if (!forecast || !telemetry || !design) return null;
  const duration = Math.max(1, forecast.endSec - forecast.startSec);
  const percent = (time: number) => Math.max(0, Math.min(100, (time - forecast.startSec) / duration * 100));

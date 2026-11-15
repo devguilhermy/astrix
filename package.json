@@ -8,6 +8,7 @@
   ],
   "scripts": {
     "dev": "bun run prepare:public && bun run --cwd apps/web dev",
+    "host": "bun --no-install apps/host/src/index.ts",
     "build": "bun run prepare:public && bun run --cwd apps/web build",
     "typecheck": "tsc --noEmit",
     "test": "bun test",

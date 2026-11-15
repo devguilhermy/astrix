@@ -39,8 +39,8 @@ export function Hotbar() {
  ];
  const deploy = deploymentCommand(telemetry.deployment);
  return <div className="flight-hotbar" data-cue-target="hotbar" role="group" aria-label={t('flight.deck')}>
-  {commands.map(item => <div className="hotbar-item" key={item.key} tabIndex={0} role="group" aria-label={t(`flight.${item.key}`)}><kbd aria-hidden="true">{item.shortcut}</kbd><CommandButton command={item.command} label={t(`flight.${item.key}`)}/></div>)}
-  {deploy && <div className="hotbar-item" tabIndex={0} role="group" aria-label={t('flight.deploy')}><kbd aria-hidden="true">G</kbd><CommandButton command={deploy} label={t('flight.deploy')}/></div>}
+  {commands.map(item => <div className="hotbar-item" data-cue-target={`hotbar-${item.key}`} key={item.key} tabIndex={0} role="group" aria-label={t(`flight.${item.key}`)}><kbd aria-hidden="true">{item.shortcut}</kbd><CommandButton command={item.command} label={t(`flight.${item.key}`)}/></div>)}
+  {deploy && <div className="hotbar-item" data-cue-target="hotbar-deploy" tabIndex={0} role="group" aria-label={t('flight.deploy')}><kbd aria-hidden="true">G</kbd><CommandButton command={deploy} label={t('flight.deploy')}/></div>}
   <PilotControls/>
  </div>;
 }

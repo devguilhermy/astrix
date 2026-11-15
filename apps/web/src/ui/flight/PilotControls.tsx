@@ -48,7 +48,7 @@ export function PilotControls() {
   {enabled && <div className="pilot-expanded">
    <p id="pilot-instructions">{t('flight.pilotHelp')}</p>
    {warp > 10 && <p role="status">{t('flight.pilotWarp')}</p>}
-   <div className="pilot-pad" aria-describedby="pilot-instructions">{AXES.map(axis => <button key={axis} type="button" disabled={disabled} aria-label={t(`flight.${axis}`)} title={t(`flight.${axis}`)}
+   <div className="pilot-pad" aria-describedby="pilot-instructions">{AXES.map(axis => <button key={axis} type="button" data-cue-target={`pilot-${axis}`} disabled={disabled} aria-label={t(`flight.${axis}`)} title={t(`flight.${axis}`)}
     onPointerDown={event => { event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); pilotInput.hold(axis); }}
     onPointerUp={() => pilotInput.unhold(axis)} onPointerCancel={() => pilotInput.unhold(axis)} onLostPointerCapture={() => pilotInput.unhold(axis)}
     onKeyDown={event => { if (event.key === ' ' || event.key === 'Enter') { event.preventDefault(); pilotInput.hold(axis); } }}

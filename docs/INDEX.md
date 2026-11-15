@@ -17,14 +17,16 @@ These pages explain the **implemented system**. Start with Architecture, then fo
 | [RESOURCES.md](./RESOURCES.md) | Spacecraft budgets and constraints; scientific data acquisition, snapshots, provenance, evidence and redistribution |
 | [SIMULATION.md](./SIMULATION.md) | Clocks, units, stepping order, physical model, command delivery, events, resource integration, history and scoring |
 | [RENDERIZATION.md](./RENDERIZATION.md) | Persistent Three.js Canvas, scenes, display coordinates, thumbnails, quality, adaptive resolution and graphics failure boundaries |
-| [LAYOUTS.md](./LAYOUTS.md) | Scene-first HUD, collapse-in-place draggable panels, responsive sheets, keyboard/pointer behavior and modals |
+| [LAYOUTS.md](./LAYOUTS.md) | Bottom contextual mission control, chapter/panel navigation, draggable tools, responsive sheets, keyboard/pointer behavior and modals |
 | [SCIENCE_UX.md](./SCIENCE_UX.md) | CAPCOM guidance, Show me, spotlight tours, copy depth, explanations and accessibility |
 | [TECHNICAL_MODELS.md](./TECHNICAL_MODELS.md) | Six bounded engineering mechanisms, parameter units/ranges/provenance, reference bounds and limitations |
+| [MULTIPLAYER.md](./MULTIPLAYER.md) | Trusted-LAN Bun host, QR/manual admission, roles, reconnect, deployment and current groundwork limits |
 
 ## Evidence and challenge alignment
 
-- [VERIFICATION.md](./VERIFICATION.md): current rules-v4 guided-redesign evidence (integrated checks, browser flights, scene/texture measurements and unverified cases), followed by the historical rules-v3 delivery and earlier passes. A procedure described elsewhere is not a claim that it was run.
+- [VERIFICATION.md](./VERIFICATION.md): current mission-control and LAN-groundwork evidence, followed by historical rules-v4 redesign, rules-v3 delivery and earlier passes. A procedure described elsewhere is not a claim that it was run.
 - [CHANGELOG.md](./CHANGELOG.md): dated summary of shipped changes, newest first.
+- [Delivery report](./reports/STREAMLINED_UI_LAN_REPORT.md): implemented UI/session/host scope, integration findings, observed checks and explicit multiplayer limits.
 - [CHALLENGE_ACCEPTANCE.md](./CHALLENGE_ACCEPTANCE.md): how implemented mechanics address the official Space Mission Design Game objective; submission eligibility remains separate.
 - [Credits and provenance](../CREDITS.md), [project licence](../LICENSE) and [third-party notices](../THIRD_PARTY_NOTICES.txt).
 
@@ -32,7 +34,8 @@ These pages explain the **implemented system**. Start with Architecture, then fo
 
 - [GAME_IMPLEMENTATION_PLAN.md](./GAME_IMPLEMENTATION_PLAN.md): original features, constraints, algorithms, execution plan and integration checklist. Use the canonical component pages above for current behavior.
 - [GUIDED_IMMERSIVE_REDESIGN_PLAN.md](./plans/GUIDED_IMMERSIVE_REDESIGN_PLAN.md): approved Line B scope, implementation workstreams and acceptance criteria.
-- [MULTIPLAYER_LAN_PLAN.md](./plans/MULTIPLAYER_LAN_PLAN.md): future main-computer/QR/phone play; follows the redesign and does not block it.
+- [STREAMLINED_MISSION_CONTROL_PLAN.md](./plans/STREAMLINED_MISSION_CONTROL_PLAN.md): reviewed bottom-controller design, baseline measurements, amendments and acceptance criteria.
+- [MULTIPLAYER_LAN_PLAN.md](./plans/MULTIPLAYER_LAN_PLAN.md): main-computer/QR/phone roadmap; session authority, host and pairing groundwork implemented, dedicated phone design/flight consoles remain future work. Follows the UI rather than constraining it.
 - [Space Mission Design Game design brief](./challenges/space-mission-design-brief.md): problem, product decisions, audience, scope and later Guided/floating-space decisions.
 - [Earlier mission-design mockup](./challenges/space-mission-design-mockup.md): planning sketches, not screenshots or a description of the current default interface.
 - [Original resource map](./challenges/space-mission-design-resources-map.md): planned resource-to-screen mapping; [RESOURCES.md](./RESOURCES.md) describes the implemented pipeline.

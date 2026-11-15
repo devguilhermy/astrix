@@ -1,20 +1,19 @@
 .mission-scene { isolation: isolate; }
 .mission-scene > .scene-renderer { position: absolute !important; inset: 0; width: 100%; height: 100%; }
 .mission-scene > .scene-dom { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
-.scene-camera, .scene-caption, .scene-launch-presentation, .scene-workbench { pointer-events: auto; color: #dce8ee; background: #091721ee; border: 1px solid #65819466; border-radius: 9px; box-shadow: 0 4px 16px #0004; font-size: .76rem; line-height: 1.4; }
-.scene-camera { position: absolute; z-index: 3; right: max(12px, env(safe-area-inset-right)); bottom: 14px; width: min(280px, calc(100% - 24px)); max-height: 50dvh; overflow-y: auto; }
-.mission-scene[data-scene-stage='IMPLEMENT'] .scene-camera { bottom: calc(var(--flight-hud-inset, 0px) + 12px); }
-.scene-camera summary, .scene-caption summary, .scene-workbench summary { cursor: pointer; padding: 8px 10px; min-height: 44px; box-sizing: border-box; font-weight: 700; color: #c2d0d7; }
-.scene-camera p, .scene-caption p, .scene-launch-presentation p, .scene-workbench p { margin: 0; padding: 0 10px 8px; }
+.scene-camera, .scene-caption, .scene-launch-presentation { pointer-events: auto; color: #dce8ee; background: #091721ee; border: 1px solid #65819466; border-radius: 9px; box-shadow: 0 4px 16px #0004; font-size: .76rem; line-height: 1.4; }
+.scene-camera { position: absolute; z-index: 3; right: max(12px, env(safe-area-inset-right)); bottom: calc(var(--mission-control-inset, 128px) + 12px); width: min(280px, calc(100% - 24px)); max-height: 40dvh; overflow-y: auto; }
+.scene-camera summary, .scene-caption summary { cursor: pointer; padding: 8px 10px; min-height: 44px; box-sizing: border-box; font-weight: 700; color: #c2d0d7; }
+.scene-camera p, .scene-caption p, .scene-launch-presentation p { margin: 0; padding: 0 10px 8px; }
 .scene-camera-buttons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; padding: 0 10px 10px; }
-.scene-camera button, .scene-camera select, .scene-launch-presentation button, .scene-workbench button { min-width: 0; min-height: 44px; padding: 6px 8px; border: 1px solid #637783; border-radius: 5px; color: #e5f3f7; background: #172c39; font: inherit; white-space: normal; overflow-wrap: anywhere; cursor: pointer; }
+.scene-camera button, .scene-camera select, .scene-launch-presentation button { min-width: 0; min-height: 44px; padding: 6px 8px; border: 1px solid #637783; border-radius: 5px; color: #e5f3f7; background: #172c39; font: inherit; white-space: normal; overflow-wrap: anywhere; cursor: pointer; }
 .camera-widget { display: flex; gap: 4px; padding: 5px; align-items: center; }
 .camera-widget label { flex: 1; min-width: 0; }
 .camera-widget select { width: 100%; }
 .camera-widget button { flex-shrink: 0; }
-.scene-camera button:hover, .scene-launch-presentation button:hover, .scene-workbench button:hover { background: #294653; }
+.scene-camera button:hover, .scene-launch-presentation button:hover { background: #294653; }
 .scene-camera button:disabled { opacity: .55; cursor: not-allowed; }
-.scene-camera :focus-visible, .scene-caption :focus-visible, .scene-launch-presentation :focus-visible, .scene-workbench :focus-visible { outline: 3px solid #f6c780; outline-offset: -3px; }
+.scene-camera :focus-visible, .scene-caption :focus-visible, .scene-launch-presentation :focus-visible { outline: 3px solid #f6c780; outline-offset: -3px; }
 .scene-camera .scene-explore { width: calc(100% - 10px); margin: 0 5px 5px; }
 .scene-camera .scene-explore[aria-pressed='true'] { border-color: #65e1d2; background: #1c4b4b; }
 .scene-caption { position: absolute; z-index: 2; left: 174px; top: 60px; width: fit-content; max-width: min(320px, calc(100% - 24px)); max-height: 55dvh; overflow-y: auto; }
@@ -28,7 +27,6 @@
 .scene-dom > [role='status'] { position: absolute; left: 174px; top: 122px; max-width: min(320px, calc(100% - 24px)); padding: .45rem .6rem; border: 1px solid #ffffff2b; border-radius: 5px; background: #0b1620f7; color: #dbe8ec; font-size: .7rem; pointer-events: auto; }
 .scene-launch-presentation { position: absolute; right: 12px; bottom: 150px; width: min(300px, calc(100% - 24px)); padding: 10px; }
 .scene-launch-presentation p { padding: 0 0 8px; }
-.scene-workbench { position: absolute; right: 12px; bottom: 145px; width: min(280px, calc(100% - 24px)); max-height: 50dvh; overflow: auto; }
 .workbench-toggles { display: grid; gap: 3px; padding: 0 10px 8px; }
 .workbench-toggles label { display: flex; align-items: center; gap: 8px; min-height: 44px; cursor: pointer; }
 .workbench-toggles input { width: 20px; height: 20px; }
@@ -44,15 +42,14 @@
  .scene-caption .scene-status { font-size: .6rem; }
  .scene-dom > [role='status'] { left: 5px; top: 224px; max-width: calc(100% - 10px); }
  .scene-launch-presentation { right: 5px; bottom: 145px; }
- .scene-workbench { right: 5px; bottom: 135px; width: min(240px, calc(100% - 10px)); }
  /* Phones and narrow tablets: scene widgets stack in one column under the measured HUD chrome instead of sitting behind it. */
- .mission-scene > .scene-dom { inset: auto; top: calc(var(--window-chrome-height, 300px) + 8px); right: 5px; width: min(225px, calc(100% - 10px)); display: flex; flex-direction: column; gap: 6px; }
- .scene-dom > .scene-camera, .scene-dom > .scene-caption, .scene-dom > .scene-workbench, .scene-dom > .scene-launch-presentation, .scene-dom > [role='status'], .mission-scene[data-scene-stage='IMPLEMENT'] .scene-dom > .scene-camera { position: static; inset: auto; width: auto; max-width: none; }
+ .mission-scene > .scene-dom { inset: auto; bottom: calc(var(--mission-control-inset, 220px) + 8px); right: 5px; width: min(225px, calc(100% - 10px)); display: flex; flex-direction: column; gap: 6px; }
+ .scene-dom > .scene-camera, .scene-dom > .scene-caption, .scene-dom > .scene-launch-presentation, .scene-dom > [role='status'] { position: static; inset: auto; width: auto; max-width: none; }
 }
 :root[data-window-layout='reading'] .mission-scene { position: relative; height: auto; min-height: 240px; overflow: visible; }
 :root[data-window-layout='reading'] .mission-scene > .scene-renderer { height: 240px !important; bottom: auto; }
 :root[data-window-layout='reading'] .mission-scene > .scene-dom { position: relative; inset: auto; display: flex; flex-direction: column; gap: 8px; padding: 250px 10px 10px; pointer-events: none; min-height: 0; }
-:root[data-window-layout='reading'] .scene-camera, :root[data-window-layout='reading'] .scene-caption, :root[data-window-layout='reading'] .scene-launch-presentation, :root[data-window-layout='reading'] .scene-workbench { position: relative; inset: auto; transform: none; width: 100%; max-height: none; box-sizing: border-box; }
+:root[data-window-layout='reading'] .scene-camera, :root[data-window-layout='reading'] .scene-caption, :root[data-window-layout='reading'] .scene-launch-presentation { position: relative; inset: auto; transform: none; width: 100%; max-height: none; box-sizing: border-box; }
 :root[data-window-layout='reading'] .scene-dom > [role='status'] { position: relative; inset: auto; max-width: none; }
 :root[data-window-layout='reading'] .scene-camera { margin-top: 0; }
 @media (prefers-reduced-motion: reduce) { .mission-scene *, .mission-scene *::before, .mission-scene *::after { animation: none !important; transition: none !important; } }

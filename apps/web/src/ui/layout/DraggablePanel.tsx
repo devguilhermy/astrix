@@ -1,8 +1,8 @@
-// Collapse-in-place header pattern from Void Protocol AuraStrip.tsx, pin 218625d; owner-authorized project Apache-2.0 reuse.
+// Panel header pattern from Void Protocol AuraStrip.tsx, pin 218625d; owner-authorized project Apache-2.0 reuse.
 // Tracked placement follows Void Protocol DraggablePanel.tsx + utils/panelPlacement.ts at the same pin.
-import { useCallback, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+import { useCallback, useId, useLayoutEffect, useRef, useState, useSyncExternalStore, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import type { Phase } from '@astrix/core';
-import { clampRectangle, compactSheetBounds, MINIMUM_SIZE, moveRectangle, resizeRectangle, sheetRectangle, type LayoutClass, type PanelId, type Point, type Rectangle, type ResizeEdge } from './panelLayout';
+import { clampRectangle, MINIMUM_SIZE, moveRectangle, resizeRectangle, sheetRectangle, type LayoutClass, type PanelId, type Point, type Rectangle, type ResizeEdge } from './panelLayout';
 import { effectiveRectangle, useWindows } from './windows';
 import { useWindowCopy } from './windowCopy';
 import { followsTrackedTarget, placeBesideBounds, type Placement } from './panelPlacement';
@@ -10,7 +10,7 @@ import { getTrackedTarget, setTracking, subscribeTrackedTarget } from './tracked
 import './windows.css';
 
 /** HUD surfaces a tracked panel should avoid covering. */
-const OCCUPIED = '[data-hud-zone], .floating-panel, .scene-camera, .scene-workbench, .scene-caption';
+const OCCUPIED = '[data-hud-zone], .floating-panel, .scene-camera, .scene-caption';
 function occupiedRects(self: HTMLElement): Rectangle[] {
  const rects: Rectangle[] = [];
  for (const element of document.querySelectorAll<HTMLElement>(OCCUPIED)) {
@@ -35,10 +35,10 @@ export function DraggablePanel({ id, title, phase, children, badge = 0, track = 
  const [draft, setDraft] = useState<Rectangle | null>(null), [options, setOptions] = useState(false);
  const entry = useWindows(state => state.windows[id]), viewportBounds = useWindows(state => state.bounds);
  const layout = useWindows(state => state.layout), compactWindow = useWindows(state => state.compactWindow);
- const bounds = useMemo(() => layout === 'compact' ? compactSheetBounds(viewportBounds) : viewportBounds, [layout, viewportBounds]);
+ const bounds = viewportBounds;
  const revision = useWindows(state => state.revision);
  const collapsed = entry.visibility === 'COLLAPSED' || (layout !== 'desktop' && compactWindow !== id);
- const toggle = () => { cancelGesture(); if (collapsed) useWindows.getState().expand(id); else useWindows.getState().collapse(id); }; 
+ const collapse = () => { cancelGesture(); useWindows.getState().collapse(id); };
  const trackId = track ? id : null;
  const subscribeTracking = useCallback((listener: () => void) => trackId ? subscribeTrackedTarget(trackId, listener) : () => {}, [trackId]);
  const isTracking = useSyncExternalStore(subscribeTracking, () => !!trackId && getTrackedTarget(trackId)?.isTracking === true);
@@ -110,7 +110,7 @@ export function DraggablePanel({ id, title, phase, children, badge = 0, track = 
   current.current = current.layout !== 'desktop'
    ? sheetRectangle(current.origin.height - delta.y, current.bounds, id)
    : current.edge === 'move'
-    ? clampRectangle({ ...current.origin, x: current.origin.x + delta.x, y: current.origin.y + delta.y }, current.bounds, collapsed ? { width: 180, height: 44 } : MINIMUM_SIZE[id])
+    ? clampRectangle({ ...current.origin, x: current.origin.x + delta.x, y: current.origin.y + delta.y }, current.bounds, MINIMUM_SIZE[id])
     : resizeRectangle(current.origin, current.edge, delta, current.bounds, MINIMUM_SIZE[id]);
   setDraft(current.current);
  };
@@ -120,8 +120,7 @@ export function DraggablePanel({ id, title, phase, children, badge = 0, track = 
   event.stopPropagation();
   const changed = current.current.x !== current.origin.x || current.current.y !== current.origin.y || current.current.width !== current.origin.width || current.current.height !== current.origin.height;
   if (changed && current.layout === 'desktop') {
-   if (collapsed) useWindows.getState().setPosition(id, current.current);
-   else useWindows.getState().setGeometry(id, current.current);
+   useWindows.getState().setGeometry(id, current.current);
   }
   else if (changed) useWindows.getState().setCompactHeight(id, current.current.height);
   cancelGesture();
@@ -132,7 +131,7 @@ export function DraggablePanel({ id, title, phase, children, badge = 0, track = 
  };
  const pointerHandlers = { onPointerMove: pointerMove, onPointerUp: pointerUp,
   onPointerCancel: pointerCancel, onLostPointerCapture: pointerCancel };
- return <section ref={ref} id={`floating-${id}`} className={`floating-panel floating-${id}`}
+ return <section ref={ref} hidden={collapsed} id={`floating-${id}`} className={`floating-panel floating-${id}`}
   data-layout={layout} data-collapsed={collapsed} data-active={!collapsed} data-cue-target={id === 'mission' ? 'workshop' : id} aria-label={title}
   style={layout === 'reading' ? { zIndex: entry.order } : { left: rectangle.x, top: rectangle.y, width: rectangle.width, height: rectangle.height, zIndex: entry.order }}
   onFocusCapture={event => {
@@ -141,8 +140,8 @@ export function DraggablePanel({ id, title, phase, children, badge = 0, track = 
    if (useWindows.getState().windows[id].focusTarget !== target) useWindows.setState(state => ({ windows: { ...state.windows, [id]: { ...state.windows[id], focusTarget: target } } }));
   }} onPointerDownCapture={() => useWindows.getState().raise(id)}
   onPointerDown={event => event.stopPropagation()} onPointerUp={event => event.stopPropagation()} onWheel={event => event.stopPropagation()}>
-  <div className="window-title-row" onDoubleClick={toggle}>
-   <button id={`window-handle-${id}`} type="button" className="panel-drag-handle" aria-label={layout === 'reading' ? title : `${layout === 'desktop' ? copy.move : copy.size}: ${title}`} aria-describedby={instructions} aria-expanded={!collapsed} aria-controls={`window-body-${id}`} onClick={event => { if (event.detail === 0) toggle(); }}
+  <div className="window-title-row" onDoubleClick={collapse}>
+   <button id={`window-handle-${id}`} type="button" className="panel-drag-handle" aria-label={layout === 'reading' ? title : `${layout === 'desktop' ? copy.move : copy.size}: ${title}`} aria-describedby={instructions} aria-expanded={!collapsed} aria-controls={`window-body-${id}`} onClick={event => { if (event.detail === 0) collapse(); }}
     onPointerDown={event => startGesture(event, 'move')} {...pointerHandlers}
     onKeyDown={event => {
      if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key) || layout === 'reading') return;
@@ -150,15 +149,13 @@ export function DraggablePanel({ id, title, phase, children, badge = 0, track = 
      const state = useWindows.getState(), origin = displayed();
      if (trackId && layout === 'desktop') setTracking(trackId, false);
      if (layout === 'desktop') {
-      const next = moveRectangle(origin, event.key, event.shiftKey, bounds, collapsed ? { width: 180, height: 44 } : MINIMUM_SIZE[id]);
-      if (collapsed) state.setPosition(id, next);
-      else state.setGeometry(id, next);
+      state.setGeometry(id, moveRectangle(origin, event.key, event.shiftKey, bounds, MINIMUM_SIZE[id]));
      }
      else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') state.setCompactHeight(id, sheetRectangle(origin.height + (event.key === 'ArrowUp' ? 1 : -1) * (event.shiftKey ? 40 : 10), bounds, id).height);
     }}><span className="drag-grip" aria-hidden="true"/><span className="panel-title"><span className="panel-title-text">{title}</span>{badge > 0 && <span className="panel-badge">{badge}</span>}</span></button>
    <button ref={optionsButton} type="button" className="window-title-action" aria-label={`${copy.options}: ${title}`} aria-expanded={options} aria-controls={optionsId}
-    onClick={() => { if(collapsed)useWindows.getState().expand(id);setOptions(value => !value); }}><span aria-hidden="true">⋯</span></button>
-   <button type="button" className="window-title-action" aria-label={`${collapsed ? copy.expand : copy.collapse}: ${title}`} aria-expanded={!collapsed} aria-controls={`window-body-${id}`} onClick={toggle}><span aria-hidden="true">{collapsed ? '⌄' : '⌃'}</span></button>
+    onClick={() => setOptions(value => !value)}><span aria-hidden="true">⋯</span></button>
+   <button type="button" className="window-title-action" aria-label={`${copy.collapse}: ${title}`} aria-expanded={!collapsed} aria-controls={`window-body-${id}`} onClick={collapse}><span aria-hidden="true">⌃</span></button>
   </div>
   <p id={instructions} className="sr-only">{layout === 'desktop' ? copy.instructions : layout === 'reading' ? copy.reading : copy.sheetInstructions}</p>
   <div ref={body} id={`window-body-${id}`} hidden={collapsed} className="floating-panel-body" onScroll={event => {
@@ -175,7 +172,7 @@ export function DraggablePanel({ id, title, phase, children, badge = 0, track = 
 
 function WindowOptions({ id, optionsId, onClose }: { id: PanelId; optionsId: string; onClose(): void }) {
  const copy = useWindowCopy(), layout = useWindows(state => state.layout), viewportBounds = useWindows(state => state.bounds);
- const bounds = useMemo(() => layout === 'compact' ? compactSheetBounds(viewportBounds) : viewportBounds, [layout, viewportBounds]);
+ const bounds = viewportBounds;
  const entry = useWindows(state => state.windows[id]);
  const shown = getTrackedTarget(id)?.isTracking && layout === 'desktop' ? document.getElementById(`floating-${id}`)?.getBoundingClientRect() : undefined;
  // A following panel's live position comes from the DOM; nudges start where the player sees it.

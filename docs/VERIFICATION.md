@@ -2,6 +2,62 @@
 
 This records observed checks, not inferred product claims. Challenge alignment is tracked in [CHALLENGE_ACCEPTANCE.md](./CHALLENGE_ACCEPTANCE.md). The application is served as a production static build for browser verification; no app state was injected to manufacture mission outcomes.
 
+## Bottom mission control and LAN groundwork (2026-11-15)
+
+This section supersedes earlier shell-placement observations. The Impeccable UI plan was reviewed before source edits; a frozen build of commit `5ab4440` supplied baseline measurements independently of concurrent HMR. UI source was then built and copied to a separate production-preview directory for visual checks.
+
+### Integration checks
+
+- Initial combined production build passed (2,895 modules); Vite retains its >500 kB chunk warnings.
+- Initial full suite: **300 passed, 4 failed, 47 files**. One new note-normalization case exposed retained Unicode control/format characters; normalization now preserves Portuguese accents and collapses whitespace before removing controls. Three pilot cases used an Expert fixture without satisfying its extra engineering gates; the fixture was restored to its original Aspiring scenario using public objective/trade/freeze/sign-off/verify/launch actions, not direct state writes or readiness bypass.
+- After those fixes, the affected reducer/protocol/pilot tests passed **28/28**, and `bun run typecheck` passed including `apps/host/src`. This intermediate build predates the additional setup-card refinement.
+- Final integrated checks including setup refinement: `bun run typecheck` passed; `bun test` passed **307 tests, 0 failures, 48 files, 51,340 assertions**; `bun run build` passed (2,896 modules). The existing large-chunk warning remains.
+- A later 320 px flight/tour check exposed an unintended switch into reading layout (controls at y=1,254). Resource-label icons were taking a separate line, and transient pause text counted toward layout classification. The label now has a wrapping flex-text span; classification excludes transient notice height while actual tool bounds still reserve it. A new geometry regression and resource checks passed **18/18**; typecheck and production build passed again. Further measurement showed the closed controller itself still consumed too many rows: ≤360 px navigation now places the view selector beside four 44 px panel targets and removes only a redundant visual section label. Reading thresholds and required actions remain unchanged.
+
+### Setup browser checks
+
+Parent inspected the final frozen production preview at 1440×900 and 320×844 in headless Chromium. Aspiring/Expert render as icon toggle cards; Play as a team starts expanded; two-player responsibilities form horizontal columns on desktop and reflow vertically at 320 px. Selecting Spacecraft in Player 1's Science dropdown exchanged ownership with Player 2, retaining all four disciplines. The local-play card visibly includes its play icon, player-count explanation, no-network statement and Start mission action; the separate LAN link remains present. At 320 px, root scroll width was exactly 320; no browser errors were recorded.
+
+### Mission-control browser checks
+
+The UI worker's final frozen preview (`5181`) kept flight in compact layout at 390×844 and 320×844 in en/pt-BR, with no horizontal overflow and the clock/action reachable. Portuguese panel buttons measured 44×44 px. Main also inspected the final 320 px and desktop flight captures. HUD-rectangle union measurements at 1440×900, default trays/tools closed except the default Build Workshop:
+
+| Surface | Unobscured scene share |
+|---|---:|
+| Build | 61.72% |
+| Flight | 65.48% |
+
+The worker walked each recorded tour with no missing cutouts; final 320 px Flight and Portuguese Debrief targets intersected the viewport and retained compact layout.
+
+| Tour | Recorded steps walked |
+|---|---:|
+| Welcome | 82 |
+| Build | 95 |
+| Launch | 67 |
+| Choice | 4 |
+| Flight | 100 |
+| Debrief | 76 |
+
+Keyboard checks covered level/start, role ownership swap, tray return to `control-requirements`, tool close to `control-panel-readiness`, and Component return to `component-EPS_BATT_20`. Native Chromium touch emulation and the app reduced-motion setting were exercised; resource animation was `none`. Evidence is in `/tmp/astrix-ui-after/proof-summary.json` with referenced screenshots/logs; baseline captures are in `/tmp/astrix-ui-before/`. These temporary local artifacts are not bundled product assets.
+
+This was a First Light/Aspiring walkthrough, explicitly ended through Help to reach a genuine terminal debrief, not a successful-flight claim. Other mission/Expert branches, physical touch hardware and OS-level reduced-motion emulation were not manually exercised. One retained hidden renderer reported a transient graphics-interrupted notice during repeated preview work; reload/new attempt recovered, but its cause was not investigated. Impeccable's detector exited 2 with five incumbent border/grid findings (resize handle, Home story, Wizard alert and superseded TeachingCard styling), none attributed to the new controller; this is not a clean-detector claim.
+
+### LAN browser rehearsal
+
+- Started the actual `bun run host --port 3010 --control-port 3011`. It selected private interface `wlp2s0` (`192.168.1.55`) and exposed a separate loopback host bootstrap. Browser requests used that LAN origin, not mocked transports.
+- Desktop headless Chromium (1440×900) bootstrapped host access, rendered the local QR/manual invitation, admitted a 390×844 browser client, assigned Science to it, and acknowledged Ready on both clients.
+- **Start design session** created the authoritative First Light attempt; **Open shared mission** displayed the new bottom controller and one Canvas in the host browser. Refreshing the host retained the attempt and removed the Start action; refreshing the admitted phone recovered its existing identity and Science ownership without re-pairing. Phone document width stayed within 390 px.
+- Admitted two further 320×844 browser clients: the lobby displayed **4/4 devices (host display included)**. A fourth phone request was refused with the explicit room-full message; no existing device was evicted.
+- **Continue host-only** reduced the room to one device and transferred Science back to Host alongside the other three disciplines. Admitted phones showed disconnected/stale and revoked-device feedback. The mission still existed after another host refresh.
+- Initial host CSP blocked three bundled `data:font/woff2` URLs. The host policy was corrected to allow `data:` fonts while keeping scripts self-only. The startup Reload button now uses the externalized bootstrap's event listener rather than an inline handler.
+- Restarted the host with the corrected font CSP: the lobby loaded with no browser errors. A throwaway request-interception scenario blocked the dynamic application chunk, observed the bilingual startup-failure surface, then unblocked it and clicked **Reload**. Home rendered successfully under the host's self-only script policy; no permanent failure-injection code was added.
+
+These were separate desktop Chromium tabs over real HTTP/WebSocket on the host's private address, **not physical phones or an isolated-WAN experiment**. Dedicated phone design/flight consoles (W5/W6), actual iOS Safari/Android Chrome, native-camera QR scanning, firewall/AP isolation, sleep/suspension, storage denial and long reconnect delays were not exercised in this browser rehearsal. The [runbook](./MULTIPLAYER.md) distinguishes those procedures from observed evidence.
+
+### Documentation checks
+
+The final canonical/runbook/report/plan documentation check resolved **205 local links across 18 pages**, with no missing files/Markdown anchors or unbalanced fenced blocks. `bun run prepare:public` passed after the canonical refresh. These checks validate packaging/navigation, not scientific correctness or physical LAN compatibility.
+
 ## Guided immersive redesign — rules v4 (2026-11-15)
 
 This section records the Line B redesign ([plan](./plans/GUIDED_IMMERSIVE_REDESIGN_PLAN.md)) and supersedes the layout, scene and pointing observations in the older sections below. Browser checks used the production static build (`vite preview`) in headless Chromium with real clicks, keys and touch emulation; no mission state was injected.

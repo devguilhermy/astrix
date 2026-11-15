@@ -27,7 +27,6 @@ import { getSpaceTextureBytes } from './space/textures';
 import { isCloseShot, resolveCameraMode, useCameraMode, type CameraMode } from './camera/modes';
 import { PilotDragSurface } from '../ui/flight/PilotControls';
 import { usePilot } from '../ui/flight/pilotState';
-import { WorkbenchControls } from '../ui/scene/WorkbenchControls';
 import { PartTracker } from './spacecraft/PartTracker';
 import { BUS_GEOMETRY } from './spacecraft/slots';
 
@@ -173,7 +172,6 @@ export function AppCanvas({ onReady, onFailure: reportFailure }: AppCanvasProps)
   {!preview && live && stage === 'IMPLEMENT' && <PilotDragSurface/>}
   <section className="scene-dom">
    <CameraControls bridge={bridge} effectiveMode={mode} exploring={exploring} touch={touch} ready={cameraReady && !failed} onExplore={setExploring} onMounted={onDomMounted}/>
-   {!viewer && kind === 'assembly' && <WorkbenchControls design={design} reducedMotion={reducedMotion}/>}
    {!viewer && kind === 'launch' && <section className="scene-launch-presentation" aria-label={t('scene.launch')}><p role="status">{t(`flight.launchStage${launchStage}`)}</p><p>{t(reducedMotion ? 'flight.launchStatic' : 'scene.launch')}</p><div className="button-wrap"><button type="button" onClick={() => setPresentation(presentation === 'PLAYING' ? 'COMPLETE' : 'PLAYING')}>{t(presentation === 'PLAYING' ? 'scene.skip' : presentation === 'COMPLETE' ? 'scene.replay' : 'scene.play')}</button>{presentation !== 'COMPLETE' && <button type="button" onClick={onComplete}>{t('scene.skip')}</button>}</div></section>}
    {transferPlayback && <section className="scene-launch-presentation"><p>{t('flight.timeLapse')}</p><button type="button" onClick={onTransferComplete}>{t('scene.skip')}</button></section>}
    {!viewer && <SceneCaption design={design} mission={mission} stage={stage} kind={kind} preview={preview} hasFlight={!!sim} running={running} telemetry={live && !reviewSample ? telemetry : null} technical={selectedLevel === 'EXPERT'} reviewing={!!reviewSample} referenceOnly={referenceOnly}/>}
