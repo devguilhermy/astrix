@@ -366,4 +366,6 @@ Profile and behaviour: [GMAT support](./GMAT_SUPPORT.md).
 
 - **Tests:** 584 pass, 0 fail across 71 files, including the quiz bank, the `/quiz` route and the LAN host serving `/quiz`.
 - **Browser (development server, 1920×940 and 320 px):** quiz answer flow, result, Try again, study mode, Portuguese, focus on each new question, no horizontal overflow at 320 px, navigation quiz → simulator → menu → quiz → back. Preparation choices fit (862 / 862 px) for First Signal; arrow-key selection with a focus ring. Turn action cards 60–76 px tall with descriptions linked for assistive technology.
-- **Not checked:** the preparation fit for missions with longer descriptions; the quiz on a physical phone; a production build containing these changes.
+- **Preparation fit, all missions:** the choices panel needs no scrolling at 1920×940 for all 13 missions at both levels (26 cases), and for six of them in Portuguese, including the three-kit missions with the longest descriptions.
+- **Production build:** `bun run build` passes. A host started from the current code serves `/quiz`, `/gmat` and `/science` with HTTP 200. On that build, the quiz in a 390×844 touch emulation answers correctly, has no horizontal overflow and keeps targets at 44 px or more. A host process started before the `/quiz` route was added keeps answering 404 for it until restarted.
+- **Not checked:** the quiz on a physical phone (only touch emulation).
