@@ -241,11 +241,6 @@
 .gmat-tools>p { margin-top:1rem; }
 .play-section { border-top:1px solid var(--play-line); margin-top:2rem; padding-top:1.5rem; }
 .play-section>p { margin:.7rem 0; }
-.trajectory-view { margin-top:1.5rem; }
-.trajectory-view>p { margin:.7rem 0; }
-.trajectory-view svg { display:block; width:100%; max-height:450px; background:#07111a; border-radius:12px; margin-top:1rem; }
-.trajectory-view>label { display:flex; gap:1rem; align-items:center; margin:.9rem 0; }
-.trajectory-view .number { white-space:normal; overflow-wrap:anywhere; }
 .flight-context { display:flex; flex-direction:column; gap:1rem; align-items:stretch; margin:1.2rem 0; border-top:1px solid var(--play-line); padding-top:1rem; }
 .flight-context svg { width:100%; background:#07111a; border-radius:12px; }
 .flight-context figcaption { color:#b8d1db; }

@@ -24,6 +24,8 @@ import { usePlayback, usePlaybackFrame, type PlaybackControl, type PlaybackTarge
 import { PlaybackTransport } from './playback/Transport';
 import { detectQuality } from './quality';
 import { ExploreFlight, ExploreHud, type ExploreTelemetry } from './explore';
+import { GmatCaption, GmatScene, GmatTransport } from './gmat/GmatScene';
+import { trajectoryViewer } from '../ui/advanced/trajectoryStore';
 import './immersive.css';
 
 export interface AppCanvasProps {
@@ -214,6 +216,8 @@ function PhysicalWorld({ scene, orbitVisible, selectedKey, view, onInspect, onCl
 export function AppCanvas({ design, game, body, view, reducedMotion, onSelectDestination, moments: givenMoments, selectedTurn = null, onSelectTurn, solarBody: solarSelection, onSolarBody }: AppCanvasProps) {
   const { i18n } = useTranslation();
   const pt = !!i18n.resolvedLanguage?.startsWith('pt');
+  // The GMAT tools page replaces the mission world with imported or exported external data; display only.
+  const gmatSubject = trajectoryViewer(state => state.subject), gmat = view === 'gmat' ? gmatSubject : null;
   const scene = useMemo(() => committedScene(design, game, body, view), [design, game, body, view]);
   const moments = useMemo(() => givenMoments ?? (game ? turnMoments(game) : NO_MOMENTS), [givenMoments, game]);
   const [failed, setFailed] = useState(false), [retry, setRetry] = useState(0), [mode, setMode] = useState<CameraMode>('craft');
@@ -280,7 +284,7 @@ export function AppCanvas({ design, game, body, view, reducedMotion, onSelectDes
         detectQuality(gl.getContext());
         gl.domElement.addEventListener('webglcontextlost', event => { event.preventDefault(); setFailed(true); }, { once: true });
       }}>
-        {view === 'solar' ? <>
+        {gmat ? <GmatScene subject={gmat} command={command} reducedMotion={reducedMotion} pt={pt}/> : view === 'solar' ? <>
           <SolarSystemScene selected={flying ? 'SYSTEM' : solarSelection} onFocus={flying ? setFlightTarget : onSolarBody}/>
           <ExploreFlight boarded={flying} bodies={SOLAR_BODIES} target={flightTarget} reducedMotion={reducedMotion} onTelemetry={setFlightTelemetry}/>
         </> : <>
@@ -288,13 +292,14 @@ export function AppCanvas({ design, game, body, view, reducedMotion, onSelectDes
           {geometry && !playback.active && <TurnFeedback scene={scene} geometry={geometry} animateKey={playback.feedback.key} animate={animateFeedback} reducedMotion={reducedMotion} pt={pt}/>}
           {ended && !playback.active && <TurnMarkers scene={scene} moments={moments} selected={shown?.index ?? null} onSelect={onSelectTurn} pt={pt}/>}
         </>}
-        {!flying && <SceneCamera scene={scene} mode={mode} view={view} command={command} reducedMotion={reducedMotion} solarFocus={solarFocus}/>}
+        {!flying && !gmat && <SceneCamera scene={scene} mode={mode} view={view} command={command} reducedMotion={reducedMotion} solarFocus={solarFocus}/>}
       </Canvas></SceneBoundary></ScenePortalContext.Provider>}
     </div>
     {failed && selected && scene.design && <div className="immersive-component-fallback"><ComponentDetails part={selected.part} design={scene.design} current={scene.current} onClose={closeDetails}/></div>}
     {view === 'solar' && !flying && <SolarSystemCaption body={solarBody}/>}
     {view === 'solar' && !failed && <ExploreHud boarded={flying} onBoard={board} onLeave={leave} telemetry={flightTelemetry} bodies={SOLAR_BODIES} target={flightTarget} onTarget={setFlightTarget} reducedMotion={reducedMotion}/>}
-    {view !== 'solar' && <div className="immersive-scene-caption">
+    {gmat && <GmatCaption subject={gmat} pt={pt}/>}
+    {view !== 'solar' && !gmat && <div className="immersive-scene-caption">
       <strong>{name}{scene.physical ? ` · T+${number.format(scene.current!.t)} s` : scene.design ? pt ? ' · Prévia do equipamento' : ' · Equipment preview' : pt ? ' · Destino' : ' · Destination'}</strong>
       <span>{scene.physical && scene.current?.flight ? `${number.format(scene.current.flight.view.altitudeKm)} km · ${number.format(scene.current.flight.view.speedKms)} km/s` : scene.physical && scene.current ? scene.body === 'SUN' ? `${megabytes.format(Math.hypot(...scene.current.positionKm) / 149597870.7)} AU ${pt ? 'do Sol' : 'from the Sun'}` : `${number.format(scene.altitudeKm)} km` : scene.cruise ? pt ? 'Transferência analítica; trajetória espacial não representada.' : 'Analytic transfer; no spatial transfer path is modelled.' : pt ? 'Contexto do destino; não é uma trajetória de voo.' : 'Destination context, not a flight trajectory.'}</span>
       {view === 'play' && <p className="scene-fb-event" role="status">{eventLine}</p>}
@@ -302,9 +307,10 @@ export function AppCanvas({ design, game, body, view, reducedMotion, onSelectDes
     </div>}
     {!flying && <div className="immersive-scene-controls">
       {transport && <PlaybackTransport playback={playback} ended={ended} pt={pt}/>}
+      {gmat && <GmatTransport subject={gmat} pt={pt}/>}
       <div className="scene-fb-camera" role="group" aria-label={pt ? 'Controles da câmera, sem avançar o tempo da missão' : 'Camera controls; never advance mission time'}>
         {view === 'solar' && <div className="immersive-camera-modes"><select className="immersive-component-select" aria-label={pt ? 'Explorar um astro' : 'Explore a celestial body'} value={solarSelection} onChange={event => onSolarBody(event.target.value as SolarBodyId | 'SYSTEM')}><option value="SYSTEM">{pt ? 'Sistema solar' : 'Solar system'}</option>{SOLAR_BODIES.map(item => <option key={item.id} value={item.id}>{item.name[pt ? 'pt' : 'en']}</option>)}</select><button type="button" onClick={() => onSolarBody('SYSTEM')}>{pt ? 'Visão geral' : 'Overview'}</button>{solarBody?.destination && onSelectDestination && <button type="button" onClick={() => onSelectDestination(solarBody.destination!)}>{pt ? 'Missões neste destino' : 'Missions here'}</button>}</div>}
-        {scene.design && <div className="immersive-camera-modes"><button type="button" aria-pressed={mode === 'craft'} onClick={() => setMode('craft')}>{pt ? 'Equipamento' : 'Spacecraft'}</button><button type="button" aria-pressed={mode === 'orbit'} onClick={() => setMode('orbit')}>{pt ? 'Órbita' : 'Orbit'}</button><ComponentPicker instances={installed} selectedKey={selected?.key ?? null} onSelect={inspect} triggerRef={componentSelect}/></div>}
+        {scene.design && !gmat && <div className="immersive-camera-modes"><button type="button" aria-pressed={mode === 'craft'} onClick={() => setMode('craft')}>{pt ? 'Equipamento' : 'Spacecraft'}</button><button type="button" aria-pressed={mode === 'orbit'} onClick={() => setMode('orbit')}>{pt ? 'Órbita' : 'Orbit'}</button><ComponentPicker instances={installed} selectedKey={selected?.key ?? null} onSelect={inspect} triggerRef={componentSelect}/></div>}
         <div className="immersive-camera-buttons">{actions.map(({ action, Icon, label }) => <button type="button" key={action} title={label} aria-label={label} disabled={failed} onClick={() => act(action)}><Icon size={17} strokeWidth={1.6}/></button>)}</div>
       </div>
     </div>}
