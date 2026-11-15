@@ -334,3 +334,11 @@ Full record with the density table, the browser checks and the list of what was 
 - **Production host:** icons, manifest and the new Earth map answer HTTP 200; Sun Sentinel's first turn, Portuguese on the turn card and fact panel, and 320 px width without horizontal overflow were seen; twelve view changes produced no page error or console warning.
 - **Density at 1920×940:** mission board 862 / 862 px (was 2132 in 926), preparation choices 908 in 862, report result panel 480 in 476.
 - **`removeChild` exception:** cause found in drei `Html` root re-creation; fixed with a stable label host; not reproduced afterwards.
+
+## 2026-11-15: GMAT tools page and 3D view
+
+Profile and behaviour: [GMAT support](./GMAT_SUPPORT.md).
+
+- **Tests:** 580 pass, 0 fail (`bun test`); `bun run typecheck` clean. This resolves the `playback.test.ts` failure noted in the previous record. New coverage: NASA sample scripts and OEM through the parsers, TAIModJulian conversion, mission-sequence reassignment refusal, the view store and scene geometry (conic/apsides/propagated state agree; trajectory runs never join gaps and stay within the vertex budget).
+- **Browser (Chromium, dev server, 1440×900):** `/gmat` direct load, reload, Home link and back/forward. All nine examples were run through the picker: seven import, and `Ex_HohmannTransfer`/`Ex_OEMPropagation` are refused with the stated reason. Seen in 3D: the export draft (sunlit Earth, conic, apsides), `Sat` from `Tut_SimulatingAnOrbit` (e 0.897, framed whole, playback at 1 h/s advanced T+5 h 9 min), `MarsOrbiter` around Mars, and `SampleOEMEphem.oem` playing at 6 h/s with the travelled path in gold. Leaving the page removed the GMAT caption and restored the mission scene.
+- **Not checked:** GMAT was not installed, so exported scripts were not re-run in GMAT for this change. At 390 px the scene strip is cramped; hiding panels does not re-frame the camera. Headless WebKit returned stale screenshots, so visual checks used Chromium.
