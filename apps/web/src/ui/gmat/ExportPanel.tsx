@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { OrbitChoice } from '@astrix/core';
-import { buildExport, defaultDraft, draftFromOrbit, type ExportBody, type ExportDraft } from './exportModel';
+import { trajectoryViewer } from '../advanced/trajectoryStore';
+import { buildExport, defaultDraft, draftFromOrbit, SPACECRAFT, type ExportBody, type ExportDraft } from './exportModel';
 import './gmat.css';
 
 const copy = {
@@ -26,8 +27,12 @@ const fields: { key: keyof Omit<ExportDraft, 'body' | 'epochUTC'>; label: string
 export function ExportPanel({ initial }: { initial?: OrbitChoice | null }) {
   const { i18n } = useTranslation(), c = copy[i18n.resolvedLanguage?.startsWith('pt') ? 'pt' : 'en'];
   const [draft, setDraft] = useState<ExportDraft>(() => initial ? draftFromOrbit(initial) : defaultDraft);
-  const built = useMemo(() => buildExport(draft), [draft]);
-  const set = (patch: Partial<ExportDraft>) => setDraft(value => ({ ...value, ...patch }));
+  const built = useMemo(() => buildExport(draft), [draft]), edited = useRef(false), empty = trajectoryViewer(state => !state.subject);
+  const set = (patch: Partial<ExportDraft>) => { edited.current = true; setDraft(value => ({ ...value, ...patch })); };
+  // The draft fills an empty 3D view (also after a cleared import) and takes it over once edited.
+  useEffect(() => {
+    if (built.ok && (edited.current || empty)) trajectoryViewer.getState().show({ kind: 'orbit', orbit: built.orbit, label: SPACECRAFT, origin: 'export' });
+  }, [built, empty]);
   const download = () => {
     if (!built.ok) return;
     const url = URL.createObjectURL(new Blob([built.script], { type: 'text/plain' })), link = document.createElement('a');

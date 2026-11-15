@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import { CONSTANTS, elementsForOrbit, makeOrbit, propagate, stationPosition, sunDirection } from '../physics';
-import { exportInitialOrbit, parseInitialOrbit, parseOem, parseReport, sampleTrajectory, utcMillis } from './gmat';
+import { readFileSync } from 'node:fs';
+import { exportInitialOrbit, extractInitialOrbit, parseInitialOrbit, parseOem, parseReport, sampleTrajectory, utcMillis } from './gmat';
 
 const oem = `CCSDS_OEM_VERS = 2.0
 CREATION_DATE = 2024-01-01T00:00:00
@@ -75,5 +76,36 @@ describe('external inert text', () => {
   const later = '2000-01-02T12:00:00.000Z';
   expect(stationPosition(0,'EARTH',38,-75,undefined,later)).toEqual(stationPosition(86400));
   expect(sunDirection('EARTH',0,undefined,later)).toEqual(sunDirection('EARTH',86400));
+ });
+});
+
+describe('GMAT sample scripts', () => {
+ const sample = (name: string) => readFileSync(new URL(`../../../../scripts/fixtures/gmat/nasa-samples/${name}`, import.meta.url), 'utf8');
+ it('reads one spacecraft state from a full mission script and reports the rest as ignored', () => {
+  const tutorial = extractInitialOrbit(sample('Tut_SimulatingAnOrbit.script'), 'Sat');
+  expect(tutorial.orbit).toEqual({body:'EARTH',epochUTC:'2014-07-22T11:29:10.811Z',frame:'MJ2000Eq',smaKm:83474.31800000001,ecc:0.89652,inclinationDeg:12.4606,raanDeg:292.8362,argPeriapsisDeg:218.9805,trueAnomalyDeg:180});
+  expect(tutorial.ignored.length).toBeGreaterThan(0);
+  expect(() => parseInitialOrbit(sample('Tut_SimulatingAnOrbit.script'), 'Sat')).toThrow(/Unsupported script statement at line/);
+ });
+ it('converts TAIModJulian epochs with the leap-second offset', () => {
+  // TAIModJulian 21645 = 10 Apr 2000 12:00:00 TAI; TAI−UTC was 32 s.
+  expect(extractInitialOrbit(sample('Ex_MarsOrbit.script'), 'MarsOrbiter').orbit).toMatchObject({body:'MARS',epochUTC:'2000-04-10T11:59:28.000Z',smaKm:6000.9388176290122});
+  expect(() => extractInitialOrbit(sample('Ex_MarsOrbit.script'), 'MarsSupply')).toThrow(/Unsupported orbit/);
+ });
+ it('refuses spacecraft whose state the script does not state', () => {
+  expect(() => extractInitialOrbit(sample('Ex_HohmannTransfer.script'), 'DefaultSC')).toThrow(/sets no orbit state/);
+  expect(() => extractInitialOrbit(sample('Ex_OEMPropagation.script'), 'EphSat')).toThrow(/sets no orbit state/);
+  expect(() => extractInitialOrbit(sample('Ex_MarsOrbit.script'), 'Nobody')).toThrow(/choose one of/);
+ });
+ it('refuses a mission sequence that reassigns the selected state', () => {
+  const source = `${exportInitialOrbit(makeOrbit('EARTH',420,420,51.6,'2024-05-01T00:00:00.000Z'))}BeginMissionSequence;\nAstrix.SMA = 9000;\n`;
+  expect(() => extractInitialOrbit(source, 'Astrix')).toThrow(/mission sequence changes/);
+  expect(() => extractInitialOrbit(source.replace('Astrix.SMA = 9000', 'Propagate P(Astrix)'), 'Astrix')).not.toThrow();
+  expect(() => extractInitialOrbit(source.replace('BeginMissionSequence;\nAstrix.SMA = 9000;', 'GMAT Astrix.X = 7000;'), 'Astrix')).toThrow(/not a Keplerian TA state/);
+ });
+ it('accepts the NASA OEM 1.0 ephemeris with useable time bounds', () => {
+  const t = parseOem(sample('SampleOEMEphem.oem'));
+  expect(t).toMatchObject({source:'CCSDS OEM 1.0',object:'Satellite1',body:'EARTH'});
+  expect(t.segments[0].samples).toHaveLength(2881);
  });
 });

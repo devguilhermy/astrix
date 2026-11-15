@@ -171,6 +171,7 @@ These pages explain the **implemented system**. Start with Architecture, then fo
 - [Build a Junior Astronaut Mission Trainer](./challenges/junior-astronaut-mission-trainer.md): the alternative outpost challenge for ages 7–12, not the shipped ASTRIX mission game.
 - [Comparison and recommendation](./challenges/COMPARISON.md): historical comparison of the two challenge directions.
 - [Verified facts and data points](./research/verified-facts.md): researched values and source citations; computed teaching values remain qualified.
+- [GMAT support](./GMAT_SUPPORT.md): `/gmat` page, supported import/export profiles, 3D view, example inputs and limits.
 - [Independent GMAT reference](./research/gmat-validation.md): recorded external reference run and comparison context.
 - [Junior trainer resource audit](./research/junior-trainer-resources-report.md): access notes, caveats and suggestions for that alternative challenge.
 - [Void Protocol reuse report](./research/void-protocol-reuse.md): approved reuse decisions and pinned-source research. Actual adaptations are listed in [CREDITS.md](../CREDITS.md).

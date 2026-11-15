@@ -8,7 +8,7 @@ Rendering illustrates committed scientific state; it never advances physics, spe
 |---|---|---|
 | Persistent space, destination and installed spacecraft scene | `apps/web/src/three/AppCanvas.tsx`, `three/spacecraft/SpacecraftModel.tsx` | Reads candidate design or committed telemetry; camera changes never advance mission time |
 | Scientific flight geometry | Core flight state and optional evidence plots | Model-derived positions and frames, not a renderer-owned objective evaluator |
-| External GMAT/OEM inspection | `apps/web/src/ui/advanced/AdvancedTools.tsx` | Read-only sampled reference data, no resource history or score |
+| External GMAT/OEM inspection | `apps/web/src/ui/advanced/AdvancedTools.tsx`, `apps/web/src/three/gmat/GmatScene.tsx` | Read-only reference data drawn in the shared Canvas: conic or sampled path, apsides, timed playback; no resource history or score |
 | Decision preview and receipt | `apps/web/src/ui/play/TurnWorkspace.tsx` | Display results from the shared core resolver, not a web-side physical estimate |
 
 The public landing is separate from the simulator. Its entry opens free solar-system exploration before the mission board. The overview includes Sun, eight planets and Moon with schematic spacing/radii and DOM alternatives to picking; exploration does not extend the core's supported mission bodies.
@@ -31,7 +31,7 @@ Preview trajectories, measured history and imported reference samples are differ
 
 ## External trajectory viewing
 
-GMAT initial-state export/import supports the explicitly documented Earth/Mars profile. The sampled ReportFile/OEM viewer displays source, object, body, frame, time system and units. Supported OEM uses EME2000/UTC with km and km/s. Unsupported lunar interchange is refused even though lunar gameplay exists.
+GMAT initial-state export/import supports the explicitly documented Earth/Mars profile. The 3D GMAT view displays source, object, body, frame, time system and units; conics are ASTRIX two-body motion and trajectory positions between samples are linear display interpolation (see [GMAT support](./GMAT_SUPPORT.md)). Supported OEM uses EME2000/UTC with km and km/s. Unsupported lunar interchange is refused even though lunar gameplay exists.
 
 The viewer offers XY/XZ projections, native time selection and optional playback. It draws separate segments and gaps. Position interpolation is linear only within a segment and across adjacent samples no more than 120 seconds apart. There is no extrapolation; a gap displays no craft and explains why. Decimation limits drawing work without inventing missing samples. Playback changes only reference-view time.
 

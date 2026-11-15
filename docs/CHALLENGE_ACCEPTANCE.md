@@ -17,7 +17,7 @@ The challenge explicitly encourages simplified models and explanations accessibl
 | Different scientific knowledge levels | Same clear loop for Aspiring/Expert, optional details/hints and harder tradeoffs rather than an expert-only studio |
 | Understand why a decision changes mission performance | Preview versus measured receipt, exact resource/evidence values, attributed references and explicit model limits |
 | Repeat and learn | Same-condition retries, changed-design experiments and version-qualified comparisons; assisted checkpoint retry is labelled |
-| Optional realistic interchange | Bounded OEM/ReportFile visualization and supported GMAT initial-state scripts; no arbitrary script execution or claim of reproducing GMAT dynamics |
+| Optional realistic interchange | Bounded OEM/ReportFile visualization in 3D and one spacecraft's initial state read from GMAT scripts (unmodified NASA samples included); no arbitrary script execution or claim of reproducing GMAT dynamics. See [GMAT support](./GMAT_SUPPORT.md) |
 
 The product is a bounded learning game, not unrestricted astrodynamics or flight qualification. General-purpose mission authoring is no longer the player-facing goal. Ascent and lunar flight remain reduced models; no landing or crew lunar return is implied. Crew support/recovery is abstracted, not individual physiology. Release evidence belongs in [Verification](./VERIFICATION.md).
 

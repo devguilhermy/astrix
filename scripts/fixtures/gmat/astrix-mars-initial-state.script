@@ -1,0 +1,15 @@
+% ASTRIX initial conditions only; no force model or maneuver dynamics.
+Create CoordinateSystem AstrixMarsFrame;
+GMAT AstrixMarsFrame.Origin = Mars;
+GMAT AstrixMarsFrame.Axes = MJ2000Eq;
+Create Spacecraft Astrix;
+GMAT Astrix.DateFormat = UTCGregorian;
+GMAT Astrix.Epoch = '01 May 2024 00:00:00.000';
+GMAT Astrix.CoordinateSystem = AstrixMarsFrame;
+GMAT Astrix.DisplayStateType = Keplerian;
+GMAT Astrix.SMA = 4200.5;
+GMAT Astrix.ECC = 0.01;
+GMAT Astrix.INC = 51.6;
+GMAT Astrix.RAAN = 73;
+GMAT Astrix.AOP = 116;
+GMAT Astrix.TA = 205;

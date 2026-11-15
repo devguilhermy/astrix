@@ -55,6 +55,6 @@ Session replay records accepted intents and explicit authority checkpoints. A tu
 
 ## Scientific tools and limits
 
-GMAT tools are optional and do not gate ordinary play. Supported initial-state import/export and sampled-trajectory viewing preserve explicit body, frame, epoch and unit restrictions. Earth/Mars interchange is separate from the lunar game's reduced model; unsupported lunar interchange is refused. Imported trajectory samples contain no resource or objective history and cannot become scored success.
+GMAT tools are optional and do not gate ordinary play; they live at `<base>gmat` ([GMAT support](./GMAT_SUPPORT.md)). Supported initial-state import/export and sampled-trajectory viewing preserve explicit body, frame, epoch and unit restrictions. On that page the shared Canvas draws the imported or exported subject (`three/gmat/`) in place of the mission world. Earth/Mars interchange is separate from the lunar game's reduced model; unsupported lunar interchange is refused. Imported trajectory samples contain no resource or objective history and cannot become scored success.
 
 Three-dimensional scenes and playback illustrate core-derived geometry. A camera cannot change orbit, consume fuel, acquire science or establish lunar capture. The interface must remain playable without scene interaction. Numerical agreement with independent GMAT conic cases does not validate atmospheric ascent, full lunar targeting, resources, human usability or a real mission.

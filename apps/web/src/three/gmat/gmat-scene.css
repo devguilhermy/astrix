@@ -1,0 +1,6 @@
+.gmat-transport .gmat-scrubber { display: flex; width: 100%; padding: 2px 6px 0; }
+.gmat-transport .gmat-scrubber input { width: 100%; min-height: 24px; }
+.gmat-scene-caption dl { margin: 8px 0 0; text-align: left; }
+/* Phone: the scene strip above the bottom sheet only fits play, reset and the scrubber. */
+@media (max-width: 900px) { .gmat-transport .scene-fb-speeds { display: none; } }
+.gmat-scene-caption { z-index: 4; }

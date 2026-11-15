@@ -50,7 +50,7 @@ Replacing a saved attempt or importing over it uses the shared styled modal, not
 
 ## Optional tools
 
-The menu and debrief retain GMAT tools outside the normal play path. Supported initial-state import explicitly opens a compatible preparation candidate, then ordinary constraints and certification run again. Export is an initial-state export, not a complete maneuver script. External ReportFile/OEM samples have a separate inspection/playback surface, labelled frames/units and explicit gaps; they do not become scored flight history.
+The menu and debrief retain GMAT tools outside the normal play path. Supported initial-state import explicitly opens a compatible preparation candidate, then ordinary constraints and certification run again. Export is an initial-state export, not a complete maneuver script. The GMAT tools page (`/gmat`, also linked from Home) keeps import/export in the left document panel and draws the subject in the 3D view, with a caption (body, UTC, altitude, orbit details) and a playback transport in the scene's open area. External ReportFile/OEM samples keep labelled frames/units and explicit gaps; they do not become scored flight history.
 
 Help offers scientific explanations and model limits without a mandatory tour. Hints can be disabled. Source evidence and exact numerical details remain available without turning Expert into the removed studio workflow.
 

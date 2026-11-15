@@ -2,6 +2,7 @@
 
 Unmodified copies from https://github.com/nasa/GMAT (main @ b8aec552, fetched 2026-11-15), Apache-2.0.
 Served as example inputs on the GMAT tools page (copied to apps/web/public/gmat-examples by scripts/prepare-public.ts).
+Served as example inputs on the GMAT tools page (referenced from apps/web/src/ui/advanced/examples.ts; Vite emits them as build assets).
 
 | File | Origin path | Use |
 |---|---|---|
