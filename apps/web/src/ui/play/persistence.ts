@@ -9,10 +9,9 @@ export interface AttemptRecord {
   score?:number; stars?:number; turns?:number;
 }
 export interface SaveDocument { format:'astrix-turn-save'; version:1; game:TurnGameState; journal:readonly AttemptRecord[] }
-export interface SaveIssue { code:'STORAGE'|'CORRUPT'|'INCOMPATIBLE'; detail:string; raw:string|null }
-export interface SavedGame { document:SaveDocument|null; issue:SaveIssue|null; backup:SaveDocument|null; legacy:Readonly<Record<string,string>> }
-export interface StorageLike { getItem(key:string):string|null; setItem(key:string,value:string):void }
-const HEAD='astrix.play.save.v1.head', SLOT='astrix.play.save.v1.';
+export interface StorageLike { getItem(key:string):string|null; removeItem(key:string):void }
+/** Keys of the retired decision-boundary auto-save; purged so no stale attempt is ever offered. */
+const RETIRED_SAVE_KEYS=['astrix.play.save.v1.head','astrix.play.save.v1.a','astrix.play.save.v1.b'];
 const MAX_BYTES=4*1024*1024;
 const legacyKeys=['astrix.setup.draft.v1','astrix.setup.last.v1','astrix.missions.v1'];
 export function attemptRecord(game:TurnGameState):AttemptRecord {
@@ -40,34 +39,18 @@ export function parseSave(raw:string):SaveDocument {
   if(!Array.isArray(saved.journal)||saved.journal.length>64||!saved.journal.every(validRecord))throw new RangeError('Invalid discovery journal.');
   return {format:'astrix-turn-save',version:1,game:restoreTurnGame(saved.game),journal:saved.journal};
 }
-export function readSave(storage?:StorageLike):SavedGame {
-  let raw:string|null=null;
-  try {
-    const store=storage??localStorage, head=store.getItem(HEAD), legacy:Record<string,string>={};
-    for(const key of legacyKeys){const previous=store.getItem(key);if(previous)legacy[key]=previous;}
-    if(head===null)return {document:null,issue:null,backup:null,legacy};
-    if(head!=='a'&&head!=='b')return {document:null,issue:{code:'CORRUPT',detail:'Invalid save pointer.',raw:head},backup:null,legacy};
-    raw=store.getItem(SLOT+head);
-    let backup:SaveDocument|null=null;
-    const older=store.getItem(SLOT+(head==='a'?'b':'a'));
-    if(older){try{backup=parseSave(older);}catch{/* An invalid backup is never offered as recovery. */}}
-    try {
-      if(!raw)throw new RangeError('The selected save slot is missing.');
-      return {document:parseSave(raw),issue:null,backup,legacy};
-    }catch(error){return {document:null,issue:{code:'INCOMPATIBLE',detail:error instanceof Error?error.message:String(error),raw},backup,legacy};}
-  }catch(error){return {document:null,issue:{code:'STORAGE',detail:error instanceof Error?error.message:String(error),raw},backup:null,legacy:{}};}
+/** Attempts are never written to storage: the journal lives for this page visit only (Export keeps a file copy). */
+let visitJournal:readonly AttemptRecord[]=[];
+export const readVisitJournal=():readonly AttemptRecord[]=>visitJournal;
+export function rememberJournal(journal:readonly AttemptRecord[]):void { visitJournal=journal; }
+export function clearStoredSaves(storage?:StorageLike):void {
+  try{const store=storage??localStorage;for(const key of RETIRED_SAVE_KEYS)store.removeItem(key);}catch{/* Unavailable storage holds nothing to purge. */}
 }
-/** Commit the pointer last: a failed write can never replace the previous valid boundary. */
-export function writeSave(game:TurnGameState,journal:readonly AttemptRecord[],storage?:StorageLike):SaveIssue|null {
-  try {
-    const store=storage??localStorage,head=store.getItem(HEAD),slot=head==='a'?'b':'a';
-    const document:SaveDocument={format:'astrix-turn-save',version:1,game,journal};
-    const raw=JSON.stringify(document);
-    if(raw.length>MAX_BYTES)throw new RangeError('Save exceeds the 4 MiB limit; export this attempt.');
-    store.setItem(SLOT+slot,raw);
-    store.setItem(HEAD,slot);
-    return null;
-  }catch(error){return {code:'STORAGE',detail:error instanceof Error?error.message:String(error),raw:null};}
+/** Pre-turn-rules drafts and missions are never converted; they stay exportable. */
+export function readLegacy(storage?:StorageLike):Readonly<Record<string,string>> {
+  const legacy:Record<string,string>={};
+  try{const store=storage??localStorage;for(const key of legacyKeys){const previous=store.getItem(key);if(previous)legacy[key]=previous;}}catch{/* Unavailable storage holds no legacy work. */}
+  return legacy;
 }
 export function exportText(name:string,content:string):void {
   const url=URL.createObjectURL(new Blob([content],{type:'application/json'}));

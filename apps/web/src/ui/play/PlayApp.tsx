@@ -1,7 +1,7 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { defaultQuickDesign, missionById, missionOffers, quickDesignBrief, turnDecision, type BodyId, type OrbitChoice, type QuickDesignConfig, type TurnGameState } from '@astrix/core';
-import { BookOpen, CircleHelp, Compass, HardDrive, Menu, PanelLeftClose, PanelLeftOpen, Radio, Rocket, Settings, Wrench } from 'lucide-react';
+import { BookOpen, CircleHelp, Compass, GraduationCap, HardDrive, Menu, PanelLeftClose, PanelLeftOpen, Radio, Rocket, Settings, Wrench } from 'lucide-react';
 import { useRoomSession } from '../../multiplayer/session';
 import { roomClient } from '../../multiplayer/client';
 import { AdvancedTools } from '../advanced/AdvancedTools';
@@ -12,7 +12,8 @@ import { useTurnAuthority } from './authority';
 import { exportGame, exportText, parseSave, readSave, recordAttempt, writeSave, type AttemptRecord, type SavedGame, type SaveIssue } from './persistence';
 import { usePlayCopy } from './copy';
 import { labelText } from '../missions/definitionView';
-import { readLocationView, viewUrl, type PlayView } from '../recovery/routes';
+import { isSciencePath, readLocationView, scienceUrl, viewUrl, type PlayView } from '../recovery/routes';
+import { inApp } from '../landing/SiteHeader';
 import { Journal } from './Journal';
 import { SolarWelcome } from './SolarWelcome';
 import { MissionResources } from './MissionResources';
@@ -33,7 +34,7 @@ function readPreferences():Preferences {
   try{const saved=JSON.parse(localStorage.getItem('astrix.settings')??'{}');return {hints:saved.hints!==false,reducedMotion:typeof saved.reducedMotion==='boolean'?saved.reducedMotion:matchMedia('(prefers-reduced-motion: reduce)').matches};}
   catch{return {hints:true,reducedMotion:matchMedia('(prefers-reduced-motion: reduce)').matches};}
 }
-export function PlayApp({remote=false,guest=false,onLobby,onLanding,onLearn,basePath='/'}:{remote?:boolean;guest?:boolean;onLobby?:()=>void;onLanding?:()=>void;onLearn?:()=>void;basePath?:string}) {
+export function PlayApp({remote=false,guest=false,onLobby,onLanding,onLearn,onScience,onQuiz,basePath='/'}:{remote?:boolean;guest?:boolean;onLobby?:()=>void;onLanding?:()=>void;onLearn?:()=>void;onScience?:()=>void;onQuiz?:()=>void;basePath?:string}) {
   const c=usePlayCopy(),{t,i18n}=useTranslation(),authority=useTurnAuthority(remote),room=useRoomSession(),game=authority.game;
   const [view,setView]=useState<View>(()=>remote?'explore':readLocationView(location.pathname,location.hash,basePath)),[destination,setDestination]=useState<BodyId>('EARTH'),[config,setConfig]=useState<QuickDesignConfig>(()=>defaultQuickDesign()),[preferences,setPreferences]=useState(readPreferences);
   const [saved,setSaved]=useState<SavedGame|null>(null),[journal,setJournal]=useState<readonly AttemptRecord[]>([]),[saveIssue,setSaveIssue]=useState<SaveIssue|null>(null),[allowReplace,setAllowReplace]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(''),[importError,setImportError]=useState('');
@@ -50,7 +51,8 @@ export function PlayApp({remote=false,guest=false,onLobby,onLanding,onLearn,base
   useEffect(()=>{setSelectedTurn(null);},[game?.identity]);
   useEffect(()=>{if(view!=='gmat'&&(onLanding||onLearn)&&(!location.hash||location.hash==='#home'||location.hash==='#learn'))return;setPanelsOpen(true);document.title=`${c(view==='solar'?'solarTitle':view==='explore'?'home':view==='prepare'?'designPlay':view === 'play' ? 'titlePlay' : view==='gmat'?'tools':view==='journal'?'journal':'help')} — ASTRIX11`;const frame=requestAnimationFrame(()=>heading.current?.focus());return()=>cancelAnimationFrame(frame);},[view,i18n.resolvedLanguage]);
   useEffect(()=>{if(remote)return;const timer=window.setTimeout(()=>{const next=readSave();setSaved(next);setJournal(next.document?.journal??[]);previousGame.current=next.document?.game??null;},0);return()=>clearTimeout(timer);},[remote]);
-  useEffect(()=>{if(remote)return;const route=()=>setView(readLocationView(location.pathname,location.hash,basePath));window.addEventListener('hashchange',route);window.addEventListener('popstate',route);return()=>{window.removeEventListener('hashchange',route);window.removeEventListener('popstate',route);};},[remote,basePath]);
+  // The docs route shares the window; its `#section` anchors are not simulator views.
+  useEffect(()=>{if(remote)return;const route=()=>{if(!isSciencePath(location.pathname,basePath))setView(readLocationView(location.pathname,location.hash,basePath));};window.addEventListener('hashchange',route);window.addEventListener('popstate',route);return()=>{window.removeEventListener('hashchange',route);window.removeEventListener('popstate',route);};},[remote,basePath]);
   useEffect(()=>{
     if(!game||lastBoundary.current===game)return;
     lastBoundary.current=game;
@@ -122,7 +124,7 @@ export function PlayApp({remote=false,guest=false,onLobby,onLanding,onLearn,base
     {view!=='solar'&&<button className="panel-visibility header-tool" aria-expanded={panelsOpen} aria-controls="play-main" onClick={()=>setPanelsOpen(open=>!open)}>{panelsOpen?<PanelLeftClose size={18} aria-hidden="true"/>:<PanelLeftOpen size={18} aria-hidden="true"/>}<span>{c(panelsOpen?'hidePanels':'showPanels')}</span></button>}
     <QuickTour view={view==='play'&&(!game||turnDecision(game).terminal)?'none':view} enabled={preferences.hints&&!guest&&!replacement} onReveal={()=>setPanelsOpen(true)}/>
     <details className="save-chip" open={importError?true:undefined}><summary className="header-tool"><HardDrive size={17} aria-hidden="true"/><span>{c(remote?'lanSaveShort':game&&!saveIssue?'savedShort':'save')}</span></summary><div className="save-chip-popover"><p>{saveStatus}</p><div className="button-wrap">{!remote&&game&&<button className="text-button" onClick={()=>exportGame(game,journalRef.current)}>{c('export')}</button>}{!remote&&<label className="import-save-label">{c('importSave')}<input type="file" accept=".json,application/json" onChange={event=>{const file=event.target.files?.[0];if(file)void importFile(file);event.target.value='';}}/></label>}<button className="text-button" onClick={()=>navigate('gmat')}>{c('tools')}</button></div>{importError&&<p role="alert">{c('importFailure')} <small>{importError}</small></p>}</div></details>
-    <button className="language-button" onClick={()=>void i18n.changeLanguage(i18n.resolvedLanguage?.startsWith('pt')?'en':'pt-BR')}>{i18n.resolvedLanguage?.startsWith('pt')?'English':'Português'}</button><details className="play-menu"><summary aria-label={c('menu')}><Menu size={22}/></summary><div><button className="mission-menu-link" onClick={()=>navigate('solar')}><Compass size={17} aria-hidden="true"/>{c('explore')}</button><button className="mission-menu-link" onClick={()=>navigate('journal')}><BookOpen size={17} aria-hidden="true"/>{c('journal')}</button><button onClick={()=>navigate('gmat')}><Wrench size={17} aria-hidden="true"/>{c('tools')}</button><button onClick={()=>navigate('help')}><CircleHelp size={17} aria-hidden="true"/>{c('help')}</button>{onLearn&&<button onClick={onLearn}><BookOpen size={17} aria-hidden="true"/>{c('designEssentials')}</button>}{onLobby&&<button onClick={onLobby}><Radio size={17} aria-hidden="true"/>{c(guest?'pairAgain':'lobby')}</button>}<a href={`${(import.meta.env?.BASE_URL??'./')}docs/INDEX.md`}>{c('science')}</a></div></details></div></header>
+    <button className="language-button" onClick={()=>void i18n.changeLanguage(i18n.resolvedLanguage?.startsWith('pt')?'en':'pt-BR')}>{i18n.resolvedLanguage?.startsWith('pt')?'English':'Português'}</button><details className="play-menu"><summary aria-label={c('menu')}><Menu size={22}/></summary><div><button className="mission-menu-link" onClick={()=>navigate('solar')}><Compass size={17} aria-hidden="true"/>{c('explore')}</button><button className="mission-menu-link" onClick={()=>navigate('journal')}><BookOpen size={17} aria-hidden="true"/>{c('journal')}</button><button onClick={()=>navigate('gmat')}><Wrench size={17} aria-hidden="true"/>{c('tools')}</button><button onClick={()=>navigate('help')}><CircleHelp size={17} aria-hidden="true"/>{c('help')}</button>{onLearn&&<button onClick={onLearn}><BookOpen size={17} aria-hidden="true"/>{c('designEssentials')}</button>}{onQuiz&&<button onClick={onQuiz}><GraduationCap size={17} aria-hidden="true"/>Quiz</button>}{onLobby&&<button onClick={onLobby}><Radio size={17} aria-hidden="true"/>{c(guest?'pairAgain':'lobby')}</button>}<a href={scienceUrl(undefined,basePath)} onClick={onScience&&inApp(onScience)}>{c('science')}</a></div></details></div></header>
     <Suspense fallback={<div className="immersive-scene" aria-busy="true"/>}><AppCanvas design={candidate} game={game} body={candidate?.orbit?.body??destination} view={view} reducedMotion={preferences.reducedMotion} onSelectDestination={body=>{setDestination(body);navigate('explore');}} moments={moments} selectedTurn={selectedTurn} onSelectTurn={setSelectedTurn} solarBody={solarBody} onSolarBody={setSolarBody}/></Suspense>
     {showResources&&game&&<MissionResources game={game}/>}
     <div className={`play-overlays play-view-${view}`}>

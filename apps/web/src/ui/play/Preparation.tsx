@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { defaultQuickDesign, listParts, missionOffers, quickDesignBrief, quickKitOptions, type MissionOffer, type QuickDesignConfig, type QuickDesignBrief, type ReadinessCertificate } from '@astrix/core';
+import { listParts, missionOffers, quickDesignBrief, quickKitOptions, type MissionOffer, type QuickDesignConfig, type QuickDesignBrief, type ReadinessCertificate } from '@astrix/core';
 import { labelText } from '../missions/definitionView';
 import { Duration, Evidence } from './Evidence';
 import { usePlayCopy } from './copy';
 import { MissionIllustration } from '../missions/MissionIllustration';
-import { ArrowRight, BatteryFull, Check, Compass, Feather, Microscope, Rocket, Satellite, Scale, ShieldCheck, SignalHigh, SignalLow, SignalMedium, Target, Zap } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BatteryFull, Check, Compass, Feather, Microscope, Rocket, Satellite, Scale, ShieldCheck, SignalHigh, SignalLow, SignalMedium, Zap } from 'lucide-react';
 
 const AMBITIONS=['SHORT','STANDARD','AMBITIOUS'] as const,KITS=['LIGHT','ENDURANCE','SCIENCE'] as const,APPROACHES=['CAUTIOUS','BALANCED','FAST'] as const;
 /** One icon per preparation choice, so an option is recognisable before its text is read. */
 const OPTION_ICONS={SHORT:SignalLow,STANDARD:SignalMedium,AMBITIOUS:SignalHigh,LIGHT:Feather,ENDURANCE:BatteryFull,SCIENCE:Microscope,CAUTIOUS:ShieldCheck,BALANCED:Scale,FAST:Zap} as const;
 
-export function Preparation({config,onChange,onPlay,disabled=false,busy=false}:{config:QuickDesignConfig;onChange:(config:QuickDesignConfig)=>void;onPlay:()=>void;disabled?:boolean;busy?:boolean}) {
+export function Preparation({config,onChange,onPlay,onBack,disabled=false,busy=false}:{config:QuickDesignConfig;onChange:(config:QuickDesignConfig)=>void;onPlay:()=>void;onBack:()=>void;disabled?:boolean;busy?:boolean}) {
   const c=usePlayCopy(),{t,i18n}=useTranslation(),number=new Intl.NumberFormat(i18n.resolvedLanguage,{maximumFractionDigits:2});
   const offers=missionOffers(undefined,config.levelId),offer=offers.find(item=>item.missionId===config.missionId);
   const computed=useMemo(()=>{try{return {brief:quickDesignBrief(config),error:null};}catch(error){return {brief:null,error:error instanceof Error?error.message:String(error)};}},[config]);
@@ -46,11 +46,9 @@ export function Preparation({config,onChange,onPlay,disabled=false,busy=false}:{
   },[config,computed.brief,check]);
   const brief=computed.brief,status=checking?'CHECKING':certificate?.status??(brief?.compatible?'NO_VIABLE_PLAN':'INCOMPATIBLE');
   const ready=!!certificate&&certificate.identity===brief?.identity&&['READY','STRETCHED'].includes(certificate.status)&&!checking;
-  const chooseGoal=(missionId:string)=>onChange({...defaultQuickDesign(missionId as QuickDesignConfig['missionId'],config.levelId),ambition:config.ambition,kit:config.kit,approach:config.approach});
   return <section className={`preparation contextual-workspace active-${panel}`} aria-label={c('designPlay')}>
     <div className="context-panel-switch" aria-label={c('missionPanels')}><button aria-pressed={panel==='choices'} aria-controls="preparation-choices-panel" onClick={()=>setPanel('choices')}>{c('designPlay')}</button><button aria-pressed={panel==='preview'} aria-controls="preparation-brief-panel" onClick={()=>setPanel('preview')}>{c('constraints')}</button></div>
-    <div id="preparation-choices-panel" data-tour="preparation-config" className="context-panel choices-panel"><div className="panel-scroll preparation-choices"><header className="play-page-heading"><h1><Satellite size={24} aria-hidden="true"/>{c('designPlay')}</h1></header>
-    <label className="play-goal-label"><span><Target size={18} aria-hidden="true"/>{c('mission')}</span><select value={config.missionId} onChange={event=>chooseGoal(event.target.value)}>{(['SUN','EARTH','MOON','MARS'] as const).map(body=><optgroup key={body} label={c(body)}>{offers.filter(item=>item.destination===body).map(item=><option key={item.missionId} value={item.missionId}>{t(item.titleKey)}</option>)}</optgroup>)}</select></label>
+    <div id="preparation-choices-panel" data-tour="preparation-config" className="context-panel choices-panel"><div className="panel-scroll preparation-choices"><button className="text-button preparation-back" onClick={onBack}><ArrowLeft size={18} aria-hidden="true"/>{c('home')}</button><header className="play-page-heading"><h1><Satellite size={24} aria-hidden="true"/>{c('designPlay')}</h1></header>
     {offer&&<h2 className="preparation-selected-title">{t(offer.titleKey)}</h2>}
     {offer&&<p className="preparation-goal">{t(offer.descriptionKey)}</p>}
     <fieldset><legend>{c('ambition')}</legend><div className="preparation-options segmented">{AMBITIONS.map(value=>{const Icon=OPTION_ICONS[value];return <label key={value}><input type="radio" name="ambition" checked={config.ambition===value} onChange={()=>onChange({...config,ambition:value})}/><Icon size={18} aria-hidden="true"/><span>{c(value)}</span></label>;})}</div><p className="preparation-option-note">{c(`${config.ambition}_AMBITION`)}</p></fieldset>

@@ -138,7 +138,12 @@
 .panel-action { flex:none; padding:.85rem 1.1rem; border-top:1px solid var(--play-line); background:#101f2a; }
 .panel-action>p { margin-top:.5rem; font-size:.86rem; color:#bdd0da; }
 .context-panel-switch { display:none; }
-.preparation-choices { display:flex; flex-direction:column; gap:.8rem; }
+.preparation-choices { display:flex; flex-direction:column; gap:.6rem; padding-bottom:.8rem; }
+/* One line for the panel title, so the three choice groups fit without scrolling at 1080p. */
+.preparation-choices>.play-page-heading h1 { display:flex; align-items:center; gap:.5rem; font-size:1.5rem; }
+.preparation-back { align-self:flex-start; min-height:44px; }
+.preparation-choices legend { margin-bottom:.4rem; }
+.preparation-choices>.muted { font-size:.84rem; line-height:1.35; }
 .preparation-choices>.play-page-heading { margin-bottom:0; }
 .preparation-selected-title { font-size:1.05rem!important; line-height:1.35; overflow-wrap:anywhere; }
 .turn-workspace .play-page-heading h1 { font-size:1.5rem; }
@@ -147,7 +152,6 @@
 .turn-workspace .turn-objective h2 { font-size:1rem; }
 .turn-workspace .play-evidence li { padding:.45rem 0; }
 .turn-workspace .play-evidence strong { font-size:.94rem; }
-.play-goal-label { display:flex; flex-direction:column; gap:.6rem; font-weight:700; }
 .preparation-goal { margin-top:-.45rem; color:#c1d1d9; }
 .preparation-options { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.5rem; }
 .preparation-options label { position:relative; display:flex; align-items:center; gap:.55rem; padding:.7rem; border:1px solid #425865; border-radius:8px; cursor:pointer; min-width:0; }
@@ -158,12 +162,12 @@
 .preparation-options label:has(input:checked)>svg { color:#ffb767; }
 .preparation-options label:has(input:checked) { border-color:#f6a047; background:#152b45; }
 .preparation-options label:hover { background:#142936; }
-.preparation-options.segmented label { justify-content:center; min-height:46px; padding:.45rem .5rem; font-weight:600; }
-.preparation-option-note { margin:.45rem 0 0; color:#b9d0da; font-size:.86rem; line-height:1.35; }
+.preparation-options.segmented label { justify-content:center; min-height:44px; padding:.45rem .5rem; font-weight:600; }
+.preparation-option-note { margin:.35rem 0 0; color:#b9d0da; font-size:.86rem; line-height:1.35; }
 /* Kit and approach: one option per row, so the name and its description read on a line each. */
-.preparation-options.listed { grid-template-columns:minmax(0,1fr); gap:.4rem; }
-.preparation-options.listed label { display:grid; grid-template-columns:40px minmax(0,1fr) 18px; gap:.75rem; min-height:56px; padding:.45rem .75rem .45rem .5rem; }
-.preparation-option-icon { display:grid; place-items:center; width:40px; height:40px; border-radius:8px; background:#12303f; color:#85b9ed; }
+.preparation-options.listed { grid-template-columns:minmax(0,1fr); gap:.3rem; }
+.preparation-options.listed label { display:grid; grid-template-columns:36px minmax(0,1fr) 18px; gap:.7rem; min-height:50px; padding:.25rem .7rem .25rem .4rem; }
+.preparation-option-icon { display:grid; place-items:center; width:36px; height:36px; border-radius:8px; background:#12303f; color:#85b9ed; }
 .preparation-options label:has(input:checked) .preparation-option-icon { background:#f6a04726; color:#ffb767; }
 .preparation-option-text { min-width:0; }
 .preparation-option-text strong { display:block; line-height:1.25; }

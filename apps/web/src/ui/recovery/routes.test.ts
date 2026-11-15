@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { isKnownLocation, readLocationView, readPlayView, viewUrl } from './routes';
+import { isKnownLocation, isSciencePath, readLocationView, readPlayView, readScienceDoc, scienceUrl, viewUrl } from './routes';
 
 test('turn-based presentation routes respect the deployed base',()=>{
   for(const hash of ['', '#home','#solar','#explore','#prepare','#play','#journal','#gmat','#help']) {
@@ -24,4 +24,17 @@ test('GMAT interchange has its own path under the deployed base',()=>{
   expect(readLocationView('/','#solar')).toBe('solar');
   expect(viewUrl('gmat','/')).toBe('/gmat');
   expect(viewUrl('solar','/astrix')).toBe('/astrix/#solar');
+});
+
+test('rendered docs map science paths onto safe docs/*.md files',()=>{
+  expect(readScienceDoc('/science')).toBe('INDEX.md');
+  expect(readScienceDoc('/astrix/science/','/astrix/')).toBe('INDEX.md');
+  expect(readScienceDoc('/science/plans/EXPLORE_SHIP_PLAN.md')).toBe('plans/EXPLORE_SHIP_PLAN.md');
+  expect(readScienceDoc('/science/PROJECT%20NOTES.md')).toBe('PROJECT NOTES.md');
+  for(const path of ['/science/../LICENSE.md','/science/%2e%2e/x.md','/science/.hidden.md','/science/plans//x.md','/science/x.txt','/science/%E0.md','/science/a%5Cb.md'])expect(readScienceDoc(path)).toBeNull();
+  expect(readScienceDoc('/sciencefair/x.md')).toBeNull();
+  expect(isSciencePath('/science/x.txt')).toBe(true);
+  expect(isSciencePath('/sciencefair')).toBe(false);
+  expect(scienceUrl(undefined,'/astrix')).toBe('/astrix/science');
+  expect(scienceUrl('plans/A B.md','/')).toBe('/science/plans/A%20B.md');
 });

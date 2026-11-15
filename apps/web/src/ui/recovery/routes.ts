@@ -8,6 +8,8 @@ export function readPlayView(hash:string):PlayView {
 }
 /** GMAT interchange is the only view with its own path (`<base>gmat`); every other view is a hash. */
 export function isGmatPath(pathname:string,basePath='/'):boolean { return pathname===`${withSlash(basePath)}gmat`; }
+/** The quiz is a standalone study page at `<base>quiz`, outside the simulator views. */
+export function isQuizPath(pathname:string,basePath='/'):boolean { return pathname===`${withSlash(basePath)}quiz`; }
 export function readLocationView(pathname:string,hash:string,basePath='/'):PlayView {
   return isGmatPath(pathname,basePath)?'gmat':readPlayView(hash);
 }
@@ -36,6 +38,6 @@ export function scienceUrl(doc?:string,basePath='/'):string {
 }
 export function isKnownLocation(pathname:string,hash:string,basePath='/'):boolean {
   const base=withSlash(basePath);
-  if(isGmatPath(pathname,basePath))return hash==='';
+  if(isGmatPath(pathname,basePath)||isQuizPath(pathname,basePath))return hash==='';
   return (pathname===base||pathname===`${base}index.html`)&&readPlayView(hash)!=='missing';
 }

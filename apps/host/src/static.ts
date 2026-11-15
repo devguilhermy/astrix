@@ -7,7 +7,8 @@ export const publicHeaders = {
 export async function serveStatic(root:string, pathname:string):Promise<Response> {
   let path:string;try{path=decodeURIComponent(pathname);}catch{return new Response('Bad path',{status:400,headers:publicHeaders});}
   if(path.includes('\0')||path.includes('\\')||path.split('/').some(part=>part==='..'||part.startsWith('.')))return new Response('Not found',{status:404,headers:publicHeaders});
-  const relative=['/','/join','/host','/gmat'].includes(path)?'index.html':path.replace(/^\/+/, '');
+  const appRoute=['/','/join','/host','/gmat','/quiz','/science'].includes(path)||path.startsWith('/science/');
+  const relative=appRoute?'index.html':path.replace(/^\/+/, '');
   try {
     const absolute=await realpath(resolve(root,relative));
     if(!absolute.startsWith(root+sep)||(await stat(absolute)).isDirectory()||absolute.endsWith('.map'))throw new Error('Not public');
