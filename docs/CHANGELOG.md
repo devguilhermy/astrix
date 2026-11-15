@@ -2,6 +2,15 @@
 
 Shipped changes, newest first. Evidence for each entry is in [VERIFICATION.md](./VERIFICATION.md); scope and decisions are in the linked plans.
 
+## Unreleased — Shared header, rendered docs, link previews and no stored attempts (2026-11-15)
+
+- One header for the simulator and the public pages (`ui/header/header.css`): same 56 px bar, logo, tabs and language toggle. The landing, the mission-design lesson, `/science` and `/quiz` use `SiteHeader`, whose tabs open Explore, Discovery journal, GMAT tools, Science & sources and Quiz. The header stays fixed at the top while public pages scroll. The lesson's *Skip lesson* is a header tool.
+- `/science` renders the shipped `docs/*.md` (`/science/<path>.md`) with GFM tables, in-route doc links, GitHub-style anchors and a link to the raw Markdown. Unsafe or missing paths show "Document not found". The Bun host serves `/science/*` as the app; the simulator menu's *Science & sources* opens it.
+- OpenGraph/Twitter tags and a description in `index.html`, with a 1200×630 banner (`assets/og-banner.png`, the logo on white). `ASTRIX_SITE_URL` at build time makes the image URL absolute and adds `og:url`.
+- Design & Play: the goal picker is gone (the goal is chosen on the mission board); a *Mission board* back button is the panel's only navigation. Tour and help copy updated.
+- Attempts are no longer saved in the browser: no decision-boundary auto-save, no *Resume*, no save-problem notices. The retired `astrix.play.save.v1.*` slots are deleted on load. *Export current attempt* and *Import saved attempt* remain, and the replace dialog now says the current attempt is not saved. The discovery journal lasts for the page visit.
+- Returning to the landing closes the simulator: it unmounts and the local session is replaced, so mission settings and status start fresh.
+
 ## Unreleased — Explore maneuvering gas bursts and visible flight controls (2026-11-15)
 
 - Added 24 illustrative RCS outlets at eight hull corners. Pitch, yaw and roll select opposing torque couples; drag release and reversal fire counter-corrections. Powered acceleration and braking also select directional jets, without changing flight dynamics or consuming mission resources.
@@ -17,6 +26,9 @@ Plan: [player count and late invitation](./plans/PLAYER_COUNT_AND_LATE_INVITE_PL
 - An admitted phone takes its seat's share of the four disciplines (`SET_TEAM` rule); the host keeps unclaimed roles. A phone that replaces a released one takes the released share.
 - Starting a mission no longer closes admission. A phone can join mid-game and receives the current game in `WELCOME`. Admission closes automatically when full, reopens when a device is released, and still closes on *Close admission* or *Continue host-only*. The host lobby reports `seats` and `admissionOpen`.
 - `MULTIPLAYER.md` documents the wider join window and its limits: host approval per device, automatic closing when full, 15-minute invitations, rotation and the 12-request pending cap.
+- Players toggle (1 · 2 · 3 · 4, `aria-pressed`) replaces the Teammates/Solo select in the lobby, and is mirrored on the host's Design & Play above Play mission with "x of y players joined". A refused lowering explains `ROOM_FULL` in place.
+- **Invite** header button on the host display only, with an open-seat badge. Its dialog holds the Players toggle, QR/address/room/token with an expiry countdown, pending requests with Admit / Deny, Refresh QR and Close admission; it rotates the invitation first when under two minutes remain. The lobby uses the same component (`ui/multiplayer/Invitation.tsx`).
+- Phones go straight to the mission view whenever a game exists (no *Return to mission* detour) and show "x of y players joined" while waiting.
 
 ## Unreleased — Turn feedback, mission report, Sun missions and the Explore ship (2026-11-15)
 

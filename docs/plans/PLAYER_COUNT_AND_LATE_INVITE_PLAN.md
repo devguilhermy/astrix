@@ -1,6 +1,6 @@
 # Player count toggle and in-mission invitation QR
 
-**Status (2026-11-15):** proposal for review. Nothing implemented.
+**Status (2026-11-15):** implemented with the recommended option for D1–D4 (1 = host-only solo; no toggle on the static app; QR only inside the Invite panel; count may rise after start and fall only to the admitted devices). *Deny* reuses `KICK` on the pending request. Current behavior: [MULTIPLAYER.md](../MULTIPLAYER.md); evidence: [VERIFICATION.md](../VERIFICATION.md). The sections below are the original proposal.
 
 Two gaps observed in the trusted-LAN build:
 
